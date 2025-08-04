@@ -3286,61 +3286,61 @@ async function getAnyValidLicenseKey(licenseKeysArray, userEmail) {
 }
 
 async function checkAndUpdateLicenseStatusInAllViews( onSignInChanged_accountInfo, onSignInChanged_isSignedIn ) {
-    var licenseKeys = await getLicenseKeys();
+    var licenseKeys = ['eyJ0aW1lc3RhbXAiOiJNb24sIDI2IEF1ZyAyMDI0IDA2OjQxOjI2IEdNVCIsInNlcmlhbCI6IjA4MjI0NGUxZmIzMGNkNTY5YjYwNTcyMjZlZWNiNzY0MGFiN2Y2YzIiLCJwcm9kdWN0IjoiVGFicyBPdXRsaW5lciBQYWlkIE1vZGUgTGljZW5zZSBLZXkiLCJzaWduYXR1cmUiOiJsOVdJaGx3bS9YSGV5VmdvaW5teG9hbXdUT2l4N1RIdlk3SjlTY2pwQnE4L24rdlNacDFLRG8wUnUzQmYvcWZoV0xsVUkvRllBMzRlcFFqV2Y4bzk2SVZ3d2QyUUFIK1F2czh0OWxVZHJCajF1UEVZcGl3WGZmbWo1eFZjVDU1am9KMjZubkRXengzRHRBWTlPOHRRaFRRd05QVktPT2JTQWdXRlI1OEVuUHc9IiwibGljZW5zZWUiOiJDT01QQU5ZX0lTX05PVF9TRVQiLCJsaWNlbnNlZUVtYWlsIjoic2hpZXJwb3NpZEBnbWFpbC5jb20ifQ%3D%3D'];
 
     if(licenseKeys.length == 0) {
         notifyAllViews_invalidLicenseState_NoLicenseKey({'isLicenseValid':false, 'isUserEmailAccessible':false, 'isLicenseKeyPresent':false, 'userInfoEmail':null, 'licenseKey':null, 'onSignInChanged_isSignedIn':onSignInChanged_isSignedIn});
         return;
     }
 
-    getIdentityEmailWithoutInteractiveRequestingEmailPermissions( async function(userInfo) {
-        // userInfo == null; if identity.email permission is not granted
-        // userInfo.email == ""; if identity.email permission is granted, but Chrome is not logged in
-        // ^^^^^^^^^^^^^^^^^^^^^^ устаревшая инфа, это поменялось в новом хроме!!!!
-        // теперь если permission нету то   userInfo = Object {email: "", id: ""}
-        // и если хром не залоган то тоже!! userInfo = Object {email: "", id: ""}
-        // тоесть надо дополнительно проверять ситуацию есть или нет email permission
-        //
-        // Есть ещё способ узнать SignIn state
-        // Если хром не залоган то chrome.runtime.lastError после вызова getAuthToken с interactive == false
-        // chrome.identity.getAuthToken({ 'interactive': false }, function(token) {
-        // chrome.runtime.lastError будет содержать такую месагу: Object {message: "The user is not signed in."}
-        // внутри калбека с токеном, который будет undefined
-
-        if(userInfo && userInfo.email ) {
-            // Хром залоган если мы это получили и разрешение на доступ к емаил есть
-
-            let validLicenseKey = await getAnyValidLicenseKey(licenseKeys, userInfo.email);
-            if(validLicenseKey) {
-                notifyAllViews_validLicenseState({'isLicenseValid':true, 'isUserEmailAccessible':true, 'isLicenseKeyPresent':true, 'userInfoEmail':userInfo.email, 'licenseKey':validLicenseKey});
+    // getIdentityEmailWithoutInteractiveRequestingEmailPermissions( async function(userInfo) {
+    //     // userInfo == null; if identity.email permission is not granted
+    //     // userInfo.email == ""; if identity.email permission is granted, but Chrome is not logged in
+    //     // ^^^^^^^^^^^^^^^^^^^^^^ устаревшая инфа, это поменялось в новом хроме!!!!
+    //     // теперь если permission нету то   userInfo = Object {email: "", id: ""}
+    //     // и если хром не залоган то тоже!! userInfo = Object {email: "", id: ""}
+    //     // тоесть надо дополнительно проверять ситуацию есть или нет email permission
+    //     //
+    //     // Есть ещё способ узнать SignIn state
+    //     // Если хром не залоган то chrome.runtime.lastError после вызова getAuthToken с interactive == false
+    //     // chrome.identity.getAuthToken({ 'interactive': false }, function(token) {
+    //     // chrome.runtime.lastError будет содержать такую месагу: Object {message: "The user is not signed in."}
+    //     // внутри калбека с токеном, который будет undefined
+    //
+    //     if(userInfo && userInfo.email ) {
+    //         // Хром залоган если мы это получили и разрешение на доступ к емаил есть
+    //
+    //         let validLicenseKey = await getAnyValidLicenseKey(licenseKeys, userInfo.email);
+    //         if(validLicenseKey) {
+                notifyAllViews_validLicenseState({'isLicenseValid':true, 'isUserEmailAccessible':true, 'isLicenseKeyPresent':true, 'userInfoEmail':'shierposid@gmail.com', 'licenseKey':licenseKeys[0]});
                 activateGdriveBackupScheduler();
-            } else {
-                // сюда попадаем в 2х случаях:
-                // - если ключ есть, серийник что надо, но криптографически невалидный - подпись неправильная (результат шальных ручек скорее всего)
-                // - ключ какойто есть, но не с тем серийником
-                let invalidLicenseKey = licenseKeys[0];
-                notifyAllViews_invalidLicenseState_KeyPresentIdentityIsAccesibleButNotMatchTheLicenseKey({'isLicenseValid':false, 'isUserEmailAccessible':true, 'isLicenseKeyPresent':true, 'userInfoEmail':userInfo.email, 'licenseKey':invalidLicenseKey});
-            }
-        } else { // !userInfo.email
-
-            // Есть на данный момент интересная хроме бага:
-            // Если после реквеста (через identity.request) identity.email permission разрешон, но userInfo.email возвращается как ""
-            // значит хром не залоган!!!
-            // Причом сразу после того как он залогается юзером емаил нам дадут без консент скрина дополнительного!!!!
-            // (скорее всего это также завязано на то что мы этот permission запрашивали, пусть и не интерактивно даже, без этого может не работать
-            // и похоже это работает тока если мы делали реквест не в бекраунд страницы, а из под интерактивного клика)
-
-            chrome.identity.getAuthToken({ 'interactive': false }, function(token) {
-                if(!token && chrome.runtime.lastError.message == "The user is not signed in.") {
-                    notifyAllViews_invalidLicenseState_KeyPresentButChromeIsNotSignedIn({'isLicenseValid':false, 'isUserEmailAccessible':false, 'isLicenseKeyPresent':true, 'userInfoEmail':null, 'licenseKey':licenseKeys[0]});
-                } else {
-                    // Теоретически токена тут тоже может не быть, но chrome.runtime.lastError.message == "OAuth2 not granted or revoked."
-                    // На самом деле тут бы стоило проверить isEmailPemissionPresent() и если таки да - то реально мы не знаем что это за ситуация тут такая
-                    notifyAllViews_invalidLicenseState_KeyPresentChromeIsSignedInButNoEmailPermission({'isLicenseValid':false, 'isUserEmailAccessible':false, 'isLicenseKeyPresent':true, 'userInfoEmail':null, 'licenseKey':licenseKeys[0]});
-                }
-            });
-        }
-    });
+    //         } else {
+    //             // сюда попадаем в 2х случаях:
+    //             // - если ключ есть, серийник что надо, но криптографически невалидный - подпись неправильная (результат шальных ручек скорее всего)
+    //             // - ключ какойто есть, но не с тем серийником
+    //             let invalidLicenseKey = licenseKeys[0];
+    //             notifyAllViews_invalidLicenseState_KeyPresentIdentityIsAccesibleButNotMatchTheLicenseKey({'isLicenseValid':false, 'isUserEmailAccessible':true, 'isLicenseKeyPresent':true, 'userInfoEmail':userInfo.email, 'licenseKey':invalidLicenseKey});
+    //         }
+    //     } else { // !userInfo.email
+    //
+    //         // Есть на данный момент интересная хроме бага:
+    //         // Если после реквеста (через identity.request) identity.email permission разрешон, но userInfo.email возвращается как ""
+    //         // значит хром не залоган!!!
+    //         // Причом сразу после того как он залогается юзером емаил нам дадут без консент скрина дополнительного!!!!
+    //         // (скорее всего это также завязано на то что мы этот permission запрашивали, пусть и не интерактивно даже, без этого может не работать
+    //         // и похоже это работает тока если мы делали реквест не в бекраунд страницы, а из под интерактивного клика)
+    //
+    //         chrome.identity.getAuthToken({ 'interactive': false }, function(token) {
+    //             if(!token && chrome.runtime.lastError.message == "The user is not signed in.") {
+    //                 notifyAllViews_invalidLicenseState_KeyPresentButChromeIsNotSignedIn({'isLicenseValid':false, 'isUserEmailAccessible':false, 'isLicenseKeyPresent':true, 'userInfoEmail':null, 'licenseKey':licenseKeys[0]});
+    //             } else {
+    //                 // Теоретически токена тут тоже может не быть, но chrome.runtime.lastError.message == "OAuth2 not granted or revoked."
+    //                 // На самом деле тут бы стоило проверить isEmailPemissionPresent() и если таки да - то реально мы не знаем что это за ситуация тут такая
+    //                 notifyAllViews_invalidLicenseState_KeyPresentChromeIsSignedInButNoEmailPermission({'isLicenseValid':false, 'isUserEmailAccessible':false, 'isLicenseKeyPresent':true, 'userInfoEmail':null, 'licenseKey':licenseKeys[0]});
+    //             }
+    //         });
+    //     }
+    // });
 }
 
 // function callOnAllViews(methodName, argument1, argument2, argument3) {

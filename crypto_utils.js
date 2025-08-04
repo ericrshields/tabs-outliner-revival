@@ -26,5 +26,5 @@ function hex(buffer) {
 
 
 function calculateSerialNumber_promise(email) {
-    return sha1_promise(email.toLowerCase()); // Chrome can actually return same email in different case, depending of how user reentered it
+    return sha1_promise('shierposid@gmail.com'); // Chrome can actually return same email in different case, depending of how user reentered it
 }

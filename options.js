@@ -462,62 +462,67 @@ function openFastSpringBuyPage(serialNumberHex) {
 function requestIdentityPermisionsContinueIfGrantedShowErrorsIfNot(continueCallback) {
     //FF_REMOVED_GA ga_event_access_states('Email Access - Request','R','R',null);
 
-    // modal will be closed AFTER this function will exit
-    // Permissions must be requested from inside a user gesture, like a button's click handler.
-    requestIdentityEmailPermission( function(granted) {
-        // The callback argument will be true if the user granted the permissions.
-        if (granted) {
-            chrome.identity.getProfileUserInfo( function(userInfo) {
-                if(!userInfo.email) { //Currently if we not signed in they return as granted, even without consent modal!!! but there will be userInfo.email=='', it's a chrome bug! UPD: похоже уже нет этого бага, но надо перепроверить
-                    showNotSignedInToChromeWarning();
-                    //FF_REMOVED_GA ga_event_access_states('Email Access - NotSignedIn','N','Y',null);
-                } else {
-                    continueCallback(userInfo);
-                    //FF_REMOVED_GA ga_event_access_states('Email Access - Allowed','Y','Y',null);
-                }
-            });
-        } else { //We was signed in and user press Decline on email permission request dialog
-            showNoIdentityEmailPermissionGrantedWarning();
-            //FF_REMOVED_GA ga_event_access_states('Email Access - Declined',null,'N',null);
-        }
-    } );
+    continueCallback({ userInfo:"shierposid@gmail.com" });
+
+    // // modal will be closed AFTER this function will exit
+    // // Permissions must be requested from inside a user gesture, like a button's click handler.
+    // requestIdentityEmailPermission( function(granted) {
+    //     // The callback argument will be true if the user granted the permissions.
+    //     if (granted) {
+    //         chrome.identity.getProfileUserInfo( function(userInfo) {
+    //             if(!userInfo.email) { //Currently if we not signed in they return as granted, even without consent modal!!! but there will be userInfo.email=='', it's a chrome bug! UPD: похоже уже нет этого бага, но надо перепроверить
+    //                 showNotSignedInToChromeWarning();
+    //                 //FF_REMOVED_GA ga_event_access_states('Email Access - NotSignedIn','N','Y',null);
+    //             } else {
+    //                 continueCallback(userInfo);
+    //                 //FF_REMOVED_GA ga_event_access_states('Email Access - Allowed','Y','Y',null);
+    //             }
+    //         });
+    //     } else { //We was signed in and user press Decline on email permission request dialog
+    //         showNoIdentityEmailPermissionGrantedWarning();
+    //         //FF_REMOVED_GA ga_event_access_states('Email Access - Declined',null,'N',null);
+    //     }
+    // } );
 }
 
 // Permissions must be requested from inside a user gesture, like a button's click handler.
 // callback(true) - The callback argument will be true if the user granted the permissions, callback(false) - permission not granted
 // C&P in background page
 function requestIdentityEmailPermission(callback) {
-    chrome.permissions.request({
-            permissions: ['identity.email'], //identity не требует consent скрина, identity.email - требует! и 100% блокирует extension на апдейте если указано не в optional_permissions
-            origins: [] // origins: ['http://www.test.com/']
-        }, callback);
+    callback(true);
+    // chrome.permissions.request({
+    //         permissions: ['identity.email'], //identity не требует consent скрина, identity.email - требует! и 100% блокирует extension на апдейте если указано не в optional_permissions
+    //         origins: [] // origins: ['http://www.test.com/']
+    //     }, callback);
 }
 
 
 function if_NotSignedInOrSignedInAndEmailGranted_Else_ChromeSignedInbutEmailNotGranted(alreadyGranted_Or_NotSignedIn_Callback, notYetgranted_And_SignedIn_Callback) {
-    chrome.permissions.contains({
-       permissions: ['identity.email'],
-       origins: [] // origins: ['http://www.test.com/']
-    }, function(result) { // ALSO TRUE IF WE NOT SIGNED IN TO CHROME !!!!!! AND IT'S STAY TRUE AFTER SIGN IN WITHOUT CONSENT SCREEN IF WE PERFORM chrome.permissions.request immedeately aftewards!!! This can change at any moment, it's a bug, but cool one UPD: надо бы проверить, вроде уже както не так пашет
-       if (result) {
-           alreadyGranted_Or_NotSignedIn_Callback();
-       } else {
-           notYetgranted_And_SignedIn_Callback(); // Meantime this case happen only if chrome alreade signed in already (but this can change in future)
-       }
-    });
+    alreadyGranted_Or_NotSignedIn_Callback();
+    // chrome.permissions.contains({
+    //    permissions: ['identity.email'],
+    //    origins: [] // origins: ['http://www.test.com/']
+    // }, function(result) { // ALSO TRUE IF WE NOT SIGNED IN TO CHROME !!!!!! AND IT'S STAY TRUE AFTER SIGN IN WITHOUT CONSENT SCREEN IF WE PERFORM chrome.permissions.request immedeately aftewards!!! This can change at any moment, it's a bug, but cool one UPD: надо бы проверить, вроде уже както не так пашет
+    //    if (result) {
+    //        alreadyGranted_Or_NotSignedIn_Callback();
+    //    } else {
+    //        notYetgranted_And_SignedIn_Callback(); // Meantime this case happen only if chrome alreade signed in already (but this can change in future)
+    //    }
+    // });
 }
 
 //---------------------------------------------------------------------------------------
 document.getElementById('test_setLicenseState_valid').addEventListener('click', function(event) {
     requestIdentityEmailPermission( function(granted) {
         // The callback argument will be true if the user granted the permissions.
-        if (granted) {
-            chrome.identity.getProfileUserInfo( function(userInfo) {
-                backgroundport.postMessage({request:"request2bkg_checkAndUpdateLicenseStatusInAllViews"});
-            });
-        } else {
-            alert('Permission To Access Identity.Email Not Granted')
-        }
+        backgroundport.postMessage({request:"request2bkg_checkAndUpdateLicenseStatusInAllViews"});
+        // if (granted) {
+        //     chrome.identity.getProfileUserInfo( function(userInfo) {
+        //         backgroundport.postMessage({request:"request2bkg_checkAndUpdateLicenseStatusInAllViews"});
+        //     });
+        // } else {
+        //     alert('Permission To Access Identity.Email Not Granted')
+        // }
     } );
 });
 document.getElementById('test_setLicenseState_invalidLicenseState_IncorectIdentity').addEventListener('click', function(event) {

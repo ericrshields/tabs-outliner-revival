@@ -781,12 +781,12 @@ TreeView.prototype = {
         var href = model.getHref(); if(!href) return;
 
         chrome.windows.getAll({}, function(chromeWindowObjects) {
-            var chromeWindowObj = {'top':11, 'left':11, 'id':0};
+            var chromeWindowObj = {'top':11, 'left':11, 'height':720, 'width':1024, 'id':0};
 
-            // Search last opened normal window to emulate new window creation in same position
-            chromeWindowObjects.forEach(function(winobj) {
-                if( winobj['type'] == 'normal' && winobj['id'] >= chromeWindowObj.id ) chromeWindowObj = winobj;
-            });
+            // // Search last opened normal window to emulate new window creation in same position
+            // chromeWindowObjects.forEach(function(winobj) {
+            //     if( winobj['type'] == 'normal' && winobj['id'] >= chromeWindowObj.id ) chromeWindowObj = winobj;
+            // });
 
             chrome.windows.create({
                 'url': href,

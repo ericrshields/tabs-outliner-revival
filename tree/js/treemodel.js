@@ -1044,16 +1044,18 @@ function extentToTreeModel(tree, treePersistenceManager, viewsCommunicationInter
 
             // Определяем позицию и размер для нового окна
             var newWinCoordinates = _this_activetree.calculateAndMoveNextWindowPosition(ourTabsoutlinerWindow_chromeWindowObj);
+console.log(newWinCoordinates);
             var createProperties = { 'type'    : 'normal'
-                                   , 'left'    : newWinCoordinates.left
-                                   , 'top'     : newWinCoordinates.top
-                                   , 'width'   : newWinCoordinates.width
-                                   , 'height'  : newWinCoordinates.height
+                                   , 'left'    : newWinCoordinates.left || 11
+                                   , 'top'     : newWinCoordinates.top || 11
+                                   , 'width'   : newWinCoordinates.width || 1024
+                                   , 'height'  : newWinCoordinates.height || 720
                                    , 'focused' : false // отлично помогает от того чтоб не приходил onFocusChanged и в результате не происходил скролинг к востановленному окну
                                                        // Вот тока следующий востанавливающийся таб к этому таки приведёт если не придпринять меры - ибо селектает окно
                                    };
 
             if(true/*FASTFORWARDv3 localStorage['openSavedWindowsInOriginalPos']*/) waitedWindowNode.fillCreatePropertiesByPositionAndSize(createProperties);
+console.log(createProperties);
 
             // Если в иерархии присутствует WaitedSavedTab воспользуемся его урлом чтоб создать новое окно (иначе будем создавать с пустым табом), и снимем этот статус с него - мы его заменим сдесь
             if(creationWaitTab) createProperties.url = creationWaitTab.getHref();
@@ -1065,7 +1067,7 @@ function extentToTreeModel(tree, treePersistenceManager, viewsCommunicationInter
                 const display = displays[0]; //TOFIX Assuming single dispalay
                 
                 checkAndFixBounds(createProperties, display.workArea); // To prevent chrome.windows.create fail with "Invalid value for bounds. Bounds must be at least 50% within visible screen space." error
-
+console.log(createProperties);
                 // console.log("##### createProperties",createProperties);
                 chrome.windows.create(createProperties, restoreSavedWinCreationDone);
             });
@@ -1102,15 +1104,15 @@ function extentToTreeModel(tree, treePersistenceManager, viewsCommunicationInter
                 }       
                 
                 function numberToInteger (num) {
-                    if(!num /*NAN, undefined, 0*/) return 0;
+                    if(!num /*NAN, undefined, 0*/ || num < 0 /* neg values not valid */) return 0;
     
                     return Math.floor(num);
                 }
 
                 // Fix for exception Error handling response: TypeError: Error in invocation of windows.create(optional object createData, optional function callback): Error at parameter 'createData': Error at property 'left': Invalid type: expected integer, found number.
                 // После чого saved окно не открывалось
-                createProperties.height = numberToInteger(createProperties.height);
-                createProperties.width = numberToInteger(createProperties.width);
+                createProperties.height = createProperties.height === 0 ? 720 : numberToInteger(createProperties.height);
+                createProperties.width = createProperties.width === 0 ? 1024 : numberToInteger(createProperties.width);
                 createProperties.top = numberToInteger(createProperties.top);
                 createProperties.left = numberToInteger(createProperties.left);
             }
