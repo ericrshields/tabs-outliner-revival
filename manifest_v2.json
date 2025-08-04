@@ -1,0 +1,67 @@
+{
+    "version": "1.4.143",
+    "name": "= Tabs Outliner (Dev) ==",
+    "description": "The Next Generation Session Manager; A Really Working Too Many Open Tabs Solution; And Your Browsing Notebook.",
+    "minimum_chrome_version": "42.0.0.0",
+    "background": {
+        "scripts": [
+            "libs/classinheritance.js",
+            "tree/js/dboperations.js",
+            "tree/js/modelviewcomunication.js",
+            "tree/js/treemodel.js",
+            "signaturevalidator.js",
+            "background.js",
+            "backup/background-backup.js"
+        ]
+    },
+    "icons": {
+        "16": "img/favicon.png",
+        "48": "img/icon48.png",
+        "128": "img/icon128.png"
+    },
+    "browser_action": {
+        "default_title": "Tabs Outliner",
+        "default_icon": "img/icon.png"
+    },
+    "oauth2": {
+        "client_id": "1066834848938-co3nscu8dkgu0d1got3m17807vn4o59v.apps.googleusercontent.com",
+        "scopes": [
+            "https://www.googleapis.com/auth/drive.appdata"
+        ]
+    },
+    "permissions": [
+        "storage",
+        "tabs",
+        "unlimitedStorage",
+        "chrome://favicon/",
+        "identity"
+    ],
+    "optional_permissions": [
+        "identity.email",
+        "clipboardRead",
+        "clipboardWrite"
+    ],
+    "default_locale": "en",
+    "options_page": "options.html",
+    "manifest_version": 2,
+    "web_accessible_resources": [
+        "*",
+        "tree/js/treeview.js",
+        "activesessionview.js"
+    ],
+    "content_security_policy": "script-src 'self' https://www.google-analytics.com https://connect.facebook.net https://apis.google.com https://platform.twitter.com; object-src 'self';",
+    "offline_enabled": true,
+    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7T/Q9KNSYSOC4zrsnA5mZ7yoL+pTTWDfLKVzUZpwfed8T8w4kBQQrf4a/zdtYTDrAPR/F+7ARTXejMVh4RTd794OWydgFPvTmJ20A2Qwpy5VM53/UYt3Rvj8eO9M10H2voNO/Q6ruOokI8WMnQ3XaDqwPQ2lv7Qd6Xm8Cj6xXoHVIZIE+JElGkPTfkz9xsRZQCLdmZ4wxSbQKShDRjyjQ4gupbbiA22IHStnPF7VDSJ6kuJMUZgjMJedY3XPch0L5vTXVbm8W+mlUnf6yAg+NEs5T7veijtCcMJrbAXh/CS2B+w9Egp4qrK5gtBzFQ2HXZcGKdJSsyW73VFktfXdJQIDAQAB",
+    "commands": {
+        "save_close_current_tab": {
+            "description": "Save and Close current tab"
+        },
+        "save_close_current_window": {
+            "description": "Save and Close current window"
+        },
+        "save_close_all_windows": {
+            "description": "Save and Close all open windows"
+        },
+        "_execute_browser_action": {}
+    }
+}
