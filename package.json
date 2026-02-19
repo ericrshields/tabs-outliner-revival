@@ -1,0 +1,38 @@
+{
+  "name": "tabs-outliner-revival",
+  "description": "Tab management Chrome extension — revival of Tabs Outliner",
+  "private": true,
+  "version": "2.0.0-alpha.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "compile": "tsc --noEmit",
+    "postinstall": "wxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint entrypoints/ src/",
+    "format": "prettier --write 'entrypoints/**/*.{ts,tsx}' 'src/**/*.{ts,tsx}' '*.{ts,js,json}'"
+  },
+  "dependencies": {
+    "preact": "^10.25.4",
+    "react-arborist": "^3.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@preact/preset-vite": "^2.9.4",
+    "@testing-library/preact": "^3.2.4",
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.2",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "happy-dom": "^20.6.2",
+    "jsdom": "^28.1.0",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.0",
+    "vitest": "^3.1.1",
+    "wxt": "^0.20.17"
+  }
+}

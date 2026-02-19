@@ -1,0 +1,121 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: #333;
+  background: #fafafa;
+  padding: 16px;
+}
+
+.prototype-container header {
+  margin-bottom: 16px;
+}
+
+.prototype-container h1 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.prototype-container p {
+  color: #666;
+  margin-top: 4px;
+}
+
+.prototype-layout {
+  display: flex;
+  gap: 16px;
+}
+
+.tree-container {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  cursor: default;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.tree-node:hover {
+  background: #f0f4ff;
+}
+
+.tree-node.selected {
+  background: #e0e8ff;
+}
+
+.tree-node.type-window {
+  font-weight: 600;
+}
+
+.tree-node.type-separator {
+  color: #999;
+  font-size: 11px;
+}
+
+.node-arrow {
+  width: 14px;
+  font-size: 10px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.node-icon {
+  flex-shrink: 0;
+}
+
+.node-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.node-url {
+  color: #999;
+  font-size: 11px;
+  margin-left: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-log {
+  width: 300px;
+  flex-shrink: 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  padding: 12px;
+}
+
+.event-log h3 {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.log-entries {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.log-hint {
+  color: #999;
+  font-style: italic;
+}
+
+.log-entry {
+  padding: 2px 0;
+  border-bottom: 1px solid #f0f0f0;
+}

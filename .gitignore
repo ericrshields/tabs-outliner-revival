@@ -1,2 +1,21 @@
 .idea
 .claude
+
+# Dependencies
+node_modules
+
+# WXT
+.output
+.wxt
+
+# Build artifacts
+stats.html
+stats-*.json
+web-ext.config.ts
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
