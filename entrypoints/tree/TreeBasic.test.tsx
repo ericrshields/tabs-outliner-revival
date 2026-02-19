@@ -9,9 +9,7 @@ const data = [
 
 describe('react-arborist + Preact compat', () => {
   it('renders without crashing', () => {
-    const { container } = render(
-      <Tree data={data} width={300} height={200} />,
-    );
+    const { container } = render(<Tree data={data} width={300} height={200} />);
     // react-arborist mounts and renders its container.
     // Content is empty because react-window virtualization needs real DOM dimensions.
     expect(container.innerHTML.length).toBeGreaterThan(0);
