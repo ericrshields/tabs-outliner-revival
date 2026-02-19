@@ -5,7 +5,7 @@
  * subset of the full chrome.tabs.Tab / chrome.windows.Window APIs.
  */
 
-export type ChromeWindowType = 'normal' | 'popup' | 'panel' | 'app';
+export type ChromeWindowType = 'normal' | 'popup' | 'panel' | 'app' | 'devtools';
 
 export interface ChromeTabData {
   readonly id?: number;

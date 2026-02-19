@@ -1,8 +1,9 @@
 import { defineConfig } from 'vitest/config';
 import preact from '@preact/preset-vite';
+import { WxtVitest } from 'wxt/testing/vitest-plugin';
 
 export default defineConfig({
-  plugins: [preact()],
+  plugins: [preact(), await WxtVitest()],
   resolve: {
     alias: {
       react: 'preact/compat',
