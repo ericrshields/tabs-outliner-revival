@@ -12,7 +12,7 @@
     "postinstall": "wxt prepare",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint entrypoints/ src/",
+    "lint": "eslint entrypoints/ src/ *.ts *.js",
     "format": "prettier --write 'entrypoints/**/*.{ts,tsx}' 'src/**/*.{ts,tsx}' '*.{ts,js,json}'"
   },
   "dependencies": {
@@ -28,7 +28,6 @@
     "eslint": "^9.39.2",
     "eslint-plugin-react-hooks": "^7.0.1",
     "happy-dom": "^20.6.2",
-    "jsdom": "^28.1.0",
     "prettier": "^3.8.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.0",
