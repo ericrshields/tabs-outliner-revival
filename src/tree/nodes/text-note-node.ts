@@ -4,10 +4,10 @@
  * Port of legacy NodeNote. Simple leaf node with editable text content.
  */
 
-import { NodeTypesEnum } from '../../types/enums';
-import type { TextNoteData } from '../../types/node-data';
-import type { NodeMarks } from '../../types/marks';
-import type { HoveringMenuActionId, HoveringMenuAction } from '../../types/node';
+import { NodeTypesEnum } from '@/types/enums';
+import type { TextNoteData } from '@/types/node-data';
+import type { NodeMarks } from '@/types/marks';
+import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
 import { TreeNode } from '../tree-node';
 
 export class TextNoteTreeNode extends TreeNode {

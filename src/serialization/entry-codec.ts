@@ -11,9 +11,9 @@
  * it happens in normalizeSerializedNode() in hierarchy-jso.ts.
  */
 
-import { NODE_TYPE_NUM2STR, NODE_TYPE_STR2NUM } from '../types/enums';
-import type { SerializedNode, EntryWireFormat } from '../types/serialized';
-import type { NodeMarks } from '../types/marks';
+import { NODE_TYPE_NUM2STR, NODE_TYPE_STR2NUM } from '@/types/enums';
+import type { SerializedNode, EntryWireFormat } from '@/types/serialized';
+import type { NodeMarks } from '@/types/marks';
 
 /**
  * Decode an EntryWireFormat JSON string → SerializedNode.

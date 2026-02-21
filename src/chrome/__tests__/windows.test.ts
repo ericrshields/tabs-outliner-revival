@@ -11,7 +11,7 @@ import {
   onWindowRemoved,
 } from '../windows';
 import { ChromeApiError } from '../errors';
-import type { ChromeWindowData } from '../../types/chrome';
+import type { ChromeWindowData } from '@/types/chrome';
 
 describe('windows', () => {
   beforeEach(() => {

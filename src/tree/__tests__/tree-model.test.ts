@@ -8,9 +8,9 @@ import { WindowTreeNode } from '../nodes/window-node';
 import { SavedWindowTreeNode } from '../nodes/saved-window-node';
 import { GroupTreeNode } from '../nodes/group-node';
 import { TextNoteTreeNode } from '../nodes/text-note-node';
-import { NodeTypesEnum } from '../../types/enums';
-import type { HierarchyJSO } from '../../types/serialized';
-import type { MvcId } from '../../types/brands';
+import { NodeTypesEnum } from '@/types/enums';
+import type { HierarchyJSO } from '@/types/serialized';
+import type { MvcId } from '@/types/brands';
 import type { TreeMutationResult } from '../types';
 import { resetMvcIdCounter } from '../mvc-id';
 

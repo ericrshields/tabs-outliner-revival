@@ -7,7 +7,7 @@ import {
   DB_V33,
 } from '../indexeddb-reader';
 import type { LegacyDbConfig } from '../indexeddb-reader';
-import { DbOperationEnum } from '../../types/enums';
+import { DbOperationEnum } from '@/types/enums';
 
 // Helper to populate a fake IndexedDB with operations data
 async function populateDB(

@@ -5,9 +5,9 @@
  * serialized, the type field is omitted (default = savedtab).
  */
 
-import { NodeTypesEnum } from '../../types/enums';
-import type { TabData } from '../../types/node-data';
-import type { HoveringMenuActionId, HoveringMenuAction } from '../../types/node';
+import { NodeTypesEnum } from '@/types/enums';
+import type { TabData } from '@/types/node-data';
+import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
 import { TreeNode } from '../tree-node';
 import { serializeTabData } from './tab-utils';
 

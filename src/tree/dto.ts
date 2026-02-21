@@ -6,9 +6,9 @@
  * that can be sent via message passing to the view.
  */
 
-import type { NodeDTO, ParentUpdateData, ParentsUpdateData, StatsBlock } from '../types/node-dto';
-import type { HoveringMenuActionId } from '../types/node';
-import type { MvcId } from '../types/brands';
+import type { NodeDTO, ParentUpdateData, ParentsUpdateData, StatsBlock } from '@/types/node-dto';
+import type { HoveringMenuActionId } from '@/types/node';
+import type { MvcId } from '@/types/brands';
 import { TreeNode } from './tree-node';
 
 /**

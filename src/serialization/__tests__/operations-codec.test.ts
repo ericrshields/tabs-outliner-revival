@@ -4,9 +4,9 @@ import {
   operationsToHierarchy,
   hierarchyToOperations,
 } from '../operations-codec';
-import { DbOperationEnum } from '../../types/enums';
+import { DbOperationEnum } from '@/types/enums';
 import { countNodes, hierarchiesEqual } from '../hierarchy-jso';
-import type { HierarchyJSO } from '../../types/serialized';
+import type { HierarchyJSO } from '@/types/serialized';
 
 // Helper to build a minimal valid operations log
 function makeOpsLog(

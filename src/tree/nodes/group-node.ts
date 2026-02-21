@@ -5,9 +5,9 @@
  * custom favicon/title via marks.
  */
 
-import { NodeTypesEnum } from '../../types/enums';
-import type { GroupData } from '../../types/node-data';
-import type { HoveringMenuActionId, HoveringMenuAction } from '../../types/node';
+import { NodeTypesEnum } from '@/types/enums';
+import type { GroupData } from '@/types/node-data';
+import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
 import { TreeNode } from '../tree-node';
 
 export class GroupTreeNode extends TreeNode {

@@ -14,8 +14,8 @@ import { loadTree, saveTree, treeExists } from './tree-storage';
 import {
   validateOperationsLog,
   operationsToHierarchy,
-} from '../serialization/operations-codec';
-import { countNodes, hierarchiesEqual } from '../serialization/hierarchy-jso';
+} from '@/serialization/operations-codec';
+import { countNodes, hierarchiesEqual } from '@/serialization/hierarchy-jso';
 import type { LegacyDbConfig } from './indexeddb-reader';
 
 export interface MigrationResult {

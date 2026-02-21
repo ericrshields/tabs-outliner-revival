@@ -6,7 +6,7 @@
  */
 
 import { browser } from 'wxt/browser';
-import type { ChromeTabData } from '../types/chrome';
+import type { ChromeTabData } from '@/types/chrome';
 import { ChromeApiError } from './errors';
 
 /** Extract the fields we persist from a native Chrome tab. */

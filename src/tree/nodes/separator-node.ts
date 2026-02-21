@@ -5,9 +5,9 @@
  * cycled via double-click (editTitle action).
  */
 
-import { NodeTypesEnum } from '../../types/enums';
-import type { SeparatorData } from '../../types/node-data';
-import type { HoveringMenuActionId, HoveringMenuAction } from '../../types/node';
+import { NodeTypesEnum } from '@/types/enums';
+import type { SeparatorData } from '@/types/node-data';
+import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
 import { TreeNode } from '../tree-node';
 
 const SEPARATORS = [

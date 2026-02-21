@@ -12,7 +12,7 @@ import {
   onTabUpdated,
 } from '../tabs';
 import { ChromeApiError } from '../errors';
-import type { ChromeTabData } from '../../types/chrome';
+import type { ChromeTabData } from '@/types/chrome';
 
 describe('tabs', () => {
   beforeEach(() => {

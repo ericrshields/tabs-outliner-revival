@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TextNoteTreeNode } from '../../nodes/text-note-node';
 import { SeparatorTreeNode } from '../../nodes/separator-node';
-import { NodeTypesEnum } from '../../../types/enums';
+import { NodeTypesEnum } from '@/types/enums';
 import { resetMvcIdCounter } from '../../mvc-id';
 
 describe('TextNoteTreeNode', () => {

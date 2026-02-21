@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TreeModel } from '../../tree-model';
-import { hierarchiesEqual } from '../../../serialization/hierarchy-jso';
-import type { HierarchyJSO } from '../../../types/serialized';
+import { hierarchiesEqual } from '@/serialization/hierarchy-jso';
+import type { HierarchyJSO } from '@/types/serialized';
 import { resetMvcIdCounter } from '../../mvc-id';
 
 /**

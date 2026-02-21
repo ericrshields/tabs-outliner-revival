@@ -1,12 +1,43 @@
+import { resolve } from 'path';
+import { existsSync } from 'fs';
 import { defineConfig } from 'wxt';
 import preact from '@preact/preset-vite';
+
+function pathAliasPlugin() {
+  const srcDir = resolve(__dirname, 'src');
+  const extensions = ['.ts', '.tsx', '.js', '.jsx', '.json', ''];
+
+  function tryResolve(source: string): string | undefined {
+    if (!source.startsWith('@/')) return;
+    const base = resolve(srcDir, source.slice(2));
+    for (const ext of extensions) {
+      const candidate = base + ext;
+      if (existsSync(candidate)) return candidate;
+    }
+    for (const ext of extensions) {
+      const candidate = resolve(base, 'index' + ext);
+      if (existsSync(candidate)) return candidate;
+    }
+  }
+
+  return {
+    name: 'path-alias',
+    enforce: 'pre' as const,
+    resolveId: {
+      order: 'pre' as const,
+      handler(source: string) {
+        return tryResolve(source);
+      },
+    },
+  };
+}
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   // @preact/preset-vite handles JSX transform and react → preact/compat aliasing.
   // To eject to React: replace this with @vitejs/plugin-react and remove preact deps.
   vite: () => ({
-    plugins: [preact()],
+    plugins: [pathAliasPlugin(), preact()],
   }),
   manifest: {
     name: 'Tabs Outliner Revival',

@@ -7,27 +7,27 @@
  * type-specific behavior (icon, text, href, serialization data, etc.).
  */
 
-import type { MvcId } from '../types/brands';
-import type { NodeType } from '../types/enums';
-import { NodeTypesEnum } from '../types/enums';
-import type { NodeMarks } from '../types/marks';
-import type { HoveringMenuActionId, HoveringMenuAction } from '../types/node';
-import type { StatsBlock } from '../types/node-dto';
-import type { SerializedNode, HierarchyJSO } from '../types/serialized';
+import type { MvcId } from '@/types/brands';
+import type { NodeType } from '@/types/enums';
+import { NodeTypesEnum } from '@/types/enums';
+import type { NodeMarks } from '@/types/marks';
+import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
+import type { StatsBlock } from '@/types/node-dto';
+import type { SerializedNode, HierarchyJSO } from '@/types/serialized';
 import { generateMvcId } from './mvc-id';
 import type { DiffAccumulator } from './types';
-import { i2s36 } from '../serialization/base36';
+import { i2s36 } from '@/serialization/base36';
 import {
   CDID_SDID_SEPARATOR,
   CDID_SUBNODESLIST_SEPARATOR,
   SUBNODES_DIDS_SEPARATOR,
-} from '../serialization/constants';
-import { encodeEntry } from '../serialization/entry-codec';
+} from '@/serialization/constants';
+import { encodeEntry } from '@/serialization/entry-codec';
 import {
   isChangesToBase,
   serializeCurSubnodes,
   getBaseSubnodesArray,
-} from '../serialization/knot-codec';
+} from '@/serialization/knot-codec';
 
 export abstract class TreeNode {
   // -- Identity & state --

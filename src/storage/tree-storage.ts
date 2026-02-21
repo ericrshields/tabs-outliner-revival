@@ -4,9 +4,9 @@
  * Uses Epic 2's storageGet/storageSet wrappers from src/chrome/storage.ts.
  */
 
-import { storageGet, storageSet } from '../chrome/storage';
-import { isValidHierarchyJSO } from '../serialization/hierarchy-jso';
-import type { HierarchyJSO } from '../types/serialized';
+import { storageGet, storageSet } from '@/chrome/storage';
+import { isValidHierarchyJSO } from '@/serialization/hierarchy-jso';
+import type { HierarchyJSO } from '@/types/serialized';
 
 const TREE_STORAGE_KEY = 'tabs_outliner_tree';
 

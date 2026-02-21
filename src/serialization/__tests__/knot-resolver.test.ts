@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolveKnotsToHierarchy } from '../knot-resolver';
 import type { DiffSnapshot } from '../knot-resolver';
-import { NODE_TYPE_STR2NUM } from '../../types/enums';
+import { NODE_TYPE_STR2NUM } from '@/types/enums';
 import { countNodes } from '../hierarchy-jso';
 import { i2s36 } from '../base36';
 

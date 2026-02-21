@@ -5,9 +5,9 @@
  * serialization and holds the tree identity (treeId).
  */
 
-import { NodeTypesEnum } from '../../types/enums';
-import type { SessionData } from '../../types/node-data';
-import type { HoveringMenuActionId, HoveringMenuAction } from '../../types/node';
+import { NodeTypesEnum } from '@/types/enums';
+import type { SessionData } from '@/types/node-data';
+import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
 import { TreeNode } from '../tree-node';
 import { GroupTreeNode } from './group-node';
 

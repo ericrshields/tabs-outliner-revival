@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { decodeEntry, encodeEntry } from '../entry-codec';
-import type { SerializedNode } from '../../types/serialized';
-import type { NodeMarks } from '../../types/marks';
+import type { SerializedNode } from '@/types/serialized';
+import type { NodeMarks } from '@/types/marks';
 
 describe('decodeEntry', () => {
   it('decodes a savedtab (type 5, positive = expanded)', () => {

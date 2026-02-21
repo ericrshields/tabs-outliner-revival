@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TreeNode } from '../tree-node';
-import { NodeTypesEnum } from '../../types/enums';
-import type { NodeType } from '../../types/enums';
-import type { NodeMarks } from '../../types/marks';
+import { NodeTypesEnum } from '@/types/enums';
+import type { NodeType } from '@/types/enums';
+import type { NodeMarks } from '@/types/marks';
 import { resetMvcIdCounter } from '../mvc-id';
 
 /** Minimal concrete subclass for testing TreeNode base behavior. */

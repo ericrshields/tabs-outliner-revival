@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GroupTreeNode } from '../../nodes/group-node';
-import { NodeTypesEnum } from '../../../types/enums';
+import { NodeTypesEnum } from '@/types/enums';
 import { resetMvcIdCounter } from '../../mvc-id';
 
 describe('GroupTreeNode', () => {

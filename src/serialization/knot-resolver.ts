@@ -10,11 +10,11 @@
  *   4. "cdId#sdId#deltaOps"       — reference + delta operations
  */
 
-import { NodeTypesEnum } from '../types/enums';
+import { NodeTypesEnum } from '@/types/enums';
 import { restoreSubnodesList } from './knot-codec';
 import { decodeEntry } from './entry-codec';
 import { normalizeSerializedNode } from './hierarchy-jso';
-import type { SerializedNode, HierarchyJSO } from '../types/serialized';
+import type { SerializedNode, HierarchyJSO } from '@/types/serialized';
 
 export interface DiffSnapshot {
   readonly rootDid: string;

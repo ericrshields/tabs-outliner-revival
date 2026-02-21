@@ -7,7 +7,7 @@ import {
   importTreeFile,
   exportTreeFile,
 } from '../hierarchy-jso';
-import type { HierarchyJSO } from '../../types/serialized';
+import type { HierarchyJSO } from '@/types/serialized';
 
 describe('isValidHierarchyJSO', () => {
   it('accepts a minimal valid hierarchy', () => {

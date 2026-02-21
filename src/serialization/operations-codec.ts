@@ -9,8 +9,8 @@
  * We define local `Wire*` types here for the actual on-disk shape.
  */
 
-import { DbOperationEnum } from '../types/enums';
-import type { SerializedNode, HierarchyJSO } from '../types/serialized';
+import { DbOperationEnum } from '@/types/enums';
+import type { SerializedNode, HierarchyJSO } from '@/types/serialized';
 
 import { normalizeSerializedNode } from './hierarchy-jso';
 

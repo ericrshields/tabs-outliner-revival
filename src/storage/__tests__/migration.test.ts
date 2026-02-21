@@ -4,9 +4,9 @@ import { fakeBrowser } from 'wxt/testing';
 import { migrateFromLegacy, isMigrationNeeded } from '../migration';
 import { DB_V34, DB_V33 } from '../indexeddb-reader';
 import { saveTree, loadTree } from '../tree-storage';
-import { DbOperationEnum } from '../../types/enums';
+import { DbOperationEnum } from '@/types/enums';
 import type { LegacyDbConfig } from '../indexeddb-reader';
-import type { HierarchyJSO } from '../../types/serialized';
+import type { HierarchyJSO } from '@/types/serialized';
 
 // Helper to populate a fake IndexedDB with operations data
 async function populateDB(

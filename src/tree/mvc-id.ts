@@ -5,7 +5,7 @@
  * MvcIds are ephemeral (not persisted), used only for background-view communication.
  */
 
-import type { MvcId } from '../types/brands';
+import type { MvcId } from '@/types/brands';
 
 let counter = 1;
 

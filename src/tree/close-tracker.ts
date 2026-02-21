@@ -8,8 +8,8 @@
  * Uses a bounded circular buffer with configurable max entries.
  */
 
-import type { TabData } from '../types/node-data';
-import type { MvcId } from '../types/brands';
+import type { TabData } from '@/types/node-data';
+import type { MvcId } from '@/types/brands';
 import { TreeNode } from './tree-node';
 
 export interface CloseRecord {

@@ -3,8 +3,8 @@ import { TabTreeNode } from '../../nodes/tab-node';
 import { SavedTabTreeNode } from '../../nodes/saved-tab-node';
 import { WaitingTabTreeNode } from '../../nodes/waiting-tab-node';
 import { AttachWaitTabTreeNode } from '../../nodes/attach-wait-tab-node';
-import { NodeTypesEnum } from '../../../types/enums';
-import type { TabData } from '../../../types/node-data';
+import { NodeTypesEnum } from '@/types/enums';
+import type { TabData } from '@/types/node-data';
 import { resetMvcIdCounter } from '../../mvc-id';
 
 const sampleTabData: TabData = {

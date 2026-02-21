@@ -3,9 +3,9 @@
  * and .tree file import/export.
  */
 
-import { NODE_TYPE_NUM2STR } from '../types/enums';
-import type { SerializedNode, HierarchyJSO } from '../types/serialized';
-import type { NodeMarks } from '../types/marks';
+import { NODE_TYPE_NUM2STR } from '@/types/enums';
+import type { SerializedNode, HierarchyJSO } from '@/types/serialized';
+import type { NodeMarks } from '@/types/marks';
 
 /**
  * Validate that a parsed JSON value conforms to the HierarchyJSO shape.

@@ -11,8 +11,8 @@ import { WaitingWindowTreeNode } from '../nodes/waiting-window-node';
 import { GroupTreeNode } from '../nodes/group-node';
 import { TextNoteTreeNode } from '../nodes/text-note-node';
 import { SeparatorTreeNode } from '../nodes/separator-node';
-import { NodeTypesEnum } from '../../types/enums';
-import type { HierarchyJSO, SerializedNode } from '../../types/serialized';
+import { NodeTypesEnum } from '@/types/enums';
+import type { HierarchyJSO, SerializedNode } from '@/types/serialized';
 import { resetMvcIdCounter } from '../mvc-id';
 
 describe('deserializeNode', () => {

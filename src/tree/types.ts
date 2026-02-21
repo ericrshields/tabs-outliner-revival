@@ -6,8 +6,8 @@
  * describing what changed; an optional listener receives each result.
  */
 
-import type { MvcId } from '../types/brands';
-import type { ParentsUpdateData } from '../types/node-dto';
+import type { MvcId } from '@/types/brands';
+import type { ParentsUpdateData } from '@/types/node-dto';
 
 export interface TreeMutationResult {
   readonly type:

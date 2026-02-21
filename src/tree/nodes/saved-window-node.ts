@@ -4,9 +4,9 @@
  * Port of legacy NodeWindowSaved. Displays close/crash dates in title.
  */
 
-import { NodeTypesEnum } from '../../types/enums';
-import type { WindowData } from '../../types/node-data';
-import type { HoveringMenuActionId, HoveringMenuAction } from '../../types/node';
+import { NodeTypesEnum } from '@/types/enums';
+import type { WindowData } from '@/types/node-data';
+import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
 import { TreeNode } from '../tree-node';
 import { serializeWindowData } from './tab-utils';
 

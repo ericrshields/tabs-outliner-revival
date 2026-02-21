@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
 import { loadTree, saveTree, treeExists } from '../tree-storage';
-import type { HierarchyJSO } from '../../types/serialized';
+import type { HierarchyJSO } from '@/types/serialized';
 
 beforeEach(() => {
   fakeBrowser.reset();

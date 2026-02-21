@@ -5,9 +5,9 @@
  * still needed for deserialization of existing data).
  */
 
-import { NodeTypesEnum } from '../../types/enums';
-import type { TabData } from '../../types/node-data';
-import type { HoveringMenuActionId, HoveringMenuAction } from '../../types/node';
+import { NodeTypesEnum } from '@/types/enums';
+import type { TabData } from '@/types/node-data';
+import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
 import { TreeNode } from '../tree-node';
 import { SavedTabTreeNode } from './saved-tab-node';
 import { serializeTabData } from './tab-utils';

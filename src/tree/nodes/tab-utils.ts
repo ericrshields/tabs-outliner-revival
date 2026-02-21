@@ -5,7 +5,7 @@
  * without introducing an inheritance layer.
  */
 
-import type { TabData, WindowData } from '../../types/node-data';
+import type { TabData, WindowData } from '@/types/node-data';
 
 /** Serialize tab data, stripping runtime-only and default-value fields. */
 export function serializeTabData(data: TabData): TabData {

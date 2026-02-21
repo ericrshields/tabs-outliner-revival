@@ -6,11 +6,11 @@
  * Pure TypeScript — no Chrome API dependencies.
  */
 
-import type { MvcId } from '../types/brands';
-import type { NodeMarks } from '../types/marks';
-import { NodeTypesEnum } from '../types/enums';
-import type { HierarchyJSO } from '../types/serialized';
-import type { DropTarget } from '../types/drop';
+import type { MvcId } from '@/types/brands';
+import type { NodeMarks } from '@/types/marks';
+import { NodeTypesEnum } from '@/types/enums';
+import type { HierarchyJSO } from '@/types/serialized';
+import type { DropTarget } from '@/types/drop';
 import { TreeNode } from './tree-node';
 import { SessionTreeNode } from './nodes/session-node';
 import { restoreTree } from './deserialize';

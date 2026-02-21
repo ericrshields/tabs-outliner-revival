@@ -6,11 +6,11 @@
  * legacy mangled marks.
  */
 
-import { NodeTypesEnum } from '../types/enums';
-import type { NodeType } from '../types/enums';
-import type { SessionData, TabData, WindowData, TextNoteData, SeparatorData } from '../types/node-data';
-import type { HierarchyJSO, SerializedNode } from '../types/serialized';
-import { normalizeSerializedNode } from '../serialization/hierarchy-jso';
+import { NodeTypesEnum } from '@/types/enums';
+import type { NodeType } from '@/types/enums';
+import type { SessionData, TabData, WindowData, TextNoteData, SeparatorData } from '@/types/node-data';
+import type { HierarchyJSO, SerializedNode } from '@/types/serialized';
+import { normalizeSerializedNode } from '@/serialization/hierarchy-jso';
 import { TreeNode } from './tree-node';
 import { SessionTreeNode } from './nodes/session-node';
 import { TabTreeNode } from './nodes/tab-node';
