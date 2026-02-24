@@ -162,3 +162,10 @@ export function onTabActivated(
   browser.tabs.onActivated.addListener(cb);
   return () => browser.tabs.onActivated.removeListener(cb);
 }
+
+export function onTabReplaced(
+  cb: (addedTabId: number, removedTabId: number) => void,
+): () => void {
+  browser.tabs.onReplaced.addListener(cb);
+  return () => browser.tabs.onReplaced.removeListener(cb);
+}

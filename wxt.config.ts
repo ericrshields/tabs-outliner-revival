@@ -49,7 +49,7 @@ export default defineConfig({
       extension_pages:
         "script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'",
     },
-    permissions: ['storage', 'tabs', 'unlimitedStorage', 'favicon'],
+    permissions: ['alarms', 'storage', 'tabs', 'unlimitedStorage', 'favicon'],
     optional_permissions: [
       'identity',
       'identity.email',

@@ -33,6 +33,7 @@ export {
   onTabAttached,
   onTabDetached,
   onTabActivated,
+  onTabReplaced,
 } from './tabs';
 
 export {
