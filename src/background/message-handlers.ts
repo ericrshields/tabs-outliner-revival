@@ -14,12 +14,21 @@ import type {
   Req_ActivateHoveringMenuAction,
   Req_FocusTab,
 } from '@/types/messages';
+import type { MvcId } from '@/types/brands';
 import type { ActiveSession } from './active-session';
 import type { ViewBridge } from './view-bridge';
 import { toNodeDTO } from '@/tree/dto';
-import { focusTab } from '@/chrome/tabs';
-import type { TabData } from '@/types/node-data';
+import { focusTab, removeTab } from '@/chrome/tabs';
+import { removeWindow } from '@/chrome/windows';
+import type { TabData, WindowData } from '@/types/node-data';
 import { NodeTypesEnum } from '@/types/enums';
+
+const ALLOWED_ACTIONS = new Set([
+  'closeAction',
+  'deleteAction',
+  'setCursorAction',
+  'editTitleAction',
+]);
 
 /** Handle a typed view→background message. */
 export function handleViewMessage(
@@ -118,9 +127,7 @@ function handleActivateNode(
   targetNodeIdMVC: string,
   session: ActiveSession,
 ): void {
-  const node = session.treeModel.findByMvcId(
-    targetNodeIdMVC as import('@/types/brands').MvcId,
-  );
+  const node = session.treeModel.findByMvcId(targetNodeIdMVC as MvcId);
   if (!node) return;
 
   // Activate = focus the Chrome tab
@@ -137,9 +144,7 @@ function handleInvertCollapsedState(
   session: ActiveSession,
   bridge: ViewBridge,
 ): void {
-  const node = session.treeModel.findByMvcId(
-    targetNodeIdMVC as import('@/types/brands').MvcId,
-  );
+  const node = session.treeModel.findByMvcId(targetNodeIdMVC as MvcId);
   if (!node) return;
 
   session.treeModel.setCollapsed(node, !node.colapsed);
@@ -159,27 +164,25 @@ function handleHoveringMenuAction(
   session: ActiveSession,
   bridge: ViewBridge,
 ): void {
-  const node = session.treeModel.findByMvcId(
-    targetNodeIdMVC as import('@/types/brands').MvcId,
-  );
+  if (!ALLOWED_ACTIONS.has(actionId)) {
+    console.warn(`[message-handlers] Rejected unknown action: ${actionId}`);
+    return;
+  }
+
+  const node = session.treeModel.findByMvcId(targetNodeIdMVC as MvcId);
   if (!node) return;
 
   switch (actionId) {
     case 'closeAction': {
-      // Close the Chrome tab/window
       if (node.type === NodeTypesEnum.TAB) {
         const tabData = node.data as TabData;
         if (tabData.id != null) {
-          void import('@/chrome/tabs').then(({ removeTab }) =>
-            removeTab(tabData.id!),
-          );
+          void removeTab(tabData.id);
         }
       } else if (node.type === NodeTypesEnum.WINDOW) {
-        const winData = node.data as import('@/types/node-data').WindowData;
+        const winData = node.data as WindowData;
         if (winData.id != null) {
-          void import('@/chrome/windows').then(({ removeWindow }) =>
-            removeWindow(winData.id!),
-          );
+          void removeWindow(winData.id);
         }
       }
       break;
@@ -197,6 +200,7 @@ function handleHoveringMenuAction(
     }
 
     case 'setCursorAction': {
+      // User-initiated cursor moves should scroll into view
       bridge.broadcast({
         command: 'msg2view_setCursorHere',
         targetNodeIdMVC: node.idMVC,
@@ -226,7 +230,6 @@ function handleHoveringMenuAction(
     }
 
     default:
-      console.warn(`[message-handlers] Unknown action: ${actionId}`);
       break;
   }
 }

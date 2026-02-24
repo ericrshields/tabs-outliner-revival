@@ -15,7 +15,8 @@ import {
   onExtensionStartup,
   onServiceWorkerSuspend,
 } from '@/chrome/lifecycle';
-import { createTab, queryTabs } from '@/chrome/tabs';
+import { createTab, queryTabs, removeTab, focusTab } from '@/chrome/tabs';
+import { queryWindows, removeWindow } from '@/chrome/windows';
 
 export default defineBackground(() => {
   console.log('Tabs Outliner Revival: background service worker started', {
@@ -23,17 +24,23 @@ export default defineBackground(() => {
   });
 
   let session: ActiveSession | null = null;
+  let initPromise: Promise<void> | null = null;
 
   async function initSession(): Promise<void> {
-    if (session) return;
-    try {
-      session = await ActiveSession.create();
-      console.log('[background] ActiveSession created', {
-        instanceId: session.instanceId,
-      });
-    } catch (err) {
-      console.error('[background] Failed to create ActiveSession:', err);
-    }
+    if (session || initPromise) return;
+    initPromise = (async () => {
+      try {
+        session = await ActiveSession.create();
+        console.log('[background] ActiveSession created', {
+          instanceId: session.instanceId,
+        });
+      } catch (err) {
+        console.error('[background] Failed to create ActiveSession:', err);
+      } finally {
+        initPromise = null;
+      }
+    })();
+    await initPromise;
   }
 
   // Initialize session on startup and install
@@ -79,11 +86,8 @@ export default defineBackground(() => {
     // Check if tree tab already exists
     const existing = await queryTabs({ url: treeUrl });
     if (existing.length > 0 && existing[0].id != null) {
-      // Focus existing tree tab
-      const { focusTab } = await import('@/chrome/tabs');
       await focusTab(existing[0].id, existing[0].windowId ?? 0);
     } else {
-      // Create new tree tab
       await createTab({ url: treeUrl });
     }
   });
@@ -94,22 +98,17 @@ export default defineBackground(() => {
 
     switch (command) {
       case 'save_close_current_tab': {
-        // Save and close the active tab in the focused window
         const [activeTab] = await queryTabs({
           active: true,
           currentWindow: true,
         });
         if (activeTab?.id != null) {
-          const { removeTab } = await import('@/chrome/tabs');
           await removeTab(activeTab.id);
         }
         break;
       }
 
       case 'save_close_current_window': {
-        // Save and close the focused window
-        const { removeWindow } = await import('@/chrome/windows');
-        const { queryWindows } = await import('@/chrome/windows');
         const wins = await queryWindows();
         const focused = wins.find((w) => w.focused);
         if (focused?.id != null) {
@@ -119,9 +118,6 @@ export default defineBackground(() => {
       }
 
       case 'save_close_all_windows': {
-        // Save and close all windows
-        const { removeWindow } = await import('@/chrome/windows');
-        const { queryWindows } = await import('@/chrome/windows');
         const wins = await queryWindows();
         for (const win of wins) {
           if (win.id != null) {

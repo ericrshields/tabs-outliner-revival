@@ -6,6 +6,7 @@ import { CloseTracker } from '@/tree/close-tracker';
 import { SessionTreeNode } from '@/tree/nodes/session-node';
 import { WindowTreeNode } from '@/tree/nodes/window-node';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
+import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
 import { resetMvcIdCounter } from '@/tree/mvc-id';
 import type { ActiveSession } from '../active-session';
 import type { ViewToBackgroundMessage, Msg_InitTreeView } from '@/types/messages';
@@ -19,7 +20,8 @@ vi.mock('@/chrome/windows', () => ({
   removeWindow: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { focusTab } from '@/chrome/tabs';
+import { focusTab, removeTab } from '@/chrome/tabs';
+import { removeWindow } from '@/chrome/windows';
 
 function createMockPort(): Browser.runtime.Port {
   return {
@@ -129,10 +131,7 @@ describe('handleViewMessage()', () => {
       const port = createMockPort();
 
       handleViewMessage(
-        {
-          request: 'request2bkg_activateNode',
-          targetNodeIdMVC: tab.idMVC,
-        },
+        { request: 'request2bkg_activateNode', targetNodeIdMVC: tab.idMVC },
         port,
         session,
         session.viewBridge,
@@ -147,10 +146,7 @@ describe('handleViewMessage()', () => {
       const port = createMockPort();
 
       handleViewMessage(
-        {
-          request: 'request2bkg_activateNode',
-          targetNodeIdMVC: 'nonexistent',
-        },
+        { request: 'request2bkg_activateNode', targetNodeIdMVC: 'nonexistent' },
         port,
         session,
         session.viewBridge,
@@ -165,18 +161,13 @@ describe('handleViewMessage()', () => {
       const { model, win } = buildModel();
       const session = createMockSession(model);
       const port = createMockPort();
-
-      // Add a mock port to the bridge to receive broadcasts
       const viewPort = createMockPort();
       session.viewBridge.addPort(viewPort);
 
       expect(win.colapsed).toBe(false);
 
       handleViewMessage(
-        {
-          request: 'request2bkg_invertCollapsedState',
-          targetNodeIdMVC: win.idMVC,
-        },
+        { request: 'request2bkg_invertCollapsedState', targetNodeIdMVC: win.idMVC },
         port,
         session,
         session.viewBridge,
@@ -189,10 +180,12 @@ describe('handleViewMessage()', () => {
   });
 
   describe('request2bkg_activateHoveringMenuActionOnNode', () => {
-    it('handles deleteAction by removing subtree', () => {
+    it('handles deleteAction by removing subtree and broadcasting', () => {
       const { model, tab } = buildModel();
       const session = createMockSession(model);
       const port = createMockPort();
+      const viewPort = createMockPort();
+      session.viewBridge.addPort(viewPort);
       const tabIdMVC = tab.idMVC;
 
       handleViewMessage(
@@ -208,6 +201,140 @@ describe('handleViewMessage()', () => {
 
       expect(model.findByMvcId(tabIdMVC)).toBeNull();
       expect(session.scheduleSave).toHaveBeenCalled();
+      // Verify broadcast
+      const broadcastMsg = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(broadcastMsg.command).toBe('msg2view_notifyObserver');
+      expect(broadcastMsg.parameters).toContain('onNodeRemoved');
+    });
+
+    it('handles closeAction on a tab by calling removeTab', () => {
+      const { model, tab } = buildModel();
+      const session = createMockSession(model);
+      const port = createMockPort();
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateHoveringMenuActionOnNode',
+          targetNodeIdMVC: tab.idMVC,
+          actionId: 'closeAction',
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      expect(removeTab).toHaveBeenCalledWith(10);
+    });
+
+    it('handles closeAction on a window by calling removeWindow', () => {
+      const { model, win } = buildModel();
+      const session = createMockSession(model);
+      const port = createMockPort();
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateHoveringMenuActionOnNode',
+          targetNodeIdMVC: win.idMVC,
+          actionId: 'closeAction',
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      expect(removeWindow).toHaveBeenCalledWith(1);
+    });
+
+    it('handles setCursorAction by broadcasting cursor message', () => {
+      const { model, tab } = buildModel();
+      const session = createMockSession(model);
+      const port = createMockPort();
+      const viewPort = createMockPort();
+      session.viewBridge.addPort(viewPort);
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateHoveringMenuActionOnNode',
+          targetNodeIdMVC: tab.idMVC,
+          actionId: 'setCursorAction',
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      const msg = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(msg.command).toBe('msg2view_setCursorHere');
+      expect(msg.targetNodeIdMVC).toBe(tab.idMVC);
+      expect(msg.doNotScrollView).toBe(false);
+    });
+
+    it('handles editTitleAction on tab by broadcasting edit prompt', () => {
+      const { model, tab } = buildModel();
+      const session = createMockSession(model);
+      const port = createMockPort();
+      const viewPort = createMockPort();
+      session.viewBridge.addPort(viewPort);
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateHoveringMenuActionOnNode',
+          targetNodeIdMVC: tab.idMVC,
+          actionId: 'editTitleAction',
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      const msg = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(msg.command).toBe('msg2view_activateNodeTabEditTextPrompt');
+      expect(msg.targetNodeIdMVC).toBe(tab.idMVC);
+    });
+
+    it('handles editTitleAction on window by broadcasting window edit prompt', () => {
+      const { model, win } = buildModel();
+      const session = createMockSession(model);
+      const port = createMockPort();
+      const viewPort = createMockPort();
+      session.viewBridge.addPort(viewPort);
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateHoveringMenuActionOnNode',
+          targetNodeIdMVC: win.idMVC,
+          actionId: 'editTitleAction',
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      const msg = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(msg.command).toBe('msg2view_activateNodeWindowEditTextPrompt');
+    });
+
+    it('rejects unknown action IDs', () => {
+      const { model, tab } = buildModel();
+      const session = createMockSession(model);
+      const port = createMockPort();
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateHoveringMenuActionOnNode',
+          targetNodeIdMVC: tab.idMVC,
+          actionId: 'hackerAction',
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      expect(spy).toHaveBeenCalledWith(expect.stringContaining('Rejected unknown action'));
+      // Tab should not be affected
+      expect(model.findByMvcId(tab.idMVC)).not.toBeNull();
+      spy.mockRestore();
     });
   });
 
@@ -235,11 +362,7 @@ describe('handleViewMessage()', () => {
       const port = createMockPort();
 
       handleViewMessage(
-        {
-          request: 'request2bkg_focusTab',
-          tabId: 42,
-          tabWindowId: 3,
-        },
+        { request: 'request2bkg_focusTab', tabId: 42, tabWindowId: 3 },
         port,
         session,
         session.viewBridge,
@@ -257,21 +380,13 @@ describe('handleViewMessage()', () => {
       const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       handleViewMessage(
-        {
-          request: 'request2bkg_performDrop',
-          targetNodeIdMVC: 'x',
-          position: 0,
-          dataTransfer: null,
-        },
+        { request: 'request2bkg_performDrop', targetNodeIdMVC: 'x', position: 0, dataTransfer: null },
         port,
         session,
         session.viewBridge,
       );
 
-      expect(spy).toHaveBeenCalledWith(
-        expect.stringContaining('Epic 8'),
-      );
-
+      expect(spy).toHaveBeenCalledWith(expect.stringContaining('Epic 8'));
       spy.mockRestore();
     });
   });

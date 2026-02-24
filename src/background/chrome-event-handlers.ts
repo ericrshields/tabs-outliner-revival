@@ -14,6 +14,7 @@ import type { ViewBridge } from './view-bridge';
 import { NodeTypesEnum } from '@/types/enums';
 import type { TabData, WindowData } from '@/types/node-data';
 import type { ChromeTabData } from '@/types/chrome';
+import { TreeNode } from '@/tree/tree-node';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
 import { WindowTreeNode } from '@/tree/nodes/window-node';
 import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
@@ -35,6 +36,8 @@ import {
   onWindowRemoved,
   onWindowFocusChanged,
 } from '@/chrome/windows';
+
+const WINDOW_FOCUS_DEBOUNCE_MS = 100;
 
 /** Register all Chrome tab/window event listeners. Returns cleanup function. */
 export function registerChromeEventHandlers(
@@ -106,7 +109,7 @@ export function registerChromeEventHandlers(
       focusDebounceTimer = setTimeout(() => {
         focusDebounceTimer = null;
         handleWindowFocusChanged(session, bridge, windowId);
-      }, 100);
+      }, WINDOW_FOCUS_DEBOUNCE_MS);
     }),
   );
 
@@ -133,7 +136,10 @@ function handleTabCreated(
     : null;
 
   const winNode = session.treeModel.findActiveWindow(tab.windowId);
-  if (!winNode) return;
+  if (!winNode) {
+    console.warn(`[chrome-event-handlers] Window ${tab.windowId} not found for new tab ${tab.id}`);
+    return;
+  }
 
   const tabNode = new TabTreeNode(tab as TabData);
 
@@ -167,35 +173,43 @@ function handleTabRemoved(
   session.closeTracker.track(node);
 
   if (removeInfo.isWindowClosing) {
-    // Window is closing — the window handler will convert everything to saved.
-    // Just remove the tab node from the tree.
-    session.treeModel.removeSubtree(node);
-  } else {
-    // Tab closed individually — convert to saved
-    const tabData = node.data as TabData;
-    const saved = new SavedTabTreeNode(tabData);
-    saved.copyMarksAndCollapsedFrom(node);
-
-    // Only keep as saved if it has marks or children worth preserving
-    if (
-      node.isCustomMarksPresent() ||
-      node.subnodes.length > 0
-    ) {
-      session.treeModel.replaceNode(node, saved);
-      notifyNodeUpdated(bridge, saved);
-    } else {
-      session.treeModel.removeSubtree(node);
-    }
+    // Window is closing — the onWindowRemoved handler owns the conversion
+    // of all children to saved. Don't remove individual tabs here, otherwise
+    // the window handler will find an empty subnodes list.
+    return;
   }
 
-  bridge.broadcast({
-    command: 'msg2view_notifyObserver',
-    idMVC: node.idMVC,
-    parameters: ['onNodeRemoved'],
-    parentsUpdateData: node.parent
-      ? computeParentUpdatesToRoot(node.parent)
-      : undefined,
-  });
+  // Tab closed individually
+  const tabData = node.data as TabData;
+
+  if (node.isCustomMarksPresent() || node.subnodes.length > 0) {
+    // Convert to saved — preserve marks/children
+    const saved = new SavedTabTreeNode(tabData);
+    saved.copyMarksAndCollapsedFrom(node);
+    const oldParent = node.parent;
+    session.treeModel.replaceNode(node, saved);
+    notifyNodeUpdated(bridge, saved);
+    if (oldParent) {
+      bridge.broadcast({
+        command: 'msg2view_notifyObserver',
+        idMVC: saved.idMVC,
+        parameters: ['onNodeReplaced'],
+        parentsUpdateData: computeParentUpdatesToRoot(oldParent),
+      });
+    }
+  } else {
+    // Remove entirely — unmarked tab with no children
+    const oldParent = node.parent;
+    session.treeModel.removeSubtree(node);
+    bridge.broadcast({
+      command: 'msg2view_notifyObserver',
+      idMVC: node.idMVC,
+      parameters: ['onNodeRemoved'],
+      parentsUpdateData: oldParent
+        ? computeParentUpdatesToRoot(oldParent)
+        : undefined,
+    });
+  }
 
   session.scheduleSave();
 }
@@ -226,7 +240,10 @@ function handleTabMoved(
   if (!node || !node.parent) return;
 
   const winNode = session.treeModel.findActiveWindow(moveInfo.windowId);
-  if (!winNode) return;
+  if (!winNode) {
+    console.warn(`[chrome-event-handlers] Window ${moveInfo.windowId} not found for moved tab ${tabId}`);
+    return;
+  }
 
   // Reorder within the window: remove and re-insert at new position
   node.removeFromParent();
@@ -255,7 +272,10 @@ function handleTabAttached(
   const newWinNode = session.treeModel.findActiveWindow(
     attachInfo.newWindowId,
   );
-  if (!newWinNode) return;
+  if (!newWinNode) {
+    console.warn(`[chrome-event-handlers] Window ${attachInfo.newWindowId} not found for attached tab ${tabId}`);
+    return;
+  }
 
   // Move tab to new window
   if (node.parent) {
@@ -324,15 +344,12 @@ async function handleTabReplaced(
   const newTab = await getTab(addedTabId);
   if (!newTab) return;
 
-  // Update the tab node with new Chrome data (new tab ID)
-  (node as TabTreeNode).updateChromeData(newTab as TabData);
-
-  // Rebuild indices since the Chrome tab ID changed
-  // We need to remove+reinsert to update the chromeTabIndex
+  // Rebuild indices: remove with old ID, update data, re-insert with new ID
   const parent = node.parent;
   if (parent) {
     const idx = parent.subnodes.indexOf(node);
     session.treeModel.removeSubtree(node);
+    (node as TabTreeNode).updateChromeData(newTab as TabData);
     session.treeModel.insertSubnode(parent, idx, node);
   }
 
@@ -412,25 +429,31 @@ function handleWindowFocusChanged(
       notifyNodeUpdated(bridge, winNode);
     }
   }
+
+  session.scheduleSave();
 }
 
 // -- Notification helpers --
 
-function notifyNodeInserted(
-  bridge: ViewBridge,
-  node: import('@/tree/tree-node').TreeNode,
-): void {
+function notifyNodeInserted(bridge: ViewBridge, node: TreeNode): void {
   bridge.broadcast({
     command: 'msg2view_notifyObserver_onNodeUpdated',
     idMVC: node.idMVC,
     modelDataCopy: toNodeDTO(node),
   });
+
+  // Propagate parent state changes (e.g., isSubnodesPresent)
+  if (node.parent) {
+    bridge.broadcast({
+      command: 'msg2view_notifyObserver',
+      idMVC: node.parent.idMVC,
+      parameters: ['onParentUpdated'],
+      parentsUpdateData: computeParentUpdatesToRoot(node.parent),
+    });
+  }
 }
 
-function notifyNodeUpdated(
-  bridge: ViewBridge,
-  node: import('@/tree/tree-node').TreeNode,
-): void {
+function notifyNodeUpdated(bridge: ViewBridge, node: TreeNode): void {
   bridge.broadcast({
     command: 'msg2view_notifyObserver_onNodeUpdated',
     idMVC: node.idMVC,

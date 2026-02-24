@@ -20,7 +20,9 @@ import { updateBadge } from './badge-manager';
 import { createAlarm, onAlarm, clearAlarm } from '@/chrome/alarms';
 
 const KEEP_ALIVE_ALARM = 'tabs-outliner-keep-alive';
-const KEEP_ALIVE_PERIOD_MINUTES = 25 / 60; // 25 seconds
+/** Chrome alarms API requires minutes; 25 seconds keeps SW alive under 30s timeout. */
+const KEEP_ALIVE_INTERVAL_SECONDS = 25;
+const KEEP_ALIVE_PERIOD_MINUTES = KEEP_ALIVE_INTERVAL_SECONDS / 60;
 
 export class ActiveSession {
   readonly treeModel: TreeModel;

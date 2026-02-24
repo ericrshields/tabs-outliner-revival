@@ -65,6 +65,7 @@ describe('SaveScheduler', () => {
       scheduler.schedule();
       await vi.advanceTimersByTimeAsync(100);
       expect(saveFn).toHaveBeenCalledOnce();
+      expect(scheduler.isPending).toBe(false);
 
       // Advance more to ensure no extra call
       await vi.advanceTimersByTimeAsync(200);
@@ -81,6 +82,65 @@ describe('SaveScheduler', () => {
 
       scheduler.schedule();
       await vi.advanceTimersByTimeAsync(100);
+      expect(saveFn).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('dirty-while-saving', () => {
+    it('re-saves when schedule() is called during an in-flight save', async () => {
+      let resolveFirst: (() => void) | null = null;
+      const saveFn = vi.fn().mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveFirst = resolve;
+          }),
+      );
+      const scheduler = new SaveScheduler(saveFn, 100, 500);
+
+      scheduler.schedule();
+      await vi.advanceTimersByTimeAsync(100);
+      expect(saveFn).toHaveBeenCalledOnce();
+
+      // Schedule again while save is in-flight — this sets a debounce timer
+      scheduler.schedule();
+
+      // Complete the first save
+      resolveFirst!();
+      // Advance past the debounce timer for the scheduled-during-save call
+      await vi.advanceTimersByTimeAsync(100);
+
+      // The second schedule should have fired its debounce timer and saved
+      expect(saveFn).toHaveBeenCalledTimes(2);
+    });
+
+    it('collapses multiple dirty signals into single debounced re-save', async () => {
+      let resolveFirst: (() => void) | null = null;
+      let callCount = 0;
+      const saveFn = vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return new Promise<void>((resolve) => {
+            resolveFirst = resolve;
+          });
+        }
+        return Promise.resolve();
+      });
+      const scheduler = new SaveScheduler(saveFn, 100, 500);
+
+      scheduler.schedule();
+      await vi.advanceTimersByTimeAsync(100);
+      expect(saveFn).toHaveBeenCalledOnce();
+
+      // Multiple schedules during save — each resets the debounce timer
+      scheduler.schedule();
+      scheduler.schedule();
+      scheduler.schedule();
+
+      // Complete the first save
+      resolveFirst!();
+      // Advance past the debounce for the last schedule call
+      await vi.advanceTimersByTimeAsync(100);
+
       expect(saveFn).toHaveBeenCalledTimes(2);
     });
   });
@@ -107,7 +167,7 @@ describe('SaveScheduler', () => {
       expect(saveFn).toHaveBeenCalledOnce();
     });
 
-    it('does not re-enter if already saving', async () => {
+    it('marks dirty when called during in-flight save', async () => {
       let resolveFirst: (() => void) | null = null;
       const saveFn = vi.fn().mockImplementation(
         () =>
@@ -118,13 +178,15 @@ describe('SaveScheduler', () => {
       const scheduler = new SaveScheduler(saveFn, 100, 500);
 
       const first = scheduler.saveNow();
-      const second = scheduler.saveNow();
+      // Second saveNow while first is in progress — marks dirty
+      void scheduler.saveNow();
 
       resolveFirst!();
       await first;
-      await second;
+      await vi.advanceTimersByTimeAsync(0);
 
-      expect(saveFn).toHaveBeenCalledOnce();
+      // First save + re-save from dirty flag
+      expect(saveFn).toHaveBeenCalledTimes(2);
     });
   });
 

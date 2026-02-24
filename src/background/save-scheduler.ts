@@ -15,6 +15,7 @@ export class SaveScheduler {
   private _debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private _maxWaitTimer: ReturnType<typeof setTimeout> | null = null;
   private _saving = false;
+  private _dirtyWhileSaving = false;
 
   constructor(
     saveFn: () => Promise<void>,
@@ -74,13 +75,21 @@ export class SaveScheduler {
   }
 
   private async _executeSave(): Promise<void> {
-    if (this._saving) return;
+    if (this._saving) {
+      this._dirtyWhileSaving = true;
+      return;
+    }
     this._saving = true;
+    this._dirtyWhileSaving = false;
     this._clearTimers();
     try {
       await this._saveFn();
     } finally {
       this._saving = false;
+      if (this._dirtyWhileSaving) {
+        this._dirtyWhileSaving = false;
+        void this._executeSave();
+      }
     }
   }
 
