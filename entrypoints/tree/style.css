@@ -1,3 +1,53 @@
+/* ============================================================
+ * Dark theme for the Tabs Outliner tree view.
+ * Matches the legacy extension's visual style.
+ * ============================================================ */
+
+:root {
+  --bg-body: #202020;
+  --fg-default: #9cb7d3;
+  --fg-muted: #888;
+  --fg-bright: #eee;
+  --fg-link: #9cb7d3;
+
+  /* Window frame backgrounds */
+  --wf-win: #16426e;
+  --wf-win-focused: #1c5a96;
+  --wf-savedwin: #424242;
+  --wf-group: #614932;
+  --wf-session: #1f4f96;
+
+  /* Node type text colors */
+  --node-savedtab: #888;
+  --node-textnote: #dad2b4;
+  --node-separator: #555;
+
+  /* Hover / selection */
+  --hover-bg: rgba(255, 255, 255, 0.04);
+  --selected-bg: rgba(255, 255, 255, 0.08);
+
+  /* Banner */
+  --banner-bg: #3a3000;
+  --banner-fg: #c9a800;
+  --banner-border: #5a4e00;
+
+  /* Scrollbar */
+  --scrollbar-track: #2a2a2a;
+  --scrollbar-thumb: #4a6a8a;
+  --scrollbar-thumb-hover: #5a7a9a;
+
+  /* Cursor highlight */
+  --cursor-shadow: #444;
+
+  /* Hovering menu */
+  --menu-bg: rgba(40, 40, 40, 0.95);
+  --menu-fg: #ccc;
+  --menu-hover: rgba(255, 255, 255, 0.12);
+
+  /* Stats block */
+  --stats-fg: #888;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -5,11 +55,31 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 13px;
-  color: #333;
-  background: #fafafa;
+  font-family: Tahoma, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  color: var(--fg-default);
+  background: var(--bg-body);
 }
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* ---- Layout ---- */
 
 .tree-view-container {
   width: 100%;
@@ -19,12 +89,12 @@ body {
 }
 
 .connection-banner {
-  background: #fff3cd;
-  color: #856404;
+  background: var(--banner-bg);
+  color: var(--banner-fg);
   padding: 6px 12px;
   text-align: center;
   font-size: 12px;
-  border-bottom: 1px solid #ffc107;
+  border-bottom: 1px solid var(--banner-border);
   flex-shrink: 0;
 }
 
@@ -33,9 +103,11 @@ body {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #666;
+  color: var(--fg-muted);
   font-size: 14px;
 }
+
+/* ---- Tree node row ---- */
 
 .tree-node {
   display: flex;
@@ -48,23 +120,30 @@ body {
 }
 
 .tree-node:hover {
-  background: #f0f4ff;
+  background: var(--hover-bg);
 }
 
 .tree-node.selected {
-  background: #e0e8ff;
+  background: var(--selected-bg);
 }
 
-.tree-node.windowFrame {
-  font-weight: 600;
+/* Cursor node (selectedId from background) */
+.tree-node.cursor-node {
+  box-shadow: 0 0 5px var(--cursor-shadow);
+  border-radius: 4px;
 }
+
+/* ---- Arrow ---- */
 
 .node-arrow {
   width: 14px;
   font-size: 10px;
   text-align: center;
   flex-shrink: 0;
+  color: var(--fg-muted);
 }
+
+/* ---- Icon ---- */
 
 .node-icon {
   width: 16px;
@@ -72,7 +151,161 @@ body {
   flex-shrink: 0;
 }
 
-.node-name {
+/* ---- Node text ---- */
+
+.node-text {
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--fg-default);
+}
+
+/* Per-type text colors via titleCssClass */
+.node-text.savedtab {
+  color: var(--node-savedtab);
+}
+
+.node-text.textnote {
+  color: var(--node-textnote);
+}
+
+/* Selected (active) tab: bold white */
+.is-selected-tab .node-text {
+  color: var(--fg-bright);
+  font-weight: bold;
+}
+
+/* Tab links */
+.node-text a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.node-text a:hover {
+  text-decoration: underline;
+}
+
+/* ---- Window frame box ---- */
+
+.window-frame-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+  color: var(--fg-default);
+}
+
+.window-frame-box.win {
+  background: var(--wf-win);
+}
+
+.window-frame-box.savedwin {
+  background: var(--wf-savedwin);
+}
+
+.window-frame-box.group {
+  background: var(--wf-group);
+}
+
+.window-frame-box.session {
+  background: var(--wf-session);
+}
+
+/* Focused window gets brighter blue */
+.is-focused-window .window-frame-box.win {
+  background: var(--wf-win-focused);
+}
+
+/* ---- Separator ---- */
+
+.tree-node.ncc-separator {
+  height: 1px;
+  border-bottom: 1px solid var(--node-separator);
+  padding: 0;
+  gap: 0;
+}
+
+.tree-node.ncc-separator .node-arrow,
+.tree-node.ncc-separator .node-icon,
+.tree-node.ncc-separator .node-text {
+  display: none;
+}
+
+/* ---- Hovering menu ---- */
+
+.hovering-menu {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  border-radius: 14px;
+  background: var(--menu-bg);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.hovering-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--menu-fg);
+  font-size: 13px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.hovering-menu-btn:hover {
+  background: var(--menu-hover);
+}
+
+/* ---- Stats block ---- */
+
+.stats-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  margin-left: 6px;
+  color: var(--stats-fg);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.stats-block::before {
+  content: '[';
+}
+
+.stats-block::after {
+  content: ']';
+}
+
+.stats-block > span + span::before {
+  content: '/';
+  margin: 0 2px;
+}
+
+.stats-counter-icon {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  margin-right: 2px;
+  vertical-align: middle;
+}
+
+.stats-tabs-icon {
+  background-image: url('/img/tabscounter.png');
+}
+
+.stats-wins-icon {
+  background-image: url('/img/winscounter.png');
 }

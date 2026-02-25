@@ -1,50 +1,31 @@
-import { useRef, useEffect, useCallback } from 'react';
-import { Tree, NodeRendererProps } from 'react-arborist';
+import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
+import { Tree } from 'react-arborist';
 import type { TreeApi } from 'react-arborist';
 import type { NodeDTO } from '@/types/node-dto';
+import type { HoveringMenuActionId } from '@/types/node';
 import {
   usePort,
   useTreeData,
+  useWindowSize,
   nodeId,
   nodeChildren,
   buildOpenMap,
   activateNode,
   toggleCollapse,
+  executeAction,
   notifyUnload,
   requestTree,
 } from '@/view/index';
-
-function Node({ node, style, dragHandle }: NodeRendererProps<NodeDTO>) {
-  const data = node.data;
-
-  return (
-    <div
-      ref={dragHandle}
-      style={style}
-      className={`tree-node ${node.isSelected ? 'selected' : ''} ${data.titleBackgroundCssClass}`}
-    >
-      <span
-        className="node-arrow"
-        onClick={(e) => {
-          if (node.isInternal) {
-            e.stopPropagation();
-            node.toggle();
-          }
-        }}
-      >
-        {node.isInternal ? (node.isOpen ? '\u25BC' : '\u25B6') : ' '}
-      </span>
-      {data._getIcon && (
-        <img className="node-icon" src={data._getIcon} alt="" />
-      )}
-      <span className="node-name">{data._getNodeText}</span>
-    </div>
-  );
-}
+import { TreeContext } from './components/TreeContext';
+import type { HoveringMenuActions, TreeContextValue } from './components/TreeContext';
+import { NodeRow } from './components/NodeRow';
+import { HoveringMenu } from './components/HoveringMenu';
 
 export function App() {
   const treeRef = useRef<TreeApi<NodeDTO>>(null);
+  const treeContainerRef = useRef<HTMLDivElement>(null);
   const { state, isLoading, handleMessage } = useTreeData();
+  const { height: windowHeight } = useWindowSize();
 
   // Guard: suppress onToggle during programmatic open/close sync
   const isSyncingRef = useRef(false);
@@ -54,6 +35,58 @@ export function App() {
   }, []);
 
   const { postMessage, connectionState } = usePort(handleMessage, onReconnect);
+
+  // Hover state for hovering menu.
+  // Menu is visible whenever the mouse is inside the tree container.
+  // Row association updates on mouseenter of each row (no mouseleave needed).
+  // Menu hides only when the mouse leaves the tree container entirely,
+  // or when the tree scrolls (stale position).
+  const [hoverState, setHoverState] = useState<{
+    idMVC: string;
+    actions: HoveringMenuActions;
+    rect: DOMRect;
+  } | null>(null);
+
+  const handleRowEnter = useCallback(
+    (
+      id: string,
+      actions: HoveringMenuActions,
+      rect: DOMRect,
+    ) => {
+      setHoverState({ idMVC: id, actions, rect });
+    },
+    [],
+  );
+
+  const clearHover = useCallback(() => {
+    setHoverState(null);
+  }, []);
+
+  const handleAction = useCallback(
+    (idMVC: string, actionId: HoveringMenuActionId) => {
+      postMessage(executeAction(idMVC, actionId));
+      setHoverState(null);
+    },
+    [postMessage],
+  );
+
+  // Clear hover menu on scroll (position becomes stale)
+  useEffect(() => {
+    const container = treeContainerRef.current;
+    if (!container) return;
+    container.addEventListener('scroll', clearHover, true);
+    return () => container.removeEventListener('scroll', clearHover, true);
+  }, [clearHover]);
+
+  // Stable context value
+  const ctxValue: TreeContextValue = useMemo(
+    () => ({
+      cursorId: state.selectedId ?? null,
+      onRowEnter: handleRowEnter,
+      onAction: handleAction,
+    }),
+    [state.selectedId, handleRowEnter, handleAction],
+  );
 
   // Request tree on mount
   useEffect(() => {
@@ -134,24 +167,36 @@ export function App() {
       {isLoading ? (
         <div className="loading">Loading tree...</div>
       ) : (
-        <Tree<NodeDTO>
-          ref={treeRef}
-          data={state.root?.subnodes ?? []}
-          idAccessor={nodeId}
-          childrenAccessor={nodeChildren}
-          initialOpenState={state.initialOpenMap ?? {}}
-          onToggle={onToggle}
-          onActivate={onActivate}
-          selection={state.selectedId ?? undefined}
-          width="100%"
-          height={window.innerHeight}
-          rowHeight={24}
-          indent={20}
-          disableDrag
-          disableDrop
-        >
-          {Node}
-        </Tree>
+        <div ref={treeContainerRef} onMouseLeave={clearHover}>
+          <TreeContext.Provider value={ctxValue}>
+            <Tree<NodeDTO>
+              ref={treeRef}
+              data={state.root?.subnodes ?? []}
+              idAccessor={nodeId}
+              childrenAccessor={nodeChildren}
+              initialOpenState={state.initialOpenMap ?? {}}
+              onToggle={onToggle}
+              onActivate={onActivate}
+              selection={state.selectedId ?? undefined}
+              width="100%"
+              height={windowHeight}
+              rowHeight={24}
+              indent={20}
+              disableDrag
+              disableDrop
+            >
+              {NodeRow}
+            </Tree>
+          </TreeContext.Provider>
+          {hoverState && (
+            <HoveringMenu
+              idMVC={hoverState.idMVC}
+              actions={hoverState.actions.actions}
+              anchorRect={hoverState.rect}
+              onAction={handleAction}
+            />
+          )}
+        </div>
       )}
     </div>
   );
