@@ -45,7 +45,7 @@ export class SavedTabTreeNode extends TreeNode {
       return 'img/loading.gif';
     }
     return this._persistentData.favIconUrl
-      ?? ('chrome-extension://__MSG_@@extension_id__/img/chromeFavicon.png');
+      ?? ('img/chromeFavicon.png');
   }
 
   getIconForHtmlExport(): string | null {

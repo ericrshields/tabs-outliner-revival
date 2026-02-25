@@ -80,6 +80,9 @@ export default defineConfig({
         matches: ['<all_urls>'],
       },
     ],
+    action: {
+      default_title: 'Tabs Outliner Revival',
+    },
     default_locale: 'en',
     offline_enabled: true,
   },

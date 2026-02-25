@@ -44,7 +44,7 @@ export class AttachWaitTabTreeNode extends TreeNode {
       return 'img/loading.gif';
     }
     return this._chromeTabObj.favIconUrl
-      ?? ('chrome-extension://__MSG_@@extension_id__/img/chromeFavicon.png');
+      ?? ('img/chromeFavicon.png');
   }
 
   getIconForHtmlExport(): string | null {

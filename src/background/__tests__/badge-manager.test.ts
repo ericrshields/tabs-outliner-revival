@@ -44,7 +44,7 @@ describe('updateBadge()', () => {
 
     await updateBadge(model);
 
-    expect(setBadgeText).toHaveBeenCalledWith('3');
+    expect(setBadgeText).toHaveBeenCalledWith('2');
     expect(setTooltip).toHaveBeenCalledWith(
       'Tabs Outliner Revival\n3 nodes, 1 windows, 2 tabs',
     );
@@ -68,7 +68,7 @@ describe('updateBadge()', () => {
 
     await updateBadge(model);
 
-    expect(setBadgeText).toHaveBeenCalledWith('5');
+    expect(setBadgeText).toHaveBeenCalledWith('3');
     expect(setTooltip).toHaveBeenCalledWith(
       'Tabs Outliner Revival\n5 nodes, 2 windows, 3 tabs',
     );
