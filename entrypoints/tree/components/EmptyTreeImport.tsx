@@ -1,49 +1,15 @@
 import { useRef, useState, useCallback } from 'react';
 import type { DragEvent as ReactDragEvent, ChangeEvent } from 'react';
 import type { ImportResultState } from '@/view/hooks/use-tree-data';
+import { extractTreeFromDrag } from './drag-import';
 
-/** Legacy extension's custom MIME type for cross-instance tree interchange. */
-const TABS_OUTLINER_MIME = 'application/x-tabsoutliner-items';
-
-/** Marker for embedded JSON in legacy extension's text/html drag data. */
-const HTML_DATA_BEGIN = '<!--tabsoutlinerdata:begin';
-const HTML_DATA_END = 'tabsoutlinerdata:end-->';
-
-export interface EmptyTreeImportProps {
+export interface FirstRunImportProps {
   onImport: (json: string) => void;
+  onDismiss: () => void;
   importResult: ImportResultState | null;
 }
 
-/**
- * Extract tree JSON from a DnD dataTransfer.
- *
- * Priority:
- * 1. application/x-tabsoutliner-items — full HierarchyJSO from legacy extension
- * 2. text/html with embedded <!--tabsoutlinerdata:begin...end--> comment
- * 3. null (no recognized tree data in the drag)
- */
-function extractTreeFromDrag(dataTransfer: DataTransfer): string | null {
-  // 1. Custom MIME type (backup view or direct drag)
-  const tabsOutlinerData = dataTransfer.getData(TABS_OUTLINER_MIME);
-  if (tabsOutlinerData) return tabsOutlinerData;
-
-  // 2. HTML with embedded JSON (inter-instance transfers)
-  const html = dataTransfer.getData('text/html');
-  if (html && html.startsWith(HTML_DATA_BEGIN)) {
-    const endIdx = html.indexOf(HTML_DATA_END);
-    if (endIdx !== -1) {
-      // Extract JSON between the begin marker and end marker.
-      // Format: <!--tabsoutlinerdata:begin JSON_HERE tabsoutlinerdata:end-->
-      const jsonStart = HTML_DATA_BEGIN.length;
-      const jsonStr = html.substring(jsonStart, endIdx).trim();
-      if (jsonStr) return jsonStr;
-    }
-  }
-
-  return null;
-}
-
-export function EmptyTreeImport({ onImport, importResult }: EmptyTreeImportProps) {
+export function FirstRunImport({ onImport, onDismiss, importResult }: FirstRunImportProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isReading, setIsReading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -115,51 +81,60 @@ export function EmptyTreeImport({ onImport, importResult }: EmptyTreeImportProps
     .join(' ');
 
   return (
-    <div className="empty-tree-import">
-      <h2>Welcome to Tabs Outliner Revival</h2>
-      <p>No saved tree data was found.</p>
+    <div className="first-run-overlay" onClick={onDismiss}>
+      <div className="first-run-import" onClick={(e) => e.stopPropagation()}>
+        <h2>Welcome to Tabs Outliner Revival</h2>
+        <p>
+          Import your tree from the original Tabs Outliner by dragging it
+          here, or choose a <code>.tree</code> backup file.
+        </p>
 
-      <div
-        className={dropZoneClass}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <p className="drop-zone-text">
-          Drag your tree here from Tabs Outliner
-        </p>
-        <p className="drop-zone-subtext">
-          or drop a <code>.tree</code> backup file
-        </p>
+        <div
+          className={dropZoneClass}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <p className="drop-zone-text">
+            Drag your tree here from Tabs Outliner
+          </p>
+          <p className="drop-zone-subtext">
+            or drop a <code>.tree</code> backup file
+          </p>
+        </div>
+
+        <div className="import-divider">or</div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".tree,.json"
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
+        <button
+          className="import-btn"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isReading}
+        >
+          {isReading ? 'Reading file...' : 'Choose .tree File'}
+        </button>
+
+        {importResult && !importResult.success && (
+          <div className="import-error">
+            Import failed: {importResult.error ?? 'Unknown error'}
+          </div>
+        )}
+        {importResult?.success && (
+          <div className="import-success">
+            Imported {importResult.nodeCount} nodes successfully.
+          </div>
+        )}
+
+        <button className="dismiss-btn" onClick={onDismiss}>
+          Skip — start fresh
+        </button>
       </div>
-
-      <div className="import-divider">or</div>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".tree,.json"
-        onChange={handleFileChange}
-        style={{ display: 'none' }}
-      />
-      <button
-        className="import-btn"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={isReading}
-      >
-        {isReading ? 'Reading file...' : 'Choose .tree File'}
-      </button>
-
-      {importResult && !importResult.success && (
-        <div className="import-error">
-          Import failed: {importResult.error ?? 'Unknown error'}
-        </div>
-      )}
-      {importResult?.success && (
-        <div className="import-success">
-          Imported {importResult.nodeCount} nodes successfully.
-        </div>
-      )}
     </div>
   );
 }

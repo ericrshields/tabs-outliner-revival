@@ -93,29 +93,26 @@ describe('Tree App', () => {
     ).toBeTruthy();
   });
 
-  it('shows import screen when tree root has no subnodes', () => {
+  it('shows first-run import overlay on first visit', () => {
+    localStorage.removeItem('importDismissed');
     render(<App />);
-
-    const emptyRoot = makeNodeDTO({
-      idMVC: 'root' as MvcId,
-      subnodes: [],
-      isSubnodesPresent: false,
-    });
 
     const initMsg: Msg_InitTreeView = {
       command: 'msg2view_initTreeView',
-      rootNode_currentSession: emptyRoot,
+      rootNode_currentSession: makeTree(),
       globalViewId: 1,
       instanceId: 'test',
     };
 
     act(() => capturedOnMessage!(initMsg));
 
-    expect(screen.queryByText('Loading tree...')).toBeNull();
     expect(screen.getByText('Welcome to Tabs Outliner Revival')).toBeTruthy();
+    // Tree should still render behind the overlay
+    expect(screen.queryByText('Loading tree...')).toBeNull();
   });
 
-  it('does not show import screen when tree has subnodes', () => {
+  it('does not show first-run overlay after dismissal', () => {
+    localStorage.setItem('importDismissed', 'true');
     render(<App />);
 
     const initMsg: Msg_InitTreeView = {
