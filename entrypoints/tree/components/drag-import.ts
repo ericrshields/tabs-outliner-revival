@@ -19,6 +19,14 @@ const HTML_DATA_END = 'tabsoutlinerdata:end-->';
  * 5. null (no recognized tree data)
  */
 export function extractTreeFromDrag(dataTransfer: DataTransfer): string | null {
+  // Debug: log available types and data sizes
+  const types = Array.from(dataTransfer.types);
+  console.log('[drag-import] extractTreeFromDrag called, types:', types);
+  for (const type of types) {
+    const data = dataTransfer.getData(type);
+    console.log(`[drag-import] ${type}: ${data ? `${data.length} chars` : '(empty)'}`);
+  }
+
   // 1. Custom MIME type (same-origin only — blocked cross-extension)
   const tabsOutlinerData = dataTransfer.getData(TABS_OUTLINER_MIME);
   if (tabsOutlinerData) return tabsOutlinerData;
@@ -74,7 +82,22 @@ export function extractTreeFromDrag(dataTransfer: DataTransfer): string | null {
  * We walk the resulting DOM to build a HierarchyJSO tree.
  */
 function parseHtmlTreeDrop(html: string): HierarchyJSO | null {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
+  // Parse as XML to avoid resource loading side-effects from DOMParser in
+  // text/html mode. Wrap in a root element since the input is a fragment.
+  let doc: Document;
+  try {
+    doc = new DOMParser().parseFromString(
+      `<root>${html}</root>`,
+      'text/xml',
+    );
+    // Check for parse errors (XML parser returns an error document)
+    if (doc.querySelector('parsererror')) {
+      // Fall back to text/html if XML parsing fails
+      doc = new DOMParser().parseFromString(html, 'text/html');
+    }
+  } catch {
+    doc = new DOMParser().parseFromString(html, 'text/html');
+  }
 
   // DOMParser wraps bare <li> elements in a <ul> or <body>.
   // Find the first <li> as the root.

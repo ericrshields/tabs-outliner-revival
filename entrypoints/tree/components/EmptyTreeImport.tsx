@@ -53,9 +53,13 @@ export function FirstRunImport({ onImport, onDismiss, importResult }: FirstRunIm
     (e: ReactDragEvent<HTMLDivElement>) => {
       e.preventDefault();
       setIsDragOver(false);
+      console.log('[FirstRunImport] handleDrop fired');
 
       const dt = e.dataTransfer;
-      if (!dt) return;
+      if (!dt) {
+        console.log('[FirstRunImport] dataTransfer is null');
+        return;
+      }
 
       // Try extracting tree data from DnD payload (legacy extension)
       const treeJson = extractTreeFromDrag(dt as unknown as DataTransfer);
