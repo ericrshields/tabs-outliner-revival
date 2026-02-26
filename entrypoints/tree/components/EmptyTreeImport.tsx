@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import type { DragEvent as ReactDragEvent, ChangeEvent } from 'react';
+import type { DragEvent as ReactDragEvent, ChangeEvent, MouseEvent } from 'react';
 import type { ImportResultState } from '@/view/hooks/use-tree-data';
 import { extractTreeFromDrag } from './drag-import';
 
@@ -84,8 +84,26 @@ export function FirstRunImport({ onImport, onDismiss, importResult }: FirstRunIm
     .filter(Boolean)
     .join(' ');
 
+  // Prevent overlay backdrop from dismissing on drag-and-drop release
+  const handleOverlayClick = useCallback(
+    (e: MouseEvent) => {
+      // Only dismiss on genuine clicks, not mouse-up from DnD
+      if (e.detail > 0) onDismiss();
+    },
+    [onDismiss],
+  );
+
   return (
-    <div className="first-run-overlay" onClick={onDismiss}>
+    <div
+      className="first-run-overlay"
+      onClick={handleOverlayClick}
+      onDragOver={(e: ReactDragEvent<HTMLDivElement>) => e.preventDefault()}
+      onDrop={(e: ReactDragEvent<HTMLDivElement>) => {
+        // Prevent drops on the backdrop from bubbling to browser default
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
       <div className="first-run-import" onClick={(e) => e.stopPropagation()}>
         <h2>Welcome to Tabs Outliner Revival</h2>
         <p>

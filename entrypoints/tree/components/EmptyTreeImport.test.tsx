@@ -42,7 +42,8 @@ describe('FirstRunImport', () => {
       <FirstRunImport onImport={vi.fn()} onDismiss={onDismiss} importResult={null} />,
     );
 
-    fireEvent.click(container.querySelector('.first-run-overlay')!);
+    // detail > 0 distinguishes real clicks from DnD mouse-up
+    fireEvent.click(container.querySelector('.first-run-overlay')!, { detail: 1 });
     expect(onDismiss).toHaveBeenCalled();
   });
 

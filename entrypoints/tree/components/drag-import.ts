@@ -14,7 +14,7 @@ const HTML_DATA_END = 'tabsoutlinerdata:end-->';
  * Priority:
  * 1. application/x-tabsoutliner-items — full HierarchyJSO (same-origin only)
  * 2. text/html with embedded <!--tabsoutlinerdata:begin...end--> comment
- * 3. text/html <ul>/<li> structure — parsed via DOMParser into HierarchyJSO
+ * 3. text/html <li>/<ul> structure — iteratively parsed into HierarchyJSO
  * 4. text/plain — try JSON.parse as last resort
  * 5. null (no recognized tree data)
  */
@@ -45,11 +45,14 @@ export function extractTreeFromDrag(dataTransfer: DataTransfer): string | null {
       }
     }
 
-    // 3. Parse <ul>/<li> structure via DOMParser
+    // 3. Parse <li>/<ul> HTML structure from legacy extension
     const hierarchy = parseHtmlTreeDrop(html);
     if (hierarchy) {
+      console.log('[drag-import] Parsed HTML tree:', JSON.stringify(hierarchy).length, 'chars');
       return JSON.stringify(hierarchy);
     }
+
+    console.log('[drag-import] HTML parsing returned null');
   }
 
   // 4. text/plain — try JSON.parse as last resort
@@ -66,80 +69,125 @@ export function extractTreeFromDrag(dataTransfer: DataTransfer): string | null {
   return null;
 }
 
-// -- HTML tree parser using DOMParser --
+// -- HTML tree parser --
+
+interface FlatNode {
+  title: string;
+  url: string | null;
+  depth: number;
+}
 
 /**
- * Parse the legacy extension's <ul>/<li> HTML drag format into HierarchyJSO.
+ * Parse the legacy extension's <li>/<ul> HTML drag format into HierarchyJSO.
  *
- * The legacy extension serializes the tree as:
- *   <li>Current Session</li><ul>
- *     <li>Window</li><ul>
- *       <li><a href="url">title</a></li>
- *     </ul>
- *   </ul>
+ * The HTML is a flat sequence of tags — NOT properly nested HTML:
+ *   <li>Session</li><ul><li>Window</li><ul><li><a href="...">Tab</a></li></ul></ul>
  *
- * DOMParser normalizes this into nested <li> elements with <ul> children.
- * We walk the resulting DOM to build a HierarchyJSO tree.
+ * We parse it as a token stream: <ul> increments depth, </ul> decrements,
+ * and each <li>...</li> produces a node at the current depth. Then we
+ * build a tree from the flat depth-annotated list.
+ *
+ * Uses DOMParser as a tag tokenizer only — we walk childNodes iteratively
+ * without relying on the browser's HTML restructuring.
  */
 function parseHtmlTreeDrop(html: string): HierarchyJSO | null {
-  // Parse as XML to avoid resource loading side-effects from DOMParser in
-  // text/html mode. Wrap in a root element since the input is a fragment.
-  let doc: Document;
-  try {
-    doc = new DOMParser().parseFromString(
-      `<root>${html}</root>`,
-      'text/xml',
-    );
-    // Check for parse errors (XML parser returns an error document)
-    if (doc.querySelector('parsererror')) {
-      // Fall back to text/html if XML parsing fails
-      doc = new DOMParser().parseFromString(html, 'text/html');
-    }
-  } catch {
-    doc = new DOMParser().parseFromString(html, 'text/html');
-  }
-
-  // DOMParser wraps bare <li> elements in a <ul> or <body>.
-  // Find the first <li> as the root.
-  const rootLi = doc.querySelector('li');
-  if (!rootLi) return null;
-
-  return liToHierarchy(rootLi, true);
+  // Tokenize by tracking <ul> depth and collecting <li> content
+  const nodes = tokenizeFromHtml(html);
+  console.log('[drag-import] Tokenized nodes:', nodes.length);
+  if (nodes.length === 0) return null;
+  return buildHierarchy(nodes);
 }
 
 /**
- * Recursively convert a <li> DOM element into a HierarchyJSO node.
- *
- * Children are found in nested <ul> elements within the <li>.
- * Tabs are identified by having an <a> child with href.
+ * Walk the HTML string as a tag stream. Track depth via <ul>/<\/ul> tags.
+ * Extract node data from each <li>...</li> span.
  */
-function liToHierarchy(li: Element, isRoot: boolean): HierarchyJSO {
-  const children: HierarchyJSO[] = [];
+function tokenizeFromHtml(html: string): FlatNode[] {
+  const nodes: FlatNode[] = [];
+  let depth = 0;
 
-  // Child <ul> elements contain child <li> nodes
-  for (const ul of li.querySelectorAll(':scope > ul')) {
-    for (const childLi of ul.querySelectorAll(':scope > li')) {
-      children.push(liToHierarchy(childLi, false));
+  // Match opening/closing tags for ul, li, a
+  const tagRe = /<(\/?)(\w+)([^>]*)>/g;
+  let m: RegExpExecArray | null;
+  let inLi = false;
+  let liDepth = 0;
+  let currentUrl: string | null = null;
+  let currentTitle = '';
+
+  while ((m = tagRe.exec(html)) !== null) {
+    const isClose = m[1] === '/';
+    const tag = m[2].toLowerCase();
+    const attrs = m[3] ?? '';
+
+    if (tag === 'ul') {
+      if (isClose) depth--;
+      else depth++;
+    } else if (tag === 'li') {
+      if (isClose) {
+        if (inLi) {
+          nodes.push({ title: currentTitle.trim(), url: currentUrl, depth: liDepth });
+          inLi = false;
+        }
+      } else {
+        inLi = true;
+        liDepth = depth;
+        currentUrl = null;
+        currentTitle = '';
+        // Grab direct text between <li> and the next tag
+        const afterTag = html.substring(m.index + m[0].length);
+        const nextTagIdx = afterTag.indexOf('<');
+        if (nextTagIdx > 0) {
+          currentTitle = afterTag.substring(0, nextTagIdx);
+        }
+      }
+    } else if (tag === 'a' && !isClose && inLi) {
+      const hrefMatch = /href="([^"]*)"/.exec(attrs);
+      if (hrefMatch) currentUrl = hrefMatch[1];
+      // Text between <a...> and </a>
+      const afterTag = html.substring(m.index + m[0].length);
+      const closeIdx = afterTag.indexOf('</a>');
+      if (closeIdx !== -1) {
+        currentTitle = afterTag.substring(0, closeIdx);
+      }
     }
   }
 
-  const serialized = liToSerializedNode(li, isRoot, children.length > 0);
-
-  return children.length > 0
-    ? { n: serialized, s: children }
-    : { n: serialized };
+  return nodes;
 }
 
-/**
- * Convert a single <li> element to a SerializedNode.
- *
- * - Root node → session
- * - <a href="url"> → saved tab
- * - Node with children → saved window (title in marks)
- * - Leaf without URL → text note
- */
-function liToSerializedNode(
-  li: Element,
+function buildHierarchy(nodes: FlatNode[]): HierarchyJSO | null {
+  if (nodes.length === 0) return null;
+
+  function buildSubtree(index: number): { jso: HierarchyJSO; nextIndex: number } {
+    const node = nodes[index];
+    const children: HierarchyJSO[] = [];
+
+    let i = index + 1;
+    while (i < nodes.length && nodes[i].depth > node.depth) {
+      if (nodes[i].depth === node.depth + 1) {
+        const result = buildSubtree(i);
+        children.push(result.jso);
+        i = result.nextIndex;
+      } else {
+        i++;
+      }
+    }
+
+    const serialized = toSerializedNode(node, index === 0, children.length > 0);
+
+    return {
+      jso: children.length > 0
+        ? { n: serialized, s: children }
+        : { n: serialized },
+      nextIndex: i,
+    };
+  }
+
+  return buildSubtree(0).jso;
+}
+
+function toSerializedNode(
+  node: FlatNode,
   isRoot: boolean,
   hasChildren: boolean,
 ): SerializedNode {
@@ -150,37 +198,20 @@ function liToSerializedNode(
     };
   }
 
-  const anchor = li.querySelector(':scope > a');
-  if (anchor) {
-    const url = anchor.getAttribute('href') ?? '';
-    const title = anchor.textContent ?? '';
-    return { data: { url, title: title || undefined } };
+  if (node.url) {
+    return { data: { url: node.url, title: node.title || undefined } };
   }
-
-  // Get direct text content (not from child elements)
-  const title = getDirectTextContent(li);
 
   if (hasChildren) {
     return {
       type: 'savedwin',
       data: {},
-      marks: title ? { relicons: [], customTitle: title } : undefined,
+      marks: node.title ? { relicons: [], customTitle: node.title } : undefined,
     };
   }
 
   return {
     type: 'textnote',
-    data: { note: title || '' },
+    data: { note: node.title || '' },
   };
-}
-
-/** Get text content directly owned by an element, excluding child elements. */
-function getDirectTextContent(el: Element): string {
-  let text = '';
-  for (const node of el.childNodes) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      text += node.textContent ?? '';
-    }
-  }
-  return text.trim();
 }
