@@ -76,7 +76,7 @@ export default defineConfig({
     },
     web_accessible_resources: [
       {
-        resources: ['_favicon/*'],
+        resources: ['_favicon/*', 'img/*'],
         matches: ['<all_urls>'],
       },
     ],
