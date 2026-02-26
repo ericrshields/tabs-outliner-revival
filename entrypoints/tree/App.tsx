@@ -270,6 +270,7 @@ export function App() {
           )}
           <TreeContext.Provider value={ctxValue}>
             <Tree<NodeDTO>
+              key={state.globalViewId ?? 0}
               ref={treeRef}
               data={state.root?.subnodes ?? []}
               idAccessor={nodeId}

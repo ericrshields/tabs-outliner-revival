@@ -162,6 +162,12 @@ export class ActiveSession {
 
       await saveTree(hierarchy);
       this.treeModel.replaceWith(TreeModel.fromHierarchyJSO(hierarchy));
+
+      // Convert orphaned active nodes → saved (imported tabs/windows
+      // won't match any current Chrome entities)
+      await synchronizeTreeWithChrome(this.treeModel);
+      await saveTree(this.treeModel.toHierarchyJSO());
+
       return { success: true, nodeCount: countNodes(hierarchy) };
     } catch (err) {
       return {
