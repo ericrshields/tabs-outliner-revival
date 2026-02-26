@@ -11,6 +11,16 @@ import { CloseTracker } from '@/tree/close-tracker';
 import { toNodeDTO } from '@/tree/dto';
 import { loadTree, saveTree, treeExists } from '@/storage/tree-storage';
 import { isMigrationNeeded, migrateFromLegacy } from '@/storage/migration';
+import {
+  isValidHierarchyJSO,
+  countNodes,
+  exportTreeFile,
+} from '@/serialization/hierarchy-jso';
+import {
+  validateOperationsLog,
+  operationsToHierarchy,
+} from '@/serialization/operations-codec';
+import type { HierarchyJSO } from '@/types/serialized';
 import type { Msg_InitTreeView } from '@/types/messages';
 import { SaveScheduler } from './save-scheduler';
 import { ViewBridge } from './view-bridge';
@@ -116,6 +126,63 @@ export class ActiveSession {
       globalViewId: this._nextViewId,
       instanceId: this.instanceId,
     };
+  }
+
+  /** Import a tree from JSON (HierarchyJSO or legacy operations log). */
+  async importTree(
+    treeJson: string,
+  ): Promise<{ success: boolean; nodeCount: number; error?: string }> {
+    try {
+      const parsed: unknown = JSON.parse(treeJson);
+
+      let hierarchy: HierarchyJSO;
+      if (isValidHierarchyJSO(parsed)) {
+        hierarchy = parsed;
+      } else if (Array.isArray(parsed)) {
+        const validation = validateOperationsLog(parsed);
+        if (!validation.valid) {
+          return { success: false, nodeCount: 0, error: validation.reason };
+        }
+        const converted = operationsToHierarchy(parsed);
+        if (!converted) {
+          return {
+            success: false,
+            nodeCount: 0,
+            error: 'Failed to convert operations log to tree',
+          };
+        }
+        hierarchy = converted;
+      } else {
+        return {
+          success: false,
+          nodeCount: 0,
+          error: 'Unrecognized format: expected HierarchyJSO or operations log array',
+        };
+      }
+
+      await saveTree(hierarchy);
+      this.treeModel.replaceWith(TreeModel.fromHierarchyJSO(hierarchy));
+      return { success: true, nodeCount: countNodes(hierarchy) };
+    } catch (err) {
+      return {
+        success: false,
+        nodeCount: 0,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  /** Export the current tree as a JSON string. */
+  exportTree(): { success: boolean; treeJson?: string; error?: string } {
+    try {
+      const hierarchy = this.treeModel.toHierarchyJSO();
+      return { success: true, treeJson: exportTreeFile(hierarchy) };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
   }
 
   /** Schedule a debounced save. */

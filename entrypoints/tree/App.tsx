@@ -15,11 +15,13 @@ import {
   executeAction,
   notifyUnload,
   requestTree,
+  importTree,
 } from '@/view/index';
 import { TreeContext } from './components/TreeContext';
 import type { HoveringMenuActions, TreeContextValue } from './components/TreeContext';
 import { NodeRow } from './components/NodeRow';
 import { HoveringMenu } from './components/HoveringMenu';
+import { EmptyTreeImport } from './components/EmptyTreeImport';
 
 export function App() {
   const treeRef = useRef<TreeApi<NodeDTO>>(null);
@@ -100,6 +102,18 @@ export function App() {
     }
   }, [state.needsFullRefresh, postMessage]);
 
+  // Trigger file download when export is ready
+  useEffect(() => {
+    if (!state.exportJson) return;
+    const blob = new Blob([state.exportJson], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tabs-outliner-backup-${new Date().toISOString().slice(0, 10)}.tree`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [state.exportJson]);
+
   // Best-effort save on unload
   useEffect(() => {
     const handler = () => postMessage(notifyUnload());
@@ -166,6 +180,11 @@ export function App() {
       )}
       {isLoading ? (
         <div className="loading">Loading tree...</div>
+      ) : state.root && state.root.subnodes.length === 0 ? (
+        <EmptyTreeImport
+          onImport={(json) => postMessage(importTree(json))}
+          importResult={state.importResult}
+        />
       ) : (
         <div ref={treeContainerRef} onMouseLeave={clearHover}>
           <TreeContext.Provider value={ctxValue}>

@@ -249,6 +249,16 @@ export class TreeModel {
     return result;
   }
 
+  /**
+   * Replace this model's tree with another model's tree.
+   * Rebuilds all indices. Preserves the TreeModel identity so that
+   * external references (ActiveSession, save scheduler) remain valid.
+   */
+  replaceWith(other: TreeModel): void {
+    (this as unknown as { root: TreeNode }).root = other.root;
+    this.rebuildIndices();
+  }
+
   // -- Serialization --
 
   toHierarchyJSO(): HierarchyJSO {

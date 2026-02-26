@@ -309,3 +309,96 @@ body {
 .stats-wins-icon {
   background-image: url('/img/winscounter.png');
 }
+
+/* ---- Empty tree / Import screen ---- */
+
+.empty-tree-import {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--fg-default);
+}
+
+.empty-tree-import h2 {
+  color: var(--fg-bright);
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.empty-tree-import > p {
+  margin-bottom: 16px;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.import-drop-zone {
+  width: 320px;
+  padding: 32px 24px;
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.import-drop-zone.drag-over {
+  border-color: var(--wf-win-focused);
+  background: rgba(28, 90, 150, 0.12);
+}
+
+.drop-zone-text {
+  font-size: 13px;
+  color: var(--fg-bright);
+  margin-bottom: 4px;
+}
+
+.drop-zone-subtext {
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.drop-zone-subtext code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.import-divider {
+  margin: 14px 0;
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+
+.import-btn {
+  padding: 7px 18px;
+  background: var(--wf-savedwin);
+  color: var(--fg-bright);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.import-btn:hover {
+  background: #555;
+}
+
+.import-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.import-error {
+  margin-top: 14px;
+  color: #e55;
+  font-size: 11px;
+}
+
+.import-success {
+  margin-top: 14px;
+  color: #5c5;
+  font-size: 11px;
+}

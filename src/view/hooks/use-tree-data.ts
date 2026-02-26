@@ -16,10 +16,18 @@ import type {
   Msg_NotifyObserver,
   Msg_NotifyObserverOnNodeUpdated,
   Msg_SetCursorHere,
+  Msg_ImportResult,
+  Msg_ExportResult,
 } from '@/types/messages';
 import { buildOpenMap } from '../tree-adapter';
 
 // -- State types --
+
+export interface ImportResultState {
+  success: boolean;
+  nodeCount: number;
+  error?: string;
+}
 
 export interface TreeState {
   root: NodeDTO | null;
@@ -28,6 +36,8 @@ export interface TreeState {
   instanceId: string | null;
   initialOpenMap: Record<string, boolean> | null;
   needsFullRefresh: boolean;
+  importResult: ImportResultState | null;
+  exportJson: string | null;
 }
 
 const INITIAL_STATE: TreeState = {
@@ -37,6 +47,8 @@ const INITIAL_STATE: TreeState = {
   instanceId: null,
   initialOpenMap: null,
   needsFullRefresh: false,
+  importResult: null,
+  exportJson: null,
 };
 
 // -- Reducer actions --
@@ -46,7 +58,9 @@ type TreeAction =
   | { type: 'NODE_UPDATED'; idMVC: string; modelDataCopy: NodeDTO }
   | { type: 'NODE_REMOVED'; idMVC: string }
   | { type: 'SET_CURSOR'; targetId: string }
-  | { type: 'FULL_REFRESH_NEEDED' };
+  | { type: 'FULL_REFRESH_NEEDED' }
+  | { type: 'IMPORT_RESULT'; success: boolean; nodeCount: number; error?: string }
+  | { type: 'EXPORT_READY'; treeJson: string };
 
 // -- Index types --
 
@@ -150,6 +164,8 @@ function createReducer(indexesRef: { current: Indexes }) {
           instanceId: action.msg.instanceId,
           initialOpenMap: buildOpenMap(root),
           needsFullRefresh: false,
+          importResult: null,
+          exportJson: null,
         };
       }
 
@@ -221,6 +237,19 @@ function createReducer(indexesRef: { current: Indexes }) {
       case 'FULL_REFRESH_NEEDED':
         return { ...state, needsFullRefresh: true };
 
+      case 'IMPORT_RESULT':
+        return {
+          ...state,
+          importResult: {
+            success: action.success,
+            nodeCount: action.nodeCount,
+            error: action.error,
+          },
+        };
+
+      case 'EXPORT_READY':
+        return { ...state, exportJson: action.treeJson };
+
       default:
         return state;
     }
@@ -284,6 +313,25 @@ export function useTreeData(): UseTreeDataReturn {
       case 'msg2view_setCursorHere': {
         const cursor = msg as Msg_SetCursorHere;
         dispatch({ type: 'SET_CURSOR', targetId: cursor.targetNodeIdMVC });
+        break;
+      }
+
+      case 'msg2view_importResult': {
+        const result = msg as Msg_ImportResult;
+        dispatch({
+          type: 'IMPORT_RESULT',
+          success: result.success,
+          nodeCount: result.nodeCount,
+          error: result.error,
+        });
+        break;
+      }
+
+      case 'msg2view_exportResult': {
+        const result = msg as Msg_ExportResult;
+        if (result.success && result.treeJson) {
+          dispatch({ type: 'EXPORT_READY', treeJson: result.treeJson });
+        }
         break;
       }
 
