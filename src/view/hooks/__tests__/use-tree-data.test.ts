@@ -142,7 +142,7 @@ describe('useTreeData', () => {
       act(() => result.current.handleMessage(makeInitMessage()));
 
       const updateMsg = makeNodeUpdatedMessage('tab1', {
-        _getNodeText: 'Updated GitHub',
+        nodeText: 'Updated GitHub',
       });
 
       act(() => result.current.handleMessage(updateMsg));
@@ -150,7 +150,7 @@ describe('useTreeData', () => {
       // Find tab1 in the tree
       const win1 = result.current.state.root!.subnodes[0];
       const tab1 = win1.subnodes[0];
-      expect(tab1._getNodeText).toBe('Updated GitHub');
+      expect(tab1.nodeText).toBe('Updated GitHub');
     });
 
     it('preserves subnodes of the updated node', () => {
@@ -159,13 +159,13 @@ describe('useTreeData', () => {
 
       // win1 has 2 children (tab1, tab2)
       const updateMsg = makeNodeUpdatedMessage('win1', {
-        _getNodeText: 'Updated Window',
+        nodeText: 'Updated Window',
       });
 
       act(() => result.current.handleMessage(updateMsg));
 
       const win1 = result.current.state.root!.subnodes[0];
-      expect(win1._getNodeText).toBe('Updated Window');
+      expect(win1.nodeText).toBe('Updated Window');
       expect(win1.subnodes).toHaveLength(2);
       expect(win1.subnodes[0].idMVC).toBe('tab1');
     });
@@ -178,7 +178,7 @@ describe('useTreeData', () => {
 
       act(() => {
         result.current.handleMessage(
-          makeNodeUpdatedMessage('tab1', { _getNodeText: 'Changed' }),
+          makeNodeUpdatedMessage('tab1', { nodeText: 'Changed' }),
         );
       });
 
@@ -191,7 +191,7 @@ describe('useTreeData', () => {
 
       act(() => {
         result.current.handleMessage(
-          makeNodeUpdatedMessage('unknown-node', { _getNodeText: 'New Tab' }),
+          makeNodeUpdatedMessage('unknown-node', { nodeText: 'New Tab' }),
         );
       });
 
@@ -203,7 +203,7 @@ describe('useTreeData', () => {
 
       act(() => {
         result.current.handleMessage(
-          makeNodeUpdatedMessage('tab1', { _getNodeText: 'Changed' }),
+          makeNodeUpdatedMessage('tab1', { nodeText: 'Changed' }),
         );
       });
 
@@ -374,20 +374,20 @@ describe('useTreeData', () => {
       // Update tab1
       act(() => {
         result.current.handleMessage(
-          makeNodeUpdatedMessage('tab1', { _getNodeText: 'First Update' }),
+          makeNodeUpdatedMessage('tab1', { nodeText: 'First Update' }),
         );
       });
 
       // Update tab2
       act(() => {
         result.current.handleMessage(
-          makeNodeUpdatedMessage('tab2', { _getNodeText: 'Second Update' }),
+          makeNodeUpdatedMessage('tab2', { nodeText: 'Second Update' }),
         );
       });
 
       const win1 = result.current.state.root!.subnodes[0];
-      expect(win1.subnodes[0]._getNodeText).toBe('First Update');
-      expect(win1.subnodes[1]._getNodeText).toBe('Second Update');
+      expect(win1.subnodes[0].nodeText).toBe('First Update');
+      expect(win1.subnodes[1].nodeText).toBe('Second Update');
     });
 
     it('handles remove then update on sibling', () => {
@@ -404,13 +404,13 @@ describe('useTreeData', () => {
       // Update tab2 (now the only child of win1)
       act(() => {
         result.current.handleMessage(
-          makeNodeUpdatedMessage('tab2', { _getNodeText: 'Still Here' }),
+          makeNodeUpdatedMessage('tab2', { nodeText: 'Still Here' }),
         );
       });
 
       const win1 = result.current.state.root!.subnodes[0];
       expect(win1.subnodes).toHaveLength(1);
-      expect(win1.subnodes[0]._getNodeText).toBe('Still Here');
+      expect(win1.subnodes[0].nodeText).toBe('Still Here');
     });
 
     it('handles re-init after incremental updates', () => {
@@ -420,7 +420,7 @@ describe('useTreeData', () => {
       // Do some updates
       act(() => {
         result.current.handleMessage(
-          makeNodeUpdatedMessage('tab1', { _getNodeText: 'Changed' }),
+          makeNodeUpdatedMessage('tab1', { nodeText: 'Changed' }),
         );
       });
       act(() => {
@@ -435,7 +435,7 @@ describe('useTreeData', () => {
       // Tree should be fresh
       const win1 = result.current.state.root!.subnodes[0];
       expect(win1.subnodes).toHaveLength(2);
-      expect(win1.subnodes[0]._getNodeText).not.toBe('Changed');
+      expect(win1.subnodes[0].nodeText).not.toBe('Changed');
     });
   });
 });

@@ -28,10 +28,10 @@ export function NodeRow({
     'tree-node',
     node.isSelected ? 'selected' : '',
     data.titleBackgroundCssClass,
-    data._isSelectedTab ? 'is-selected-tab' : '',
-    data._isFocusedWindow ? 'is-focused-window' : '',
+    data.isSelectedTab ? 'is-selected-tab' : '',
+    data.isFocusedWindow ? 'is-focused-window' : '',
     isCursor ? 'cursor-node' : '',
-    data._getNodeContentCssClass ? `ncc-${data._getNodeContentCssClass}` : '',
+    data.nodeContentCssClass ? `ncc-${data.nodeContentCssClass}` : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -41,18 +41,18 @@ export function NodeRow({
     const rect = el.getBoundingClientRect();
     ctx.onRowEnter(
       data.idMVC,
-      { idMVC: data.idMVC, actions: data._hoveringMenuActions },
+      { idMVC: data.idMVC, actions: data.hoveringMenuActions },
       rect,
     );
   };
 
-  const textStyle = parseCustomStyle(data._getNodeTextCustomStyle);
+  const textStyle = parseCustomStyle(data.nodeTextCustomStyle);
 
   const arrow = node.isInternal ? (node.isOpen ? '\u25BC' : '\u25B6') : ' ';
 
-  const textContent = data._getHref ? (
+  const textContent = data.href ? (
     <a
-      href={data._getHref}
+      href={data.href}
       draggable={false}
       onClick={(e) => {
         // Allow ctrl+click / middle-click to follow link naturally
@@ -61,29 +61,29 @@ export function NodeRow({
         }
       }}
     >
-      {data._getNodeText}
+      {data.nodeText}
     </a>
   ) : (
-    data._getNodeText
+    data.nodeText
   );
 
-  const icon = data._getIcon ? (
-    <img className="node-icon" src={data._getIcon} alt="" />
+  const icon = data.icon ? (
+    <img className="node-icon" src={data.icon} alt="" />
   ) : null;
 
   const textEl = (
     <span
       className={`node-text ${data.titleCssClass}`}
       style={textStyle}
-      title={data._getTooltipText || undefined}
+      title={data.tooltipText || undefined}
     >
       {textContent}
     </span>
   );
 
   const statsBlock =
-    data._countSubnodesStatsBlockData && !node.isOpen ? (
-      <StatsBlockView data={data._countSubnodesStatsBlockData} />
+    data.statsBlockData && !node.isOpen ? (
+      <StatsBlockView data={data.statsBlockData} />
     ) : null;
 
   const innerContent = isWindowFrame ? (

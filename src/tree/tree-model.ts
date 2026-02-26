@@ -399,9 +399,9 @@ export class TreeModel {
         isProtectedFromGoneOnClose: current.isProtectedFromGoneOnClose(),
         titleCssClass: current.titleCssClass,
         titleBackgroundCssClass: current.titleBackgroundCssClass,
-        _isSelectedTab: current.isSelectedTab(),
-        _isFocusedWindow: current.isFocusedWindow(),
-        _getNodeContentCssClass: current.getNodeContentCssClass(),
+        isSelectedTab: current.isSelectedTab(),
+        isFocusedWindow: current.isFocusedWindow(),
+        nodeContentCssClass: current.getNodeContentCssClass(),
       };
       current = current.parent;
     }

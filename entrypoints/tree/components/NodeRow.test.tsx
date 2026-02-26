@@ -60,21 +60,21 @@ function renderNodeRow(
 
 describe('NodeRow', () => {
   it('renders node text', () => {
-    const data = makeNodeDTO({ _getNodeText: 'My Tab' });
+    const data = makeNodeDTO({ nodeText: 'My Tab' });
     const { container } = renderNodeRow(makeNodeApi(data));
     expect(container.querySelector('.node-text')!.textContent).toBe('My Tab');
   });
 
-  it('renders icon when _getIcon is set', () => {
-    const data = makeNodeDTO({ _getIcon: 'icon-tab.png' });
+  it('renders icon when icon is set', () => {
+    const data = makeNodeDTO({ icon: 'icon-tab.png' });
     const { container } = renderNodeRow(makeNodeApi(data));
     const img = container.querySelector('.node-icon') as HTMLImageElement;
     expect(img).toBeTruthy();
     expect(img.src).toContain('icon-tab.png');
   });
 
-  it('does not render icon when _getIcon is empty', () => {
-    const data = makeNodeDTO({ _getIcon: '' });
+  it('does not render icon when icon is empty', () => {
+    const data = makeNodeDTO({ icon: '' });
     const { container } = renderNodeRow(makeNodeApi(data));
     expect(container.querySelector('.node-icon')).toBeNull();
   });
@@ -94,13 +94,13 @@ describe('NodeRow', () => {
   });
 
   it('applies is-selected-tab class', () => {
-    const data = makeNodeDTO({ _isSelectedTab: true });
+    const data = makeNodeDTO({ isSelectedTab: true });
     const { container } = renderNodeRow(makeNodeApi(data));
     expect(container.querySelector('.is-selected-tab')).toBeTruthy();
   });
 
   it('applies is-focused-window class', () => {
-    const data = makeNodeDTO({ _isFocusedWindow: true });
+    const data = makeNodeDTO({ isFocusedWindow: true });
     const { container } = renderNodeRow(makeNodeApi(data));
     expect(container.querySelector('.is-focused-window')).toBeTruthy();
   });
@@ -120,7 +120,7 @@ describe('NodeRow', () => {
   });
 
   it('applies ncc- content CSS class', () => {
-    const data = makeNodeDTO({ _getNodeContentCssClass: 'separator' });
+    const data = makeNodeDTO({ nodeContentCssClass: 'separator' });
     const { container } = renderNodeRow(makeNodeApi(data));
     expect(container.querySelector('.ncc-separator')).toBeTruthy();
   });
@@ -171,10 +171,10 @@ describe('NodeRow', () => {
     expect(container.querySelector('.window-frame-box')).toBeNull();
   });
 
-  it('renders link when _getHref is set', () => {
+  it('renders link when href is set', () => {
     const data = makeNodeDTO({
-      _getHref: 'https://example.com',
-      _getNodeText: 'Example',
+      href: 'https://example.com',
+      nodeText: 'Example',
     });
     const { container } = renderNodeRow(makeNodeApi(data));
     const link = container.querySelector('a') as HTMLAnchorElement;
@@ -183,28 +183,28 @@ describe('NodeRow', () => {
     expect(link.textContent).toBe('Example');
   });
 
-  it('does not render link when _getHref is null', () => {
-    const data = makeNodeDTO({ _getHref: null });
+  it('does not render link when href is null', () => {
+    const data = makeNodeDTO({ href: null });
     const { container } = renderNodeRow(makeNodeApi(data));
     expect(container.querySelector('a')).toBeNull();
   });
 
-  it('applies inline custom style from _getNodeTextCustomStyle', () => {
-    const data = makeNodeDTO({ _getNodeTextCustomStyle: 'color: #DAD2B4' });
+  it('applies inline custom style from nodeTextCustomStyle', () => {
+    const data = makeNodeDTO({ nodeTextCustomStyle: 'color: #DAD2B4' });
     const { container } = renderNodeRow(makeNodeApi(data));
     const textEl = container.querySelector('.node-text') as HTMLElement;
     expect(textEl.style.color).toBe('#DAD2B4');
   });
 
-  it('does not apply inline style when _getNodeTextCustomStyle is null', () => {
-    const data = makeNodeDTO({ _getNodeTextCustomStyle: null });
+  it('does not apply inline style when nodeTextCustomStyle is null', () => {
+    const data = makeNodeDTO({ nodeTextCustomStyle: null });
     const { container } = renderNodeRow(makeNodeApi(data));
     const textEl = container.querySelector('.node-text') as HTMLElement;
     expect(textEl.style.color).toBe('');
   });
 
-  it('sets title attr from _getTooltipText', () => {
-    const data = makeNodeDTO({ _getTooltipText: 'My tooltip' });
+  it('sets title attr from tooltipText', () => {
+    const data = makeNodeDTO({ tooltipText: 'My tooltip' });
     const { container } = renderNodeRow(makeNodeApi(data));
     const textEl = container.querySelector('.node-text') as HTMLElement;
     expect(textEl.title).toBe('My tooltip');
@@ -236,7 +236,7 @@ describe('NodeRow', () => {
       nodesCount: 3,
     };
     const data = makeNodeDTO({
-      _countSubnodesStatsBlockData: stats,
+      statsBlockData: stats,
     });
     const nodeApi = makeNodeApi(data, { isInternal: true, isOpen: false });
     const { container } = renderNodeRow(nodeApi);
@@ -250,7 +250,7 @@ describe('NodeRow', () => {
       nodesCount: 3,
     };
     const data = makeNodeDTO({
-      _countSubnodesStatsBlockData: stats,
+      statsBlockData: stats,
     });
     const nodeApi = makeNodeApi(data, { isInternal: true, isOpen: true });
     const { container } = renderNodeRow(nodeApi);

@@ -33,22 +33,22 @@ export function makeNodeDTO(overrides: DeepPartial<NodeDTO> = {}): NodeDTO {
     titleCssClass: 'defaultTitle',
     titleBackgroundCssClass: 'defaultFrame' as TitleBackgroundCssClass,
     marks: { relicons: [] } as NodeMarks,
-    _getCustomTitle: null,
-    _hoveringMenuActions: {} as Partial<
+    customTitle: null,
+    hoveringMenuActions: {} as Partial<
       Record<HoveringMenuActionId, { id: HoveringMenuActionId }>
     >,
-    _countSubnodesStatsBlockData: null as StatsBlock | null,
-    _getIcon: '',
-    _getIconForHtmlExport: '',
-    _getTooltipText: '',
-    _getHref: null,
-    _getNodeText: 'Test Node',
-    _isSelectedTab: false,
-    _isFocusedWindow: false,
-    _isProtectedFromGoneOnClose: false,
-    _getNodeContentCssClass: '',
-    _getNodeTextCustomStyle: null,
-    _isSubnodesPresent: false,
+    statsBlockData: null as StatsBlock | null,
+    icon: '',
+    iconForHtmlExport: '',
+    tooltipText: '',
+    href: null,
+    nodeText: 'Test Node',
+    isSelectedTab: false,
+    isFocusedWindow: false,
+    isProtectedFromGoneOnClose: false,
+    nodeContentCssClass: '',
+    nodeTextCustomStyle: null,
+    isSubnodesPresent: false,
   };
 
   return { ...defaults, ...overrides } as NodeDTO;
@@ -58,61 +58,61 @@ export function makeNodeDTO(overrides: DeepPartial<NodeDTO> = {}): NodeDTO {
 export function makeTree(): NodeDTO {
   const tab1 = makeNodeDTO({
     idMVC: 'tab1' as MvcId,
-    _getNodeText: 'GitHub',
-    _getIcon: 'icon-tab',
+    nodeText: 'GitHub',
+    icon: 'icon-tab',
     titleBackgroundCssClass: 'tabFrame',
   });
 
   const tab2 = makeNodeDTO({
     idMVC: 'tab2' as MvcId,
-    _getNodeText: 'Stack Overflow',
-    _getIcon: 'icon-tab',
+    nodeText: 'Stack Overflow',
+    icon: 'icon-tab',
     titleBackgroundCssClass: 'tabFrame',
   });
 
   const tab3 = makeNodeDTO({
     idMVC: 'tab3' as MvcId,
-    _getNodeText: 'MDN Docs',
-    _getIcon: 'icon-tab',
+    nodeText: 'MDN Docs',
+    icon: 'icon-tab',
     titleBackgroundCssClass: 'tabFrame',
     colapsed: false,
   });
 
   const window1 = makeNodeDTO({
     idMVC: 'win1' as MvcId,
-    _getNodeText: 'Main Window',
-    _getIcon: 'icon-window',
+    nodeText: 'Main Window',
+    icon: 'icon-window',
     titleBackgroundCssClass: 'windowFrame',
     colapsed: false,
     subnodes: [tab1, tab2],
-    _isSubnodesPresent: true,
+    isSubnodesPresent: true,
   });
 
   const window2 = makeNodeDTO({
     idMVC: 'win2' as MvcId,
-    _getNodeText: 'Saved Window',
-    _getIcon: 'icon-window',
+    nodeText: 'Saved Window',
+    icon: 'icon-window',
     titleBackgroundCssClass: 'windowFrame',
     colapsed: true,
     subnodes: [],
-    _isSubnodesPresent: true,
+    isSubnodesPresent: true,
   });
 
   const window3 = makeNodeDTO({
     idMVC: 'win3' as MvcId,
-    _getNodeText: 'Research',
-    _getIcon: 'icon-window',
+    nodeText: 'Research',
+    icon: 'icon-window',
     titleBackgroundCssClass: 'windowFrame',
     colapsed: false,
     subnodes: [tab3],
-    _isSubnodesPresent: true,
+    isSubnodesPresent: true,
   });
 
   return makeNodeDTO({
     idMVC: 'root' as MvcId,
-    _getNodeText: 'Session Root',
+    nodeText: 'Session Root',
     colapsed: false,
     subnodes: [window1, window2, window3],
-    _isSubnodesPresent: true,
+    isSubnodesPresent: true,
   });
 }

@@ -15,7 +15,7 @@ import { TreeNode } from './tree-node';
  * Generate a NodeDTO snapshot for view communication.
  *
  * Recursively builds DTOs for expanded children. Collapsed nodes get
- * `subnodes: []` with `_countSubnodesStatsBlockData` populated.
+ * `subnodes: []` with `statsBlockData` populated.
  */
 export function toNodeDTO(node: TreeNode): NodeDTO {
   const subnodes: NodeDTO[] = [];
@@ -50,20 +50,20 @@ export function toNodeDTO(node: TreeNode): NodeDTO {
     marks: { relicons: [] }, // View-side marks are initially empty
 
     // Computed fields
-    _getCustomTitle: node.getCustomTitle(),
-    _hoveringMenuActions: actionIds,
-    _countSubnodesStatsBlockData: statsBlock,
-    _getIcon: node.getIcon() ?? '',
-    _getIconForHtmlExport: node.getIconForHtmlExport() ?? '',
-    _getTooltipText: node.getTooltipText(),
-    _getHref: node.getHref(),
-    _getNodeText: node.getNodeText(),
-    _isSelectedTab: node.isSelectedTab(),
-    _isFocusedWindow: node.isFocusedWindow(),
-    _isProtectedFromGoneOnClose: node.isProtectedFromGoneOnClose(),
-    _getNodeContentCssClass: node.getNodeContentCssClass() ?? '',
-    _getNodeTextCustomStyle: node.getNodeTextCustomStyle(),
-    _isSubnodesPresent: node.subnodes.length > 0,
+    customTitle: node.getCustomTitle(),
+    hoveringMenuActions: actionIds,
+    statsBlockData: statsBlock,
+    icon: node.getIcon() ?? '',
+    iconForHtmlExport: node.getIconForHtmlExport() ?? '',
+    tooltipText: node.getTooltipText(),
+    href: node.getHref(),
+    nodeText: node.getNodeText(),
+    isSelectedTab: node.isSelectedTab(),
+    isFocusedWindow: node.isFocusedWindow(),
+    isProtectedFromGoneOnClose: node.isProtectedFromGoneOnClose(),
+    nodeContentCssClass: node.getNodeContentCssClass() ?? '',
+    nodeTextCustomStyle: node.getNodeTextCustomStyle(),
+    isSubnodesPresent: node.subnodes.length > 0,
   };
 }
 
@@ -78,9 +78,9 @@ export function computeParentUpdate(node: TreeNode): ParentUpdateData {
     isProtectedFromGoneOnClose: node.isProtectedFromGoneOnClose(),
     titleCssClass: node.titleCssClass,
     titleBackgroundCssClass: node.titleBackgroundCssClass,
-    _isSelectedTab: node.isSelectedTab(),
-    _isFocusedWindow: node.isFocusedWindow(),
-    _getNodeContentCssClass: node.getNodeContentCssClass() ?? '',
+    isSelectedTab: node.isSelectedTab(),
+    isFocusedWindow: node.isFocusedWindow(),
+    nodeContentCssClass: node.getNodeContentCssClass() ?? '',
   };
 }
 

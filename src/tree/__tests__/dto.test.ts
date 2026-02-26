@@ -31,11 +31,11 @@ describe('toNodeDTO', () => {
     });
     const dto = toNodeDTO(tab);
 
-    expect(dto._getNodeText).toBe('Test');
-    expect(dto._getHref).toBe('https://example.com');
-    expect(dto._getIcon).toBe('https://example.com/icon.png');
-    expect(dto._isSelectedTab).toBe(true);
-    expect(dto._isFocusedWindow).toBe(false);
+    expect(dto.nodeText).toBe('Test');
+    expect(dto.href).toBe('https://example.com');
+    expect(dto.icon).toBe('https://example.com/icon.png');
+    expect(dto.isSelectedTab).toBe(true);
+    expect(dto.isFocusedWindow).toBe(false);
     expect(dto.isLink).toBe(true);
     expect(dto.titleCssClass).toBe('tab');
     expect(dto.titleBackgroundCssClass).toBe('tabFrame');
@@ -45,9 +45,9 @@ describe('toNodeDTO', () => {
     const win = new WindowTreeNode({ id: 1, type: 'normal', focused: true });
     const dto = toNodeDTO(win);
 
-    expect(dto._getNodeText).toBe('Window');
-    expect(dto._isFocusedWindow).toBe(true);
-    expect(dto._getIcon).toBe('img/chrome-window-icon-blue.png');
+    expect(dto.nodeText).toBe('Window');
+    expect(dto.isFocusedWindow).toBe(true);
+    expect(dto.icon).toBe('img/chrome-window-icon-blue.png');
     expect(dto.needFaviconAndTextHelperContainer).toBe(true);
   });
 
@@ -60,10 +60,10 @@ describe('toNodeDTO', () => {
 
     const dto = toNodeDTO(win);
     expect(dto.subnodes).toHaveLength(2);
-    expect(dto.subnodes[0]._getNodeText).toBe('A');
-    expect(dto.subnodes[1]._getNodeText).toBe('B');
-    expect(dto._isSubnodesPresent).toBe(true);
-    expect(dto._countSubnodesStatsBlockData).toBeNull(); // not collapsed
+    expect(dto.subnodes[0].nodeText).toBe('A');
+    expect(dto.subnodes[1].nodeText).toBe('B');
+    expect(dto.isSubnodesPresent).toBe(true);
+    expect(dto.statsBlockData).toBeNull(); // not collapsed
   });
 
   it('returns empty subnodes and stats when collapsed', () => {
@@ -74,19 +74,19 @@ describe('toNodeDTO', () => {
 
     const dto = toNodeDTO(win);
     expect(dto.subnodes).toHaveLength(0);
-    expect(dto._countSubnodesStatsBlockData).not.toBeNull();
-    expect(dto._countSubnodesStatsBlockData!.activeTabsCount).toBe(1);
-    expect(dto._countSubnodesStatsBlockData!.nodesCount).toBe(1);
+    expect(dto.statsBlockData).not.toBeNull();
+    expect(dto.statsBlockData!.activeTabsCount).toBe(1);
+    expect(dto.statsBlockData!.nodesCount).toBe(1);
   });
 
   it('snapshots session node', () => {
     const session = new SessionTreeNode();
     const dto = toNodeDTO(session);
 
-    expect(dto._getNodeText).toBe('Current Session');
-    expect(dto._getIcon).toBe('img/favicon.png');
-    expect(dto._hoveringMenuActions.setCursorAction).toBeDefined();
-    expect(dto._hoveringMenuActions.deleteAction).toBeUndefined();
+    expect(dto.nodeText).toBe('Current Session');
+    expect(dto.icon).toBe('img/favicon.png');
+    expect(dto.hoveringMenuActions.setCursorAction).toBeDefined();
+    expect(dto.hoveringMenuActions.deleteAction).toBeUndefined();
   });
 
   it('snapshots group node', () => {
@@ -94,7 +94,7 @@ describe('toNodeDTO', () => {
     group.marks = { relicons: [], customTitle: 'My Group' };
     const dto = toNodeDTO(group);
 
-    expect(dto._getNodeText).toBe('My Group');
+    expect(dto.nodeText).toBe('My Group');
     expect(dto.titleBackgroundCssClass).toBe('windowFrame');
   });
 
@@ -102,8 +102,8 @@ describe('toNodeDTO', () => {
     const note = new TextNoteTreeNode({ note: 'Hello world' });
     const dto = toNodeDTO(note);
 
-    expect(dto._getNodeText).toBe('Hello world');
-    expect(dto._getIcon).toBe('');
+    expect(dto.nodeText).toBe('Hello world');
+    expect(dto.icon).toBe('');
     expect(dto.titleBackgroundCssClass).toBe('defaultFrame');
   });
 
@@ -111,8 +111,8 @@ describe('toNodeDTO', () => {
     const sep = new SeparatorTreeNode({ separatorIndx: 1 });
     const dto = toNodeDTO(sep);
 
-    expect(dto._getNodeText).toContain('===');
-    expect(dto._getNodeContentCssClass).toBe('a');
+    expect(dto.nodeText).toContain('===');
+    expect(dto.nodeContentCssClass).toBe('a');
   });
 
   it('captures previousIdMVC when set', () => {
@@ -126,17 +126,17 @@ describe('toNodeDTO', () => {
     const tab = new TabTreeNode({ url: 'test', title: 'T' });
     const dto = toNodeDTO(tab);
 
-    expect(dto._hoveringMenuActions.deleteAction).toBeDefined();
-    expect(dto._hoveringMenuActions.closeAction).toBeDefined();
-    expect(dto._hoveringMenuActions.editTitleAction).toBeDefined();
-    expect(dto._hoveringMenuActions.setCursorAction).toBeDefined();
+    expect(dto.hoveringMenuActions.deleteAction).toBeDefined();
+    expect(dto.hoveringMenuActions.closeAction).toBeDefined();
+    expect(dto.hoveringMenuActions.editTitleAction).toBeDefined();
+    expect(dto.hoveringMenuActions.setCursorAction).toBeDefined();
   });
 
   it('snapshots custom text style', () => {
     const tab = new SavedTabTreeNode({ url: 'test' });
     tab.marks = { relicons: [], customColorSaved: '#ff0000' };
     const dto = toNodeDTO(tab);
-    expect(dto._getNodeTextCustomStyle).toBe('color:#ff0000');
+    expect(dto.nodeTextCustomStyle).toBe('color:#ff0000');
   });
 });
 

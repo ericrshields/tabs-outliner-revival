@@ -19,12 +19,12 @@ export function nodeId(dto: NodeDTO): string {
  * null for true leaf nodes.
  *
  * Key distinction: collapsed nodes have `subnodes: []` but
- * `_isSubnodesPresent: true`. Return `[]` (not `null`) so
+ * `isSubnodesPresent: true`. Return `[]` (not `null`) so
  * react-arborist shows the expand arrow. Return `null` only for
- * true leaf nodes where `_isSubnodesPresent` is false.
+ * true leaf nodes where `isSubnodesPresent` is false.
  */
 export function nodeChildren(dto: NodeDTO): readonly NodeDTO[] | null {
-  if (dto._isSubnodesPresent || dto.subnodes.length > 0) {
+  if (dto.isSubnodesPresent || dto.subnodes.length > 0) {
     return dto.subnodes;
   }
   return null;
@@ -34,7 +34,7 @@ export function nodeChildren(dto: NodeDTO): readonly NodeDTO[] | null {
  * Build an open/close state map from a NodeDTO tree for react-arborist's
  * `initialOpenState` prop.
  *
- * Walks the tree recursively. Nodes with `_isSubnodesPresent: true` are
+ * Walks the tree recursively. Nodes with `isSubnodesPresent: true` are
  * included in the map: open if not collapsed, closed if collapsed.
  * Leaf nodes are omitted (react-arborist ignores them).
  */
@@ -42,7 +42,7 @@ export function buildOpenMap(root: NodeDTO): Record<string, boolean> {
   const map: Record<string, boolean> = {};
 
   function walk(node: NodeDTO): void {
-    if (node._isSubnodesPresent || node.subnodes.length > 0) {
+    if (node.isSubnodesPresent || node.subnodes.length > 0) {
       map[node.idMVC] = !node.colapsed;
     }
     for (const child of node.subnodes) {

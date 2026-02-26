@@ -3,7 +3,7 @@ import type { HoveringMenuActionId } from '@/types/node';
 import type { NodeDTO } from '@/types/node-dto';
 
 export interface HoveringMenuActions {
-  actions: NodeDTO['_hoveringMenuActions'];
+  actions: NodeDTO['hoveringMenuActions'];
   idMVC: string;
 }
 

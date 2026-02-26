@@ -2,8 +2,7 @@
  * NodeDTO — the data transfer object sent from background to view.
  *
  * This is a plain-object snapshot of a NodeModel, created by
- * NodeModelMVCDataTransferObject in the legacy code. All computed
- * values are prefixed with `_` to distinguish them from model fields.
+ * NodeModelMVCDataTransferObject in the legacy code.
  */
 
 import type { MvcId } from './brands';
@@ -29,23 +28,23 @@ export interface NodeDTO {
   readonly needFaviconAndTextHelperContainer?: boolean;
   marks: NodeMarks;
 
-  // Computed fields (prefixed with _)
-  _getCustomTitle: string | null;
-  _hoveringMenuActions: Partial<
+  // Computed fields
+  customTitle: string | null;
+  hoveringMenuActions: Partial<
     Record<HoveringMenuActionId, { id: HoveringMenuActionId }>
   >;
-  _countSubnodesStatsBlockData: StatsBlock | null;
-  _getIcon: string;
-  _getIconForHtmlExport: string;
-  _getTooltipText: string;
-  _getHref: string | null;
-  _getNodeText: string;
-  _isSelectedTab: boolean;
-  _isFocusedWindow: boolean;
-  _isProtectedFromGoneOnClose: boolean;
-  _getNodeContentCssClass: string;
-  _getNodeTextCustomStyle: string | null;
-  _isSubnodesPresent: boolean;
+  statsBlockData: StatsBlock | null;
+  icon: string;
+  iconForHtmlExport: string;
+  tooltipText: string;
+  href: string | null;
+  nodeText: string;
+  isSelectedTab: boolean;
+  isFocusedWindow: boolean;
+  isProtectedFromGoneOnClose: boolean;
+  nodeContentCssClass: string;
+  nodeTextCustomStyle: string | null;
+  isSubnodesPresent: boolean;
 }
 
 /**
@@ -59,9 +58,9 @@ export interface ParentUpdateData {
   readonly isProtectedFromGoneOnClose: boolean;
   readonly titleCssClass: string;
   readonly titleBackgroundCssClass: TitleBackgroundCssClass;
-  readonly _isSelectedTab: boolean;
-  readonly _isFocusedWindow: boolean;
-  readonly _getNodeContentCssClass: string;
+  readonly isSelectedTab: boolean;
+  readonly isFocusedWindow: boolean;
+  readonly nodeContentCssClass: string;
 }
 
 /**

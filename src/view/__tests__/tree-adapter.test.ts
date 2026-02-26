@@ -18,7 +18,7 @@ describe('nodeChildren', () => {
   it('returns null for a true leaf node', () => {
     const leaf = makeNodeDTO({
       subnodes: [],
-      _isSubnodesPresent: false,
+      isSubnodesPresent: false,
     });
     expect(nodeChildren(leaf)).toBeNull();
   });
@@ -27,7 +27,7 @@ describe('nodeChildren', () => {
     const collapsed = makeNodeDTO({
       colapsed: true,
       subnodes: [],
-      _isSubnodesPresent: true,
+      isSubnodesPresent: true,
     });
     const result = nodeChildren(collapsed);
     expect(result).toEqual([]);
@@ -39,7 +39,7 @@ describe('nodeChildren', () => {
     const child2 = makeNodeDTO({ idMVC: 'c2' as MvcId });
     const parent = makeNodeDTO({
       subnodes: [child1, child2],
-      _isSubnodesPresent: true,
+      isSubnodesPresent: true,
     });
     const result = nodeChildren(parent);
     expect(result).toHaveLength(2);
@@ -47,12 +47,12 @@ describe('nodeChildren', () => {
     expect(result![1].idMVC).toBe('c2');
   });
 
-  it('returns subnodes when _isSubnodesPresent is false but subnodes exist', () => {
+  it('returns subnodes when isSubnodesPresent is false but subnodes exist', () => {
     // Edge case: data inconsistency — prefer the presence of actual subnodes
     const child = makeNodeDTO({ idMVC: 'c1' as MvcId });
     const parent = makeNodeDTO({
       subnodes: [child],
-      _isSubnodesPresent: false,
+      isSubnodesPresent: false,
     });
     expect(nodeChildren(parent)).toHaveLength(1);
   });
@@ -61,7 +61,7 @@ describe('nodeChildren', () => {
 describe('buildOpenMap', () => {
   it('returns empty map for a leaf root', () => {
     const root = makeNodeDTO({
-      _isSubnodesPresent: false,
+      isSubnodesPresent: false,
       subnodes: [],
     });
     expect(buildOpenMap(root)).toEqual({});
@@ -108,19 +108,19 @@ describe('buildOpenMap', () => {
     const group = makeNodeDTO({
       idMVC: 'group' as MvcId,
       subnodes: [leaf],
-      _isSubnodesPresent: true,
+      isSubnodesPresent: true,
       colapsed: true,
     });
     const window = makeNodeDTO({
       idMVC: 'win' as MvcId,
       subnodes: [group],
-      _isSubnodesPresent: true,
+      isSubnodesPresent: true,
       colapsed: false,
     });
     const root = makeNodeDTO({
       idMVC: 'root' as MvcId,
       subnodes: [window],
-      _isSubnodesPresent: true,
+      isSubnodesPresent: true,
     });
 
     const map = buildOpenMap(root);
