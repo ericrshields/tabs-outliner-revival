@@ -259,6 +259,7 @@ function deactivateHierarchy(hierarchy: HierarchyJSO): number {
   const node = hierarchy.n as unknown as Record<string, unknown>;
   const type = node.type as string | undefined;
 
+  // Convert active node types to saved equivalents
   if (type && type in ACTIVE_TO_SAVED) {
     const savedType = ACTIVE_TO_SAVED[type];
     if (savedType === undefined) {
@@ -267,14 +268,23 @@ function deactivateHierarchy(hierarchy: HierarchyJSO): number {
       node.type = savedType;
     }
     count++;
+  }
 
-    // Clear Chrome runtime IDs — meaningless after import
-    const data = node.data as Record<string, unknown> | undefined;
-    if (data) {
-      delete data.id;
-      delete data.windowId;
+  // Clear active/focused flags and Chrome runtime IDs on ALL nodes.
+  // Many savedtab nodes (no type field) still carry active:true from
+  // when the legacy extension saved them while the tab was focused.
+  const data = node.data as Record<string, unknown> | undefined;
+  if (data) {
+    if (data.active) {
       data.active = false;
+      count++;
     }
+    if (data.focused) {
+      data.focused = false;
+      count++;
+    }
+    delete data.id;
+    delete data.windowId;
   }
 
   if (hierarchy.s) {
