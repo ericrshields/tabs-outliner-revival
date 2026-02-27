@@ -21,6 +21,7 @@ import {
   operationsToHierarchy,
 } from '@/serialization/operations-codec';
 import type { HierarchyJSO } from '@/types/serialized';
+import type { SerializedNode } from '@/types/serialized';
 import type { Msg_InitTreeView } from '@/types/messages';
 import { SaveScheduler } from './save-scheduler';
 import { ViewBridge } from './view-bridge';
@@ -160,6 +161,11 @@ export class ActiveSession {
         };
       }
 
+      // Convert all active node types to saved equivalents before
+      // creating the tree. More reliable than crash recovery's ID matching,
+      // which misses tabs whose IDs collide with currently-open Chrome tabs.
+      deactivateHierarchy(hierarchy);
+
       await saveTree(hierarchy);
       this.treeModel.replaceWith(TreeModel.fromHierarchyJSO(hierarchy));
 
@@ -228,5 +234,49 @@ export class ActiveSession {
 
     // Cancel pending saves
     this._saveScheduler.cancel();
+  }
+}
+
+// -- Import helpers --
+
+/** Map active node types to their saved equivalents. */
+const ACTIVE_TO_SAVED: Record<string, string | undefined> = {
+  tab: undefined,       // absent type = savedtab
+  win: 'savedwin',
+  waitingtab: undefined,
+  attachwaitingtab: undefined,
+  waitingwin: 'savedwin',
+};
+
+/**
+ * Walk a HierarchyJSO tree and convert all active node types to saved.
+ * Mutates in place. Removes Chrome runtime IDs (tab id, window id)
+ * since they're meaningless after import.
+ */
+function deactivateHierarchy(hierarchy: HierarchyJSO): void {
+  const node = hierarchy.n as unknown as Record<string, unknown>;
+  const type = node.type as string | undefined;
+
+  if (type && type in ACTIVE_TO_SAVED) {
+    const savedType = ACTIVE_TO_SAVED[type];
+    if (savedType === undefined) {
+      delete node.type; // absent = savedtab
+    } else {
+      node.type = savedType;
+    }
+
+    // Clear Chrome runtime IDs — meaningless after import
+    const data = node.data as Record<string, unknown> | undefined;
+    if (data) {
+      delete data.id;
+      delete data.windowId;
+      data.active = false;
+    }
+  }
+
+  if (hierarchy.s) {
+    for (const child of hierarchy.s) {
+      deactivateHierarchy(child);
+    }
   }
 }
