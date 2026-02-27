@@ -217,8 +217,9 @@ function isSessionTitle(title: string): boolean {
  * Convert a parsed node to a SerializedNode based on content, not position.
  * - URL present → saved tab
  * - "Current Session" title → session root
- * - Has children, no URL → saved window (title preserved in marks)
- * - Leaf without URL → text note
+ * - No URL + title → saved window (collapsed containers lose children in HTML
+ *   format, so childless titled nodes are still windows, not text notes)
+ * - No URL + empty title → text note (separator or empty note)
  */
 function toSerializedNode(
   node: FlatNode,
@@ -236,16 +237,19 @@ function toSerializedNode(
     return { data: { url: node.url, title: node.title || undefined } };
   }
 
-  if (hasChildren) {
+  // Non-URL nodes with a title are containers (windows/groups).
+  // Collapsed containers appear childless in the HTML drag format
+  // but should still be typed as savedwin, not textnote.
+  if (node.title) {
     return {
       type: 'savedwin',
       data: {},
-      marks: node.title ? { relicons: [], customTitle: node.title } : undefined,
+      marks: { relicons: [], customTitle: node.title },
     };
   }
 
   return {
     type: 'textnote',
-    data: { note: node.title || '' },
+    data: { note: '' },
   };
 }
