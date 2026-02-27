@@ -164,7 +164,8 @@ export class ActiveSession {
       // Convert all active node types to saved equivalents before
       // creating the tree. More reliable than crash recovery's ID matching,
       // which misses tabs whose IDs collide with currently-open Chrome tabs.
-      deactivateHierarchy(hierarchy);
+      const deactivated = deactivateHierarchy(hierarchy);
+      console.log(`[importTree] Deactivated ${deactivated} active nodes`);
 
       await saveTree(hierarchy);
       this.treeModel.replaceWith(TreeModel.fromHierarchyJSO(hierarchy));
@@ -253,7 +254,8 @@ const ACTIVE_TO_SAVED: Record<string, string | undefined> = {
  * Mutates in place. Removes Chrome runtime IDs (tab id, window id)
  * since they're meaningless after import.
  */
-function deactivateHierarchy(hierarchy: HierarchyJSO): void {
+function deactivateHierarchy(hierarchy: HierarchyJSO): number {
+  let count = 0;
   const node = hierarchy.n as unknown as Record<string, unknown>;
   const type = node.type as string | undefined;
 
@@ -264,6 +266,7 @@ function deactivateHierarchy(hierarchy: HierarchyJSO): void {
     } else {
       node.type = savedType;
     }
+    count++;
 
     // Clear Chrome runtime IDs — meaningless after import
     const data = node.data as Record<string, unknown> | undefined;
@@ -276,7 +279,8 @@ function deactivateHierarchy(hierarchy: HierarchyJSO): void {
 
   if (hierarchy.s) {
     for (const child of hierarchy.s) {
-      deactivateHierarchy(child);
+      count += deactivateHierarchy(child);
     }
   }
+  return count;
 }
