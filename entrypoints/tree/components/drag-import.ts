@@ -93,9 +93,17 @@ interface FlatNode {
 function parseHtmlTreeDrop(html: string): HierarchyJSO | null {
   // Tokenize by tracking <ul> depth and collecting <li> content
   const nodes = tokenizeFromHtml(html);
-  console.log('[drag-import] Tokenized nodes:', nodes.length);
+  console.log('[drag-import] Tokenized nodes:', nodes.length, nodes.map(
+    n => `d${n.depth}: ${n.url ? `[tab] ${n.title}` : `[${n.title}]`}`,
+  ));
   if (nodes.length === 0) return null;
-  return buildHierarchy(nodes);
+  const hierarchy = buildHierarchy(nodes);
+  if (hierarchy) {
+    const countJsoNodes = (h: HierarchyJSO): number =>
+      1 + (h.s?.reduce((sum, c) => sum + countJsoNodes(c), 0) ?? 0);
+    console.log('[drag-import] Built hierarchy:', countJsoNodes(hierarchy), 'nodes');
+  }
+  return hierarchy;
 }
 
 /**

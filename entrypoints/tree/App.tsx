@@ -196,35 +196,52 @@ export function App() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [postMessage]);
 
-  // Sync react-arborist open/close state from background updates
+  // Sync react-arborist open/close state from background updates.
+  // On full tree replacement (new globalViewId), reset tracking so we
+  // do a full sync instead of incremental diff.
   const prevOpenMapRef = useRef<Record<string, boolean> | null>(null);
+  const prevViewIdRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (!treeRef.current || !state.root) return;
 
-    const currentMap = buildOpenMap(state.root);
+    // Detect full tree replacement (import, reconnect)
+    const isFullReplacement = state.globalViewId !== prevViewIdRef.current;
+    prevViewIdRef.current = state.globalViewId;
 
-    // Compare with previous map and apply differences
+    const currentMap = buildOpenMap(state.root);
     const prev = prevOpenMapRef.current;
-    if (prev) {
-      isSyncingRef.current = true;
-      try {
+
+    const tree = treeRef.current!;
+    if (!tree.open || !tree.close) {
+      // Tree API not fully initialized (e.g., test environment)
+      prevOpenMapRef.current = currentMap;
+      return;
+    }
+
+    isSyncingRef.current = true;
+    try {
+      if (isFullReplacement || !prev) {
+        // Full sync — apply all open/close states
         for (const [id, isOpen] of Object.entries(currentMap)) {
-          // Skip nodes not in prev (new nodes) — initialOpenState handles them
+          if (isOpen) tree.open(id);
+          else tree.close(id);
+        }
+      } else {
+        // Incremental sync — only apply differences
+        for (const [id, isOpen] of Object.entries(currentMap)) {
           if (prev[id] === undefined) continue;
           if (prev[id] !== isOpen) {
-            if (isOpen) {
-              treeRef.current!.open(id);
-            } else {
-              treeRef.current!.close(id);
-            }
+            if (isOpen) tree.open(id);
+            else tree.close(id);
           }
         }
-      } finally {
-        isSyncingRef.current = false;
       }
+    } finally {
+      isSyncingRef.current = false;
     }
     prevOpenMapRef.current = currentMap;
-  }, [state.root]);
+  }, [state.root, state.globalViewId]);
 
   const onToggle = useCallback(
     (id: string) => {
@@ -270,7 +287,6 @@ export function App() {
           )}
           <TreeContext.Provider value={ctxValue}>
             <Tree<NodeDTO>
-              key={state.globalViewId ?? 0}
               ref={treeRef}
               data={state.root?.subnodes ?? []}
               idAccessor={nodeId}
