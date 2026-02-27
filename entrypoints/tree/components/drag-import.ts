@@ -233,8 +233,14 @@ function toSerializedNode(
     };
   }
 
+  // Tabs — nodes with a real URL
   if (node.url) {
     return { data: { url: node.url, title: node.title || undefined } };
+  }
+
+  // Empty-URL anchor nodes (<a href="">) from legacy HTML — drop as empty note
+  if (node.url === '') {
+    return { type: 'textnote', data: { note: node.title || '' } };
   }
 
   // Non-URL nodes with a title are containers (windows/groups).

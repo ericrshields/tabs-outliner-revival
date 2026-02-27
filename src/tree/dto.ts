@@ -12,6 +12,23 @@ import type { MvcId } from '@/types/brands';
 import { TreeNode } from './tree-node';
 
 /**
+ * Sanitize an icon URL for safe rendering in <img src>.
+ * Allows relative paths (our own assets), https/http, and data:image URIs.
+ * Blocks chrome-extension:// (cross-origin), empty strings, and other protocols.
+ */
+function sanitizeIconUrl(url: string | null): string {
+  if (!url) return '';
+  // Relative paths (our own assets like img/favicon.png)
+  if (!url.includes('://')) return url;
+  // Standard web protocols
+  if (url.startsWith('https://') || url.startsWith('http://')) return url;
+  // Data URIs for inline images
+  if (url.startsWith('data:image/')) return url;
+  // Everything else (chrome-extension://, chrome://, etc.) — blocked
+  return '';
+}
+
+/**
  * Generate a NodeDTO snapshot for view communication.
  *
  * Recursively builds DTOs for expanded children. Collapsed nodes get
@@ -53,8 +70,8 @@ export function toNodeDTO(node: TreeNode): NodeDTO {
     customTitle: node.getCustomTitle(),
     hoveringMenuActions: actionIds,
     statsBlockData: statsBlock,
-    icon: node.getIcon() ?? '',
-    iconForHtmlExport: node.getIconForHtmlExport() ?? '',
+    icon: sanitizeIconUrl(node.getIcon()),
+    iconForHtmlExport: sanitizeIconUrl(node.getIconForHtmlExport()),
     tooltipText: node.getTooltipText(),
     href: node.getHref(),
     nodeText: node.getNodeText(),
