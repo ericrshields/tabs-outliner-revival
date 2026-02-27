@@ -165,7 +165,10 @@ export class ActiveSession {
 
       // Convert orphaned active nodes → saved (imported tabs/windows
       // won't match any current Chrome entities)
-      await synchronizeTreeWithChrome(this.treeModel);
+      const recovery = await synchronizeTreeWithChrome(this.treeModel);
+      console.log(
+        `[importTree] Crash recovery: ${recovery.recoveredCount} recovered, ${recovery.newCount} new`,
+      );
       await saveTree(this.treeModel.toHierarchyJSO());
 
       return { success: true, nodeCount: countNodes(hierarchy) };

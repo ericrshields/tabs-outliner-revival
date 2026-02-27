@@ -153,13 +153,15 @@ describe('useTreeData', () => {
       expect(tab1.nodeText).toBe('Updated GitHub');
     });
 
-    it('preserves subnodes of the updated node', () => {
+    it('preserves subnodes when update is for a collapsed node', () => {
       const { result } = renderHook(() => useTreeData());
       act(() => result.current.handleMessage(makeInitMessage()));
 
-      // win1 has 2 children (tab1, tab2)
+      // win1 has 2 children (tab1, tab2). Send an update that indicates
+      // the node is collapsed (subnodes:[] but isSubnodesPresent:true).
       const updateMsg = makeNodeUpdatedMessage('win1', {
         nodeText: 'Updated Window',
+        isSubnodesPresent: true,
       });
 
       act(() => result.current.handleMessage(updateMsg));

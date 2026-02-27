@@ -13,18 +13,19 @@ import { TreeNode } from './tree-node';
 
 /**
  * Sanitize an icon URL for safe rendering in <img src>.
- * Allows relative paths (our own assets), https/http, and data:image URIs.
- * Blocks chrome-extension:// (cross-origin), empty strings, and other protocols.
+ * Allows our own assets (img/ prefix), https/http, and data:image URIs.
+ * Blocks legacy extension paths, chrome-extension://, and other protocols.
  */
 function sanitizeIconUrl(url: string | null): string {
   if (!url) return '';
-  // Relative paths (our own assets like img/favicon.png)
-  if (!url.includes('://')) return url;
+  // Our own assets (img/favicon.png, img/nofavicon.png, etc.)
+  if (url.startsWith('img/')) return url;
   // Standard web protocols
   if (url.startsWith('https://') || url.startsWith('http://')) return url;
   // Data URIs for inline images
   if (url.startsWith('data:image/')) return url;
-  // Everything else (chrome-extension://, chrome://, etc.) — blocked
+  // Everything else (chrome-extension://, legacy relative paths like
+  // public/build/img/fav32.png, chrome://, etc.) — blocked
   return '';
 }
 

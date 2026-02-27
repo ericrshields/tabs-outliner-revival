@@ -180,12 +180,17 @@ function createReducer(indexesRef: { current: Indexes }) {
           return { ...state, needsFullRefresh: true };
         }
 
-        // Preserve subnodes from the existing node — the update message
-        // only carries the node's own data, not its children.
-        const updatedNode: NodeDTO = {
-          ...action.modelDataCopy,
-          subnodes: existing.subnodes,
-        };
+        // Use the update's subnodes if present (expand sends children).
+        // Preserve existing subnodes only when the node is collapsed
+        // (subnodes:[] but isSubnodesPresent:true = hidden children).
+        const updateData = action.modelDataCopy;
+        const subnodes =
+          updateData.subnodes.length > 0
+            ? updateData.subnodes
+            : updateData.isSubnodesPresent
+              ? existing.subnodes
+              : [];
+        const updatedNode: NodeDTO = { ...updateData, subnodes };
 
         const newRoot = clonePathToRoot(
           action.idMVC,
