@@ -283,6 +283,17 @@ function deactivateHierarchy(hierarchy: HierarchyJSO): number {
       data.focused = false;
       count++;
     }
+    // Clear legacy favicon paths (e.g. public/build/img/fav32.png)
+    // that don't exist in the new extension
+    if (
+      typeof data.favIconUrl === 'string' &&
+      data.favIconUrl &&
+      !data.favIconUrl.startsWith('https://') &&
+      !data.favIconUrl.startsWith('http://') &&
+      !data.favIconUrl.startsWith('data:image/')
+    ) {
+      delete data.favIconUrl;
+    }
     delete data.id;
     delete data.windowId;
   }
