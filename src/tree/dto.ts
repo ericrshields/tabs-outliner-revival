@@ -20,8 +20,9 @@ function sanitizeIconUrl(url: string | null): string {
   if (!url) return '';
   // Our own assets (img/favicon.png, img/nofavicon.png, etc.)
   if (url.startsWith('img/')) return url;
-  // Standard web protocols
-  if (url.startsWith('https://') || url.startsWith('http://')) return url;
+  // Standard web protocols (exclude localhost — dev server artifacts)
+  if (url.startsWith('https://')) return url;
+  if (url.startsWith('http://') && !url.startsWith('http://localhost')) return url;
   // Data URIs for inline images
   if (url.startsWith('data:image/')) return url;
   // Everything else (chrome-extension://, legacy relative paths like
