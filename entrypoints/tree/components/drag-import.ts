@@ -181,7 +181,7 @@ function buildHierarchy(nodes: FlatNode[]): HierarchyJSO | null {
       }
     }
 
-    const serialized = toSerializedNode(node, index === 0, children.length > 0);
+    const serialized = toSerializedNode(node, children.length > 0);
 
     return {
       jso: children.length > 0
@@ -191,15 +191,41 @@ function buildHierarchy(nodes: FlatNode[]): HierarchyJSO | null {
     };
   }
 
-  return buildSubtree(0).jso;
+  const root = buildSubtree(0);
+
+  // If the dragged root is already a session, return as-is
+  if (isSessionTitle(nodes[0].title)) {
+    return root.jso;
+  }
+
+  // Otherwise, wrap in a session so the tree has the right root type.
+  // The dragged subtree (window, group, or tabs) becomes a child.
+  const sessionNode: SerializedNode = {
+    type: 'session',
+    data: { treeId: `imported-${Date.now()}`, nextDId: 1, nonDumpedDId: 1 },
+  };
+  return { n: sessionNode, s: [root.jso] };
 }
 
+/** Detect session root by title convention. */
+function isSessionTitle(title: string): boolean {
+  const lower = title.toLowerCase();
+  return lower === 'current session' || lower.includes('session');
+}
+
+/**
+ * Convert a parsed node to a SerializedNode based on content, not position.
+ * - URL present → saved tab
+ * - "Current Session" title → session root
+ * - Has children, no URL → saved window (title preserved in marks)
+ * - Leaf without URL → text note
+ */
 function toSerializedNode(
   node: FlatNode,
-  isRoot: boolean,
   hasChildren: boolean,
 ): SerializedNode {
-  if (isRoot) {
+  // Session root detected by title
+  if (isSessionTitle(node.title) && !node.url && hasChildren) {
     return {
       type: 'session',
       data: { treeId: `imported-${Date.now()}`, nextDId: 1, nonDumpedDId: 1 },
