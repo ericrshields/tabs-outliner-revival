@@ -121,7 +121,8 @@ export function FirstRunImport({ onImport, onDismiss, importResult }: FirstRunIm
             Drag your tree here from Tabs Outliner
           </p>
           <p className="drop-zone-subtext">
-            Expand all nodes first — collapsed subtrees are not included.
+            Use "Expand All" in the old extension first — collapsed
+            subtrees are not included.
           </p>
           <p className="drop-zone-subtext">
             Or drop a <code>.tree</code> backup file for a complete import.
