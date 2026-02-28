@@ -19,6 +19,13 @@ export class TabTreeNode extends TreeNode {
   readonly isLink = true;
   readonly needFaviconAndTextHelperContainer = false;
 
+  /**
+   * Set by handleActivateNode when a saved tab is opened. Tells
+   * handleTabRemoved to convert back to saved instead of removing.
+   * Not serialized — crash recovery already converts stale active tabs.
+   */
+  restoredFromSaved = false;
+
   private _chromeTabObj: TabData;
 
   constructor(data?: TabData) {

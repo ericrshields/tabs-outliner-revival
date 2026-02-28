@@ -18,9 +18,10 @@ import type {
 import type { MvcId } from '@/types/brands';
 import type { ActiveSession } from './active-session';
 import type { ViewBridge } from './view-bridge';
-import { toNodeDTO } from '@/tree/dto';
-import { focusTab, removeTab } from '@/chrome/tabs';
-import { removeWindow } from '@/chrome/windows';
+import { toNodeDTO, computeParentUpdatesToRoot } from '@/tree/dto';
+import { focusTab, createTab, removeTab } from '@/chrome/tabs';
+import { focusWindow, removeWindow } from '@/chrome/windows';
+import { TabTreeNode } from '@/tree/nodes/tab-node';
 import type { TabData, WindowData } from '@/types/node-data';
 import { NodeTypesEnum } from '@/types/enums';
 
@@ -47,7 +48,7 @@ export function handleViewMessage(
       break;
 
     case 'request2bkg_activateNode':
-      handleActivateNode((msg as Req_ActivateNode).targetNodeIdMVC, session);
+      void handleActivateNode((msg as Req_ActivateNode).targetNodeIdMVC, session, bridge);
       break;
 
     case 'request2bkg_invertCollapsedState':
@@ -152,19 +153,94 @@ function handleGetTreeStructure(
   }
 }
 
-function handleActivateNode(
+async function handleActivateNode(
   targetNodeIdMVC: string,
   session: ActiveSession,
-): void {
+  bridge: ViewBridge,
+): Promise<void> {
   const node = session.treeModel.findByMvcId(targetNodeIdMVC as MvcId);
   if (!node) return;
 
-  // Activate = focus the Chrome tab
-  if (node.type === NodeTypesEnum.TAB) {
-    const tabData = node.data as TabData;
-    if (tabData.id != null && tabData.windowId != null) {
-      void focusTab(tabData.id, tabData.windowId);
+  switch (node.type) {
+    case NodeTypesEnum.TAB: {
+      const tabData = node.data as TabData;
+      if (tabData.id != null && tabData.windowId != null) {
+        void focusTab(tabData.id, tabData.windowId);
+      }
+      break;
     }
+
+    case NodeTypesEnum.SAVEDTAB: {
+      const url = (node.data as TabData).url;
+      if (!url) break;
+
+      // Only allow http/https — block javascript:, data:, etc.
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') break;
+      } catch {
+        break; // Invalid URL
+      }
+
+      try {
+        const chromeTabData = await createTab({ url });
+
+        // Chrome fires onTabCreated before this await resolves, so
+        // handleTabCreated may have already inserted a node for this
+        // tab ID. Remove the duplicate before we replace the saved node.
+        if (chromeTabData.id != null) {
+          const duplicate = session.treeModel.findActiveTab(chromeTabData.id);
+          if (duplicate?.parent) {
+            const dupParent = duplicate.parent;
+            session.treeModel.removeSubtree(duplicate);
+            bridge.broadcast({
+              command: 'msg2view_notifyObserver',
+              idMVC: duplicate.idMVC,
+              parameters: ['onNodeRemoved'],
+              parentsUpdateData: computeParentUpdatesToRoot(dupParent),
+            });
+          }
+        }
+
+        // Re-validate: the saved node may have been removed during the
+        // async gap (e.g., user deleted it while createTab was pending).
+        const currentNode = session.treeModel.findByMvcId(targetNodeIdMVC as MvcId);
+        if (!currentNode || currentNode.type !== NodeTypesEnum.SAVEDTAB) break;
+
+        const activeTabNode = new TabTreeNode(chromeTabData as TabData);
+        activeTabNode.restoredFromSaved = true;
+        activeTabNode.copyMarksAndCollapsedFrom(currentNode);
+        const oldParent = currentNode.parent;
+        if (!oldParent) break;
+        session.treeModel.replaceNode(currentNode, activeTabNode);
+        bridge.broadcast({
+          command: 'msg2view_notifyObserver',
+          idMVC: activeTabNode.idMVC,
+          parameters: ['onNodeReplaced'],
+          parentsUpdateData: computeParentUpdatesToRoot(oldParent),
+        });
+        session.scheduleSave();
+      } catch (err) {
+        console.error('[message-handlers] Failed to open saved tab:', err);
+      }
+      break;
+    }
+
+    case NodeTypesEnum.WINDOW: {
+      const windowId = (node.data as WindowData).id;
+      if (windowId == null) break;
+
+      try {
+        await focusWindow(windowId);
+      } catch (err) {
+        console.error('[message-handlers] Failed to focus window:', err);
+      }
+      break;
+    }
+
+    default:
+      // SAVEDWINDOW, SESSION, GROUP, TEXTNOTE, SEPARATOR — no action on click
+      break;
   }
 }
 

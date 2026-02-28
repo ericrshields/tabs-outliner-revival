@@ -35,13 +35,20 @@ vi.mock('@/chrome/tabs', () => ({
   onTabActivated: mockEventSubscription(),
   onTabReplaced: mockEventSubscription(),
   getTab: vi.fn().mockResolvedValue(null),
+  createTab: vi.fn().mockResolvedValue(undefined),
+  focusTab: vi.fn().mockResolvedValue(undefined),
+  removeTab: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/chrome/windows', () => ({
   onWindowCreated: mockEventSubscription(),
   onWindowRemoved: mockEventSubscription(),
   onWindowFocusChanged: mockEventSubscription(),
+  focusWindow: vi.fn().mockResolvedValue(undefined),
+  removeWindow: vi.fn().mockResolvedValue(undefined),
 }));
+
+
 
 import {
   onTabCreated,
@@ -182,6 +189,20 @@ describe('onTabCreated handler', () => {
 
     expect(model.findActiveTab(20)).toBeNull();
   });
+
+  it('inserts tab even if URL matches an existing saved tab (dedup is handled by message-handlers)', () => {
+    const { model, win } = buildTreeWithWindow();
+    const session = createMockSession(model);
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    // onTabCreated always inserts — handleActivateNode cleans up duplicates
+    getLastListener(onTabCreated as ReturnType<typeof vi.fn>)(
+      { id: 50, windowId: 1, url: 'https://new.com', title: 'New' },
+    );
+
+    expect(model.findActiveTab(50)).not.toBeNull();
+    expect(session.scheduleSave).toHaveBeenCalled();
+  });
 });
 
 describe('onTabRemoved handler', () => {
@@ -203,6 +224,23 @@ describe('onTabRemoved handler', () => {
   it('converts marked tab to saved instead of removing', () => {
     const { model, tab } = buildTreeWithWindow();
     tab.marks = { relicons: [], customTitle: 'Important' };
+    const session = createMockSession(model);
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(
+      10, { windowId: 1, isWindowClosing: false },
+    );
+
+    let savedCount = 0;
+    model.forEach((n) => {
+      if (n.type === NodeTypesEnum.SAVEDTAB) savedCount++;
+    });
+    expect(savedCount).toBe(1);
+  });
+
+  it('converts restoredFromSaved tab to saved instead of removing', () => {
+    const { model, tab } = buildTreeWithWindow();
+    tab.restoredFromSaved = true;
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 

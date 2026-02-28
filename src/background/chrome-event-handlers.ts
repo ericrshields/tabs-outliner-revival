@@ -182,21 +182,27 @@ function handleTabRemoved(
   // Tab closed individually
   const tabData = node.data as TabData;
 
-  if (node.isCustomMarksPresent() || node.subnodes.length > 0) {
+  if (
+    node.isCustomMarksPresent() ||
+    node.subnodes.length > 0 ||
+    (node as TabTreeNode).restoredFromSaved
+  ) {
     // Convert to saved — preserve marks/children
     const saved = new SavedTabTreeNode(tabData);
     saved.copyMarksAndCollapsedFrom(node);
     const oldParent = node.parent;
-    session.treeModel.replaceNode(node, saved);
-    notifyNodeUpdated(bridge, saved);
-    if (oldParent) {
-      bridge.broadcast({
-        command: 'msg2view_notifyObserver',
-        idMVC: saved.idMVC,
-        parameters: ['onNodeReplaced'],
-        parentsUpdateData: computeParentUpdatesToRoot(oldParent),
-      });
+    if (!oldParent) {
+      // Node already detached — index is stale
+      session.scheduleSave();
+      return;
     }
+    session.treeModel.replaceNode(node, saved);
+    bridge.broadcast({
+      command: 'msg2view_notifyObserver',
+      idMVC: saved.idMVC,
+      parameters: ['onNodeReplaced'],
+      parentsUpdateData: computeParentUpdatesToRoot(oldParent),
+    });
   } else {
     // Remove entirely — unmarked tab with no children
     const oldParent = node.parent;
