@@ -185,6 +185,85 @@ describe('ActiveSession', () => {
     });
   });
 
+  describe('importTree()', () => {
+    it('imports valid HierarchyJSO and replaces tree model', async () => {
+      const session = await ActiveSession.create();
+      const jso = {
+        n: { type: 'session', data: { treeId: 'imported', nextDId: 1, nonDumpedDId: 1 } },
+        s: [
+          { n: { type: 'savedwin', data: { id: 1 } }, s: [
+            { n: { data: { url: 'https://a.com', title: 'A' } } },
+            { n: { data: { url: 'https://b.com', title: 'B' } } },
+          ] },
+        ],
+      };
+
+      const result = await session.importTree(JSON.stringify(jso));
+
+      expect(result.success).toBe(true);
+      expect(result.nodeCount).toBe(4); // session + window + 2 tabs
+      expect(mockSaveTree).toHaveBeenCalled();
+      // Tree model should have been replaced
+      expect(session.treeModel.root.subnodes.length).toBe(1);
+
+      await session.dispose();
+    });
+
+    it('imports valid operations log (legacy .tree format)', async () => {
+      const session = await ActiveSession.create();
+      const ops = [
+        { type: 2000, node: { type: 'session', data: { treeId: 'ops', nextDId: 1, nonDumpedDId: 1 } } },
+        [2001, { data: { url: 'https://a.com' } }, [0]],
+        { type: 11111, time: Date.now() },
+      ];
+
+      const result = await session.importTree(JSON.stringify(ops));
+
+      expect(result.success).toBe(true);
+      expect(result.nodeCount).toBeGreaterThanOrEqual(2);
+
+      await session.dispose();
+    });
+
+    it('returns error for invalid JSON', async () => {
+      const session = await ActiveSession.create();
+
+      const result = await session.importTree('not valid json!!!');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeTruthy();
+      expect(result.nodeCount).toBe(0);
+
+      await session.dispose();
+    });
+
+    it('returns error for unrecognized format', async () => {
+      const session = await ActiveSession.create();
+
+      const result = await session.importTree(JSON.stringify({ random: 'object' }));
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Unrecognized format');
+
+      await session.dispose();
+    });
+  });
+
+  describe('exportTree()', () => {
+    it('returns valid JSON string', async () => {
+      const session = await ActiveSession.create();
+
+      const result = session.exportTree();
+
+      expect(result.success).toBe(true);
+      expect(result.treeJson).toBeTruthy();
+      const parsed = JSON.parse(result.treeJson!);
+      expect(parsed.n).toBeDefined();
+
+      await session.dispose();
+    });
+  });
+
   describe('dispose()', () => {
     it('saves tree, clears alarm, and disconnects ports', async () => {
       const session = await ActiveSession.create();

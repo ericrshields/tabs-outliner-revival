@@ -8,6 +8,8 @@ import type {
   Msg_NotifyObserverOnNodeUpdated,
   Msg_NotifyObserver,
   Msg_SetCursorHere,
+  Msg_ImportResult,
+  Msg_ExportResult,
   BackgroundToViewMessage,
 } from '@/types/messages';
 
@@ -153,13 +155,15 @@ describe('useTreeData', () => {
       expect(tab1.nodeText).toBe('Updated GitHub');
     });
 
-    it('preserves subnodes of the updated node', () => {
+    it('preserves subnodes when update is for a collapsed node', () => {
       const { result } = renderHook(() => useTreeData());
       act(() => result.current.handleMessage(makeInitMessage()));
 
-      // win1 has 2 children (tab1, tab2)
+      // win1 has 2 children (tab1, tab2). Send an update that indicates
+      // the node is collapsed (subnodes:[] but isSubnodesPresent:true).
       const updateMsg = makeNodeUpdatedMessage('win1', {
         nodeText: 'Updated Window',
+        isSubnodesPresent: true,
       });
 
       act(() => result.current.handleMessage(updateMsg));
@@ -436,6 +440,98 @@ describe('useTreeData', () => {
       const win1 = result.current.state.root!.subnodes[0];
       expect(win1.subnodes).toHaveLength(2);
       expect(win1.subnodes[0].nodeText).not.toBe('Changed');
+    });
+  });
+
+  describe('IMPORT_RESULT (msg2view_importResult)', () => {
+    it('stores successful import result', () => {
+      const { result } = renderHook(() => useTreeData());
+      act(() => result.current.handleMessage(makeInitMessage()));
+
+      act(() => {
+        result.current.handleMessage({
+          command: 'msg2view_importResult',
+          success: true,
+          nodeCount: 42,
+        } as Msg_ImportResult);
+      });
+
+      expect(result.current.state.importResult).toEqual({
+        success: true,
+        nodeCount: 42,
+      });
+    });
+
+    it('stores failed import result with error', () => {
+      const { result } = renderHook(() => useTreeData());
+      act(() => result.current.handleMessage(makeInitMessage()));
+
+      act(() => {
+        result.current.handleMessage({
+          command: 'msg2view_importResult',
+          success: false,
+          nodeCount: 0,
+          error: 'Invalid JSON',
+        } as Msg_ImportResult);
+      });
+
+      expect(result.current.state.importResult).toEqual({
+        success: false,
+        nodeCount: 0,
+        error: 'Invalid JSON',
+      });
+    });
+
+    it('clears importResult on re-init', () => {
+      const { result } = renderHook(() => useTreeData());
+      act(() => result.current.handleMessage(makeInitMessage()));
+
+      act(() => {
+        result.current.handleMessage({
+          command: 'msg2view_importResult',
+          success: true,
+          nodeCount: 10,
+        } as Msg_ImportResult);
+      });
+      expect(result.current.state.importResult).not.toBeNull();
+
+      act(() => result.current.handleMessage(makeInitMessage()));
+      expect(result.current.state.importResult).toBeNull();
+    });
+  });
+
+  describe('EXPORT_READY / EXPORT_ERROR (msg2view_exportResult)', () => {
+    it('stores export JSON on success', () => {
+      const { result } = renderHook(() => useTreeData());
+      act(() => result.current.handleMessage(makeInitMessage()));
+
+      const json = '{"n":{"data":{}},"s":[]}';
+      act(() => {
+        result.current.handleMessage({
+          command: 'msg2view_exportResult',
+          success: true,
+          treeJson: json,
+        } as Msg_ExportResult);
+      });
+
+      expect(result.current.state.exportJson).toBe(json);
+      expect(result.current.state.exportError).toBeNull();
+    });
+
+    it('stores export error on failure', () => {
+      const { result } = renderHook(() => useTreeData());
+      act(() => result.current.handleMessage(makeInitMessage()));
+
+      act(() => {
+        result.current.handleMessage({
+          command: 'msg2view_exportResult',
+          success: false,
+          error: 'Serialization failed',
+        } as Msg_ExportResult);
+      });
+
+      expect(result.current.state.exportJson).toBeNull();
+      expect(result.current.state.exportError).toBe('Serialization failed');
     });
   });
 });

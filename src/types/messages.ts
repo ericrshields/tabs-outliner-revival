@@ -102,6 +102,20 @@ export interface Msg_SetLicenseStateInvalidNoKey {
   readonly licenseStateValues: unknown;
 }
 
+export interface Msg_ImportResult {
+  readonly command: 'msg2view_importResult';
+  readonly success: boolean;
+  readonly nodeCount: number;
+  readonly error?: string;
+}
+
+export interface Msg_ExportResult {
+  readonly command: 'msg2view_exportResult';
+  readonly success: boolean;
+  readonly treeJson?: string;
+  readonly error?: string;
+}
+
 /** Catch-all for remaining background->view messages not yet fully typed */
 export interface Msg_BackgroundToViewGeneric {
   readonly command: string;
@@ -125,6 +139,8 @@ export type BackgroundToViewMessage =
   | Msg_SetLicenseStateInvalidNotSignedIn
   | Msg_SetLicenseStateInvalidNoEmailPermission
   | Msg_SetLicenseStateInvalidNoKey
+  | Msg_ImportResult
+  | Msg_ExportResult
   | Msg_BackgroundToViewGeneric;
 
 // -- View -> Background messages -------------------------------------------------------
@@ -216,6 +232,15 @@ export interface Req_OnViewWindowBeforeUnload {
   readonly request: 'request2bkg_onViewWindowBeforeUnload_saveNow';
 }
 
+export interface Req_ImportTree {
+  readonly request: 'request2bkg_import_tree';
+  readonly treeJson: string;
+}
+
+export interface Req_ExportTree {
+  readonly request: 'request2bkg_export_tree';
+}
+
 /** Catch-all for remaining view->background messages not yet fully typed */
 export interface Req_ViewToBackgroundGeneric {
   readonly request: string;
@@ -238,4 +263,6 @@ export type ViewToBackgroundMessage =
   | Req_FocusTab
   | Req_CloseAllWindowsExceptThis
   | Req_OnViewWindowBeforeUnload
+  | Req_ImportTree
+  | Req_ExportTree
   | Req_ViewToBackgroundGeneric;

@@ -13,6 +13,7 @@ import type {
   Req_InvertCollapsedState,
   Req_ActivateHoveringMenuAction,
   Req_FocusTab,
+  Req_ImportTree,
 } from '@/types/messages';
 import type { MvcId } from '@/types/brands';
 import type { ActiveSession } from './active-session';
@@ -75,6 +76,34 @@ export function handleViewMessage(
     case 'request2bkg_focusTab': {
       const focus = msg as Req_FocusTab;
       void focusTab(focus.tabId, focus.tabWindowId);
+      break;
+    }
+
+    case 'request2bkg_import_tree': {
+      const importReq = msg as Req_ImportTree;
+      void (async () => {
+        const result = await session.importTree(importReq.treeJson);
+        bridge.sendTo(port, {
+          command: 'msg2view_importResult',
+          success: result.success,
+          nodeCount: result.nodeCount,
+          error: result.error,
+        });
+        if (result.success) {
+          bridge.broadcast(session.getInitMessage());
+        }
+      })();
+      break;
+    }
+
+    case 'request2bkg_export_tree': {
+      const result = session.exportTree();
+      bridge.sendTo(port, {
+        command: 'msg2view_exportResult',
+        success: result.success,
+        treeJson: result.treeJson,
+        error: result.error,
+      });
       break;
     }
 

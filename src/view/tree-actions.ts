@@ -11,6 +11,8 @@ import type {
   Req_InvertCollapsedState,
   Req_ActivateHoveringMenuAction,
   Req_OnViewWindowBeforeUnload,
+  Req_ImportTree,
+  Req_ExportTree,
 } from '@/types/messages';
 
 /** Request the full tree structure from the background. */
@@ -49,4 +51,14 @@ export function executeAction(
 /** Notify the background that the view is unloading (best-effort save). */
 export function notifyUnload(): Req_OnViewWindowBeforeUnload {
   return { request: 'request2bkg_onViewWindowBeforeUnload_saveNow' };
+}
+
+/** Request import of a tree from a JSON string (HierarchyJSO or operations log). */
+export function importTree(treeJson: string): Req_ImportTree {
+  return { request: 'request2bkg_import_tree', treeJson };
+}
+
+/** Request export of the current tree as a JSON string. */
+export function exportTree(): Req_ExportTree {
+  return { request: 'request2bkg_export_tree' };
 }

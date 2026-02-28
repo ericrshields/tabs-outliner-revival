@@ -12,6 +12,39 @@ import type { MvcId } from '@/types/brands';
 import { TreeNode } from './tree-node';
 
 /**
+ * Sanitize a tab href for safe rendering in <a href>.
+ * Blocks javascript:, data:, and other dangerous protocols.
+ */
+function sanitizeHref(href: string | null): string | null {
+  if (!href) return null;
+  if (href.startsWith('https://') || href.startsWith('http://')) return href;
+  // Allow browser-internal URLs (chrome://, edge://, about:)
+  if (href.startsWith('chrome://') || href.startsWith('edge://')) return href;
+  if (href.startsWith('about:')) return href;
+  // Block javascript:, data:, blob:, and anything else
+  return null;
+}
+
+/**
+ * Sanitize an icon URL for safe rendering in <img src>.
+ * Allows our own assets (img/ prefix), https/http, and data:image URIs.
+ * Blocks legacy extension paths, chrome-extension://, and other protocols.
+ */
+function sanitizeIconUrl(url: string | null): string {
+  if (!url) return '';
+  // Our own assets (img/favicon.png, img/nofavicon.png, etc.)
+  if (url.startsWith('img/')) return url;
+  // Standard web protocols (exclude localhost — dev server artifacts)
+  if (url.startsWith('https://')) return url;
+  if (url.startsWith('http://') && !url.startsWith('http://localhost')) return url;
+  // Data URIs for inline images
+  if (url.startsWith('data:image/')) return url;
+  // Everything else (chrome-extension://, legacy relative paths like
+  // public/build/img/fav32.png, chrome://, etc.) — blocked
+  return '';
+}
+
+/**
  * Generate a NodeDTO snapshot for view communication.
  *
  * Recursively builds DTOs for expanded children. Collapsed nodes get
@@ -53,10 +86,10 @@ export function toNodeDTO(node: TreeNode): NodeDTO {
     customTitle: node.getCustomTitle(),
     hoveringMenuActions: actionIds,
     statsBlockData: statsBlock,
-    icon: node.getIcon() ?? '',
-    iconForHtmlExport: node.getIconForHtmlExport() ?? '',
+    icon: sanitizeIconUrl(node.getIcon()),
+    iconForHtmlExport: sanitizeIconUrl(node.getIconForHtmlExport()),
     tooltipText: node.getTooltipText(),
-    href: node.getHref(),
+    href: sanitizeHref(node.getHref()),
     nodeText: node.getNodeText(),
     isSelectedTab: node.isSelectedTab(),
     isFocusedWindow: node.isFocusedWindow(),

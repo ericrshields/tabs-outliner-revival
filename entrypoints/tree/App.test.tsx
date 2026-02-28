@@ -30,12 +30,14 @@ vi.mock('@/view/index', async () => {
 });
 
 import { App } from './App';
-import { makeTree } from '@/view/__tests__/fixtures';
+import { makeTree, makeNodeDTO } from '@/view/__tests__/fixtures';
+import type { MvcId } from '@/types/brands';
 import type { Msg_InitTreeView } from '@/types/messages';
 import { act } from '@testing-library/preact';
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.restoreAllMocks();
+  localStorage.clear();
   capturedOnMessage = null;
   capturedOnReconnect = null;
   mockConnectionState = 'connected';
@@ -90,5 +92,39 @@ describe('Tree App', () => {
     expect(
       screen.getByText('Reconnecting to background...'),
     ).toBeTruthy();
+  });
+
+  it('shows first-run import overlay on first visit', () => {
+    localStorage.removeItem('importDismissed');
+    render(<App />);
+
+    const initMsg: Msg_InitTreeView = {
+      command: 'msg2view_initTreeView',
+      rootNode_currentSession: makeTree(),
+      globalViewId: 1,
+      instanceId: 'test',
+    };
+
+    act(() => capturedOnMessage!(initMsg));
+
+    expect(screen.getByText('Welcome to Tabs Outliner Revival')).toBeTruthy();
+    // Tree should still render behind the overlay
+    expect(screen.queryByText('Loading tree...')).toBeNull();
+  });
+
+  it('does not show first-run overlay after dismissal', () => {
+    localStorage.setItem('importDismissed', 'true');
+    render(<App />);
+
+    const initMsg: Msg_InitTreeView = {
+      command: 'msg2view_initTreeView',
+      rootNode_currentSession: makeTree(),
+      globalViewId: 1,
+      instanceId: 'test',
+    };
+
+    act(() => capturedOnMessage!(initMsg));
+
+    expect(screen.queryByText('Welcome to Tabs Outliner Revival')).toBeNull();
   });
 });

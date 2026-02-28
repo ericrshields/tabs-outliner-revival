@@ -10,6 +10,11 @@ import type { NodeDTO, StatsBlock } from '@/types/node-dto';
 import type { HoveringMenuActionId, TitleBackgroundCssClass } from '@/types/node';
 import type { NodeMarks } from '@/types/marks';
 
+/**
+ * Auto-increment counter for generated node IDs (idmvc1, idmvc2, ...).
+ * Reset between tests with resetFixtureCounter() in beforeEach.
+ * For deterministic IDs, pass explicit overrides: makeNodeDTO({ idMVC: 'myid' as MvcId }).
+ */
 let counter = 0;
 
 /** Reset the auto-increment counter between tests. */

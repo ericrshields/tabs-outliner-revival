@@ -11,6 +11,17 @@ import { CloseTracker } from '@/tree/close-tracker';
 import { toNodeDTO } from '@/tree/dto';
 import { loadTree, saveTree, treeExists } from '@/storage/tree-storage';
 import { isMigrationNeeded, migrateFromLegacy } from '@/storage/migration';
+import {
+  isValidHierarchyJSO,
+  countNodes,
+  exportTreeFile,
+} from '@/serialization/hierarchy-jso';
+import {
+  validateOperationsLog,
+  operationsToHierarchy,
+} from '@/serialization/operations-codec';
+import type { HierarchyJSO } from '@/types/serialized';
+import type { SerializedNode } from '@/types/serialized';
 import type { Msg_InitTreeView } from '@/types/messages';
 import { SaveScheduler } from './save-scheduler';
 import { ViewBridge } from './view-bridge';
@@ -118,6 +129,87 @@ export class ActiveSession {
     };
   }
 
+  /** Import a tree from JSON (HierarchyJSO or legacy operations log). */
+  async importTree(
+    treeJson: string,
+  ): Promise<{ success: boolean; nodeCount: number; error?: string }> {
+    const MAX_IMPORT_SIZE = 10 * 1024 * 1024; // 10 MB
+    if (treeJson.length > MAX_IMPORT_SIZE) {
+      return {
+        success: false,
+        nodeCount: 0,
+        error: `Tree file too large (${(treeJson.length / 1024 / 1024).toFixed(1)}MB, max 10MB)`,
+      };
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(treeJson);
+
+      let hierarchy: HierarchyJSO;
+      if (isValidHierarchyJSO(parsed)) {
+        hierarchy = parsed;
+      } else if (Array.isArray(parsed)) {
+        const validation = validateOperationsLog(parsed);
+        if (!validation.valid) {
+          return { success: false, nodeCount: 0, error: validation.reason };
+        }
+        const converted = operationsToHierarchy(parsed);
+        if (!converted) {
+          return {
+            success: false,
+            nodeCount: 0,
+            error: 'Failed to convert operations log to tree',
+          };
+        }
+        hierarchy = converted;
+      } else {
+        return {
+          success: false,
+          nodeCount: 0,
+          error: 'Unrecognized format: expected HierarchyJSO or operations log array',
+        };
+      }
+
+      // Convert all active node types to saved equivalents before
+      // creating the tree. More reliable than crash recovery's ID matching,
+      // which misses tabs whose IDs collide with currently-open Chrome tabs.
+      const deactivated = deactivateHierarchy(hierarchy);
+      console.log(`[importTree] Deactivated ${deactivated} active nodes`);
+
+      this.treeModel.replaceWith(TreeModel.fromHierarchyJSO(hierarchy));
+
+      // Convert orphaned active nodes → saved (imported tabs/windows
+      // won't match any current Chrome entities)
+      const recovery = await synchronizeTreeWithChrome(this.treeModel);
+      console.log(
+        `[importTree] Crash recovery: ${recovery.recoveredCount} recovered, ${recovery.newCount} new`,
+      );
+      const finalHierarchy = this.treeModel.toHierarchyJSO();
+      await saveTree(finalHierarchy);
+
+      return { success: true, nodeCount: countNodes(finalHierarchy) };
+    } catch (err) {
+      return {
+        success: false,
+        nodeCount: 0,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  /** Export the current tree as a JSON string. */
+  exportTree(): { success: boolean; treeJson?: string; error?: string } {
+    try {
+      const hierarchy = this.treeModel.toHierarchyJSO();
+      return { success: true, treeJson: exportTreeFile(hierarchy) };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
   /** Schedule a debounced save. */
   scheduleSave(): void {
     this._saveScheduler.schedule();
@@ -153,4 +245,72 @@ export class ActiveSession {
     // Cancel pending saves
     this._saveScheduler.cancel();
   }
+}
+
+// -- Import helpers --
+
+/** Map active node types to their saved equivalents. */
+const ACTIVE_TO_SAVED: Record<string, string> = {
+  tab: 'savedtab',
+  win: 'savedwin',
+  waitingtab: 'savedtab',
+  attachwaitingtab: 'savedtab',
+  waitingwin: 'savedwin',
+};
+
+/**
+ * Walk a HierarchyJSO tree and convert all active node types to saved.
+ * Mutates in place. Removes Chrome runtime IDs (tab id, window id)
+ * since they're meaningless after import.
+ *
+ * NOTE: Mutates the readonly HierarchyJSO via cast. Safe because the
+ * hierarchy is always freshly parsed from JSON.parse (no shared refs).
+ * If this function is ever called with a cached/shared hierarchy,
+ * deep-clone first to avoid corrupting the source.
+ */
+function deactivateHierarchy(hierarchy: HierarchyJSO): number {
+  let count = 0;
+  const node = hierarchy.n as unknown as Record<string, unknown>;
+  const type = node.type as string | undefined;
+
+  // Convert active node types to saved equivalents
+  if (type && type in ACTIVE_TO_SAVED) {
+    node.type = ACTIVE_TO_SAVED[type];
+    count++;
+  }
+
+  // Clear active/focused flags and Chrome runtime IDs on ALL nodes.
+  // Many savedtab nodes (no type field) still carry active:true from
+  // when the legacy extension saved them while the tab was focused.
+  const data = node.data as Record<string, unknown> | undefined;
+  if (data) {
+    if (data.active) {
+      data.active = false;
+      count++;
+    }
+    if (data.focused) {
+      data.focused = false;
+      count++;
+    }
+    // Clear legacy favicon paths (e.g. public/build/img/fav32.png)
+    // that don't exist in the new extension
+    if (
+      typeof data.favIconUrl === 'string' &&
+      data.favIconUrl &&
+      !data.favIconUrl.startsWith('https://') &&
+      !data.favIconUrl.startsWith('http://') &&
+      !data.favIconUrl.startsWith('data:image/')
+    ) {
+      delete data.favIconUrl;
+    }
+    delete data.id;
+    delete data.windowId;
+  }
+
+  if (hierarchy.s) {
+    for (const child of hierarchy.s) {
+      count += deactivateHierarchy(child);
+    }
+  }
+  return count;
 }

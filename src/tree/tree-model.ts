@@ -22,16 +22,20 @@ import type {
 } from './types';
 
 export class TreeModel {
-  readonly root: TreeNode;
+  private _root: TreeNode;
   private readonly nodeIndex: Map<string, TreeNode> = new Map();
   private readonly chromeTabIndex: Map<number, TreeNode> = new Map();
   private readonly chromeWindowIndex: Map<number, TreeNode> = new Map();
   private readonly onMutation?: MutationListener;
 
   constructor(root: TreeNode, options?: TreeModelOptions) {
-    this.root = root;
+    this._root = root;
     this.onMutation = options?.onMutation;
     this.rebuildIndices();
+  }
+
+  get root(): TreeNode {
+    return this._root;
   }
 
   // -- Lookup --
@@ -247,6 +251,28 @@ export class TreeModel {
     };
     this.emitMutation(result);
     return result;
+  }
+
+  /**
+   * Replace this model's tree with another model's tree.
+   * Rebuilds all indices. Preserves the TreeModel identity so that
+   * external references (ActiveSession, save scheduler) remain valid.
+   *
+   * NOTE: Emits mutation with empty parentUpdates. This breaks the
+   * invariant that mutations always have populated parent updates,
+   * but current consumers handle 'replace' via the INIT message path
+   * (full tree re-request), not incremental parent updates. If a
+   * future onMutation subscriber depends on parentUpdates, this will
+   * need to compute them from the new root.
+   */
+  replaceWith(other: TreeModel): void {
+    this._root = other.root;
+    this.rebuildIndices();
+    this.emitMutation({
+      type: 'replace',
+      affectedNodeId: this._root.idMVC,
+      parentUpdates: {},
+    });
   }
 
   // -- Serialization --

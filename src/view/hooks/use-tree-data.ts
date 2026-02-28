@@ -16,10 +16,18 @@ import type {
   Msg_NotifyObserver,
   Msg_NotifyObserverOnNodeUpdated,
   Msg_SetCursorHere,
+  Msg_ImportResult,
+  Msg_ExportResult,
 } from '@/types/messages';
 import { buildOpenMap } from '../tree-adapter';
 
 // -- State types --
+
+export interface ImportResultState {
+  success: boolean;
+  nodeCount: number;
+  error?: string;
+}
 
 export interface TreeState {
   root: NodeDTO | null;
@@ -28,6 +36,9 @@ export interface TreeState {
   instanceId: string | null;
   initialOpenMap: Record<string, boolean> | null;
   needsFullRefresh: boolean;
+  importResult: ImportResultState | null;
+  exportJson: string | null;
+  exportError: string | null;
 }
 
 const INITIAL_STATE: TreeState = {
@@ -37,6 +48,9 @@ const INITIAL_STATE: TreeState = {
   instanceId: null,
   initialOpenMap: null,
   needsFullRefresh: false,
+  importResult: null,
+  exportJson: null,
+  exportError: null,
 };
 
 // -- Reducer actions --
@@ -46,7 +60,11 @@ type TreeAction =
   | { type: 'NODE_UPDATED'; idMVC: string; modelDataCopy: NodeDTO }
   | { type: 'NODE_REMOVED'; idMVC: string }
   | { type: 'SET_CURSOR'; targetId: string }
-  | { type: 'FULL_REFRESH_NEEDED' };
+  | { type: 'FULL_REFRESH_NEEDED' }
+  | { type: 'IMPORT_RESULT'; success: boolean; nodeCount: number; error?: string }
+  | { type: 'EXPORT_READY'; treeJson: string }
+  | { type: 'EXPORT_ERROR'; error: string }
+  | { type: 'EXPORT_CLEAR' };
 
 // -- Index types --
 
@@ -150,6 +168,9 @@ function createReducer(indexesRef: { current: Indexes }) {
           instanceId: action.msg.instanceId,
           initialOpenMap: buildOpenMap(root),
           needsFullRefresh: false,
+          importResult: null,
+          exportJson: null,
+          exportError: null,
         };
       }
 
@@ -164,12 +185,17 @@ function createReducer(indexesRef: { current: Indexes }) {
           return { ...state, needsFullRefresh: true };
         }
 
-        // Preserve subnodes from the existing node — the update message
-        // only carries the node's own data, not its children.
-        const updatedNode: NodeDTO = {
-          ...action.modelDataCopy,
-          subnodes: existing.subnodes,
-        };
+        // Use the update's subnodes if present (expand sends children).
+        // Preserve existing subnodes only when the node is collapsed
+        // (subnodes:[] but isSubnodesPresent:true = hidden children).
+        const updateData = action.modelDataCopy;
+        const subnodes =
+          updateData.subnodes.length > 0
+            ? updateData.subnodes
+            : updateData.isSubnodesPresent
+              ? existing.subnodes
+              : [];
+        const updatedNode: NodeDTO = { ...updateData, subnodes };
 
         const newRoot = clonePathToRoot(
           action.idMVC,
@@ -221,6 +247,25 @@ function createReducer(indexesRef: { current: Indexes }) {
       case 'FULL_REFRESH_NEEDED':
         return { ...state, needsFullRefresh: true };
 
+      case 'IMPORT_RESULT':
+        return {
+          ...state,
+          importResult: {
+            success: action.success,
+            nodeCount: action.nodeCount,
+            error: action.error,
+          },
+        };
+
+      case 'EXPORT_READY':
+        return { ...state, exportJson: action.treeJson, exportError: null };
+
+      case 'EXPORT_ERROR':
+        return { ...state, exportError: action.error };
+
+      case 'EXPORT_CLEAR':
+        return { ...state, exportJson: null };
+
       default:
         return state;
     }
@@ -233,6 +278,7 @@ export interface UseTreeDataReturn {
   state: TreeState;
   isLoading: boolean;
   handleMessage: (msg: BackgroundToViewMessage) => void;
+  clearExport: () => void;
 }
 
 export function useTreeData(): UseTreeDataReturn {
@@ -287,6 +333,30 @@ export function useTreeData(): UseTreeDataReturn {
         break;
       }
 
+      case 'msg2view_importResult': {
+        const result = msg as Msg_ImportResult;
+        dispatch({
+          type: 'IMPORT_RESULT',
+          success: result.success,
+          nodeCount: result.nodeCount,
+          error: result.error,
+        });
+        break;
+      }
+
+      case 'msg2view_exportResult': {
+        const result = msg as Msg_ExportResult;
+        if (result.success && result.treeJson) {
+          dispatch({ type: 'EXPORT_READY', treeJson: result.treeJson });
+        } else {
+          dispatch({
+            type: 'EXPORT_ERROR',
+            error: result.error ?? 'Export failed',
+          });
+        }
+        break;
+      }
+
       default:
         // Messages not handled by tree data (scroll, drag, edit prompts, etc.)
         // are silently ignored — they'll be handled by other hooks in later epics.
@@ -294,9 +364,14 @@ export function useTreeData(): UseTreeDataReturn {
     }
   }, []);
 
+  const clearExport = useCallback(() => {
+    dispatch({ type: 'EXPORT_CLEAR' });
+  }, []);
+
   return {
     state,
     isLoading: state.root === null,
     handleMessage,
+    clearExport,
   };
 }

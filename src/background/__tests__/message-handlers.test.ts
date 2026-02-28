@@ -61,6 +61,8 @@ function createMockSession(model: TreeModel): ActiveSession {
         instanceId: 'test-456',
       } as unknown as Msg_InitTreeView;
     }),
+    importTree: vi.fn().mockResolvedValue({ success: false, nodeCount: 0, error: 'not configured' }),
+    exportTree: vi.fn().mockReturnValue({ success: false, error: 'not configured' }),
     dispose: vi.fn(),
   } as unknown as ActiveSession;
 }
@@ -87,7 +89,7 @@ function buildModel(): {
 
 beforeEach(() => {
   resetMvcIdCounter();
-  vi.clearAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe('handleViewMessage()', () => {
@@ -369,6 +371,98 @@ describe('handleViewMessage()', () => {
       );
 
       expect(focusTab).toHaveBeenCalledWith(42, 3);
+    });
+  });
+
+  describe('request2bkg_import_tree', () => {
+    it('imports valid HierarchyJSO and broadcasts init', async () => {
+      const { model } = buildModel();
+      const session = createMockSession(model);
+      (session.importTree as ReturnType<typeof vi.fn>).mockResolvedValue({
+        success: true,
+        nodeCount: 42,
+      });
+      const port = createMockPort();
+      const viewPort = createMockPort();
+      session.viewBridge.addPort(viewPort);
+
+      const treeJson = JSON.stringify({ n: { data: {} }, s: [] });
+      handleViewMessage(
+        { request: 'request2bkg_import_tree', treeJson },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      await vi.waitFor(() => {
+        expect(session.importTree).toHaveBeenCalledWith(treeJson);
+      });
+
+      // Result sent to requesting port
+      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(resultMsg.command).toBe('msg2view_importResult');
+      expect(resultMsg.success).toBe(true);
+      expect(resultMsg.nodeCount).toBe(42);
+
+      // Init broadcast sent to all views
+      expect(session.getInitMessage).toHaveBeenCalled();
+      expect(viewPort.postMessage).toHaveBeenCalled();
+    });
+
+    it('sends error result on import failure without broadcasting', async () => {
+      const { model } = buildModel();
+      const session = createMockSession(model);
+      (session.importTree as ReturnType<typeof vi.fn>).mockResolvedValue({
+        success: false,
+        nodeCount: 0,
+        error: 'Invalid format',
+      });
+      const port = createMockPort();
+      const viewPort = createMockPort();
+      session.viewBridge.addPort(viewPort);
+
+      handleViewMessage(
+        { request: 'request2bkg_import_tree', treeJson: 'garbage' },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      await vi.waitFor(() => {
+        expect(port.postMessage).toHaveBeenCalled();
+      });
+
+      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(resultMsg.success).toBe(false);
+      expect(resultMsg.error).toBe('Invalid format');
+
+      // No init broadcast on failure
+      expect(session.getInitMessage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('request2bkg_export_tree', () => {
+    it('sends export result with tree JSON', () => {
+      const { model } = buildModel();
+      const session = createMockSession(model);
+      (session.exportTree as ReturnType<typeof vi.fn>).mockReturnValue({
+        success: true,
+        treeJson: '{"n":{"data":{}},"s":[]}',
+      });
+      const port = createMockPort();
+
+      handleViewMessage(
+        { request: 'request2bkg_export_tree' },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      expect(session.exportTree).toHaveBeenCalled();
+      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(resultMsg.command).toBe('msg2view_exportResult');
+      expect(resultMsg.success).toBe(true);
+      expect(resultMsg.treeJson).toBeTruthy();
     });
   });
 
