@@ -35,6 +35,7 @@ function makeNodeApi(
 function makeCtx(overrides: Partial<TreeContextValue> = {}): TreeContextValue {
   return {
     cursorId: null,
+    singleClickActivation: false,
     onRowEnter: vi.fn(),
     onAction: vi.fn(),
     ...overrides,

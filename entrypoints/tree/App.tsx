@@ -21,11 +21,13 @@ import {
 import { TreeContext } from './components/TreeContext';
 import type { HoveringMenuActions, TreeContextValue } from './components/TreeContext';
 import { NodeRow } from './components/NodeRow';
+import { ClickRow } from './components/ClickRow';
 import { HoveringMenu } from './components/HoveringMenu';
 import { FirstRunImport } from './components/FirstRunImport';
 import { extractTreeFromDrag, readFileAsText } from './components/drag-import';
 
 const FIRST_RUN_KEY = 'importDismissed';
+const SINGLE_CLICK_KEY = 'singleClickActivation';
 
 export function App() {
   const treeRef = useRef<TreeApi<NodeDTO>>(null);
@@ -149,14 +151,21 @@ export function App() {
     return () => container.removeEventListener('scroll', clearHover, true);
   }, [clearHover]);
 
+  // Activation mode: double-click (default) or single-click (legacy)
+  const singleClickActivation = useMemo(
+    () => localStorage.getItem(SINGLE_CLICK_KEY) === 'true',
+    [],
+  );
+
   // Stable context value
   const ctxValue: TreeContextValue = useMemo(
     () => ({
       cursorId: state.selectedId ?? null,
+      singleClickActivation,
       onRowEnter: handleRowEnter,
       onAction: handleAction,
     }),
-    [state.selectedId, handleRowEnter, handleAction],
+    [state.selectedId, singleClickActivation, handleRowEnter, handleAction],
   );
 
   // Request tree on mount
@@ -296,6 +305,7 @@ export function App() {
               initialOpenState={state.initialOpenMap ?? {}}
               onToggle={onToggle}
               onActivate={onActivate}
+              renderRow={ClickRow}
               selection={state.selectedId ?? undefined}
               width="100%"
               height={windowHeight}
