@@ -186,8 +186,10 @@ describe('ActiveSession', () => {
   });
 
   describe('importTree()', () => {
-    it('imports valid HierarchyJSO and replaces tree model', async () => {
+    it('imports valid HierarchyJSO and appends to existing tree', async () => {
       const session = await ActiveSession.create();
+      const existingChildCount = session.treeModel.root.subnodes.length;
+
       const jso = {
         n: { type: 'session', data: { treeId: 'imported', nextDId: 1, nonDumpedDId: 1 } },
         s: [
@@ -201,16 +203,18 @@ describe('ActiveSession', () => {
       const result = await session.importTree(JSON.stringify(jso));
 
       expect(result.success).toBe(true);
-      expect(result.nodeCount).toBe(4); // session + window + 2 tabs
+      expect(result.nodeCount).toBe(3); // window + 2 tabs (root is skipped)
       expect(mockSaveTree).toHaveBeenCalled();
-      // Tree model should have been replaced
-      expect(session.treeModel.root.subnodes.length).toBe(1);
+      // Imported window appended to existing children
+      expect(session.treeModel.root.subnodes.length).toBe(existingChildCount + 1);
 
       await session.dispose();
     });
 
     it('imports valid operations log (legacy .tree format)', async () => {
       const session = await ActiveSession.create();
+      const existingChildCount = session.treeModel.root.subnodes.length;
+
       const ops = [
         { type: 2000, node: { type: 'session', data: { treeId: 'ops', nextDId: 1, nonDumpedDId: 1 } } },
         [2001, { data: { url: 'https://a.com' } }, [0]],
@@ -220,7 +224,68 @@ describe('ActiveSession', () => {
       const result = await session.importTree(JSON.stringify(ops));
 
       expect(result.success).toBe(true);
-      expect(result.nodeCount).toBeGreaterThanOrEqual(2);
+      expect(result.nodeCount).toBeGreaterThanOrEqual(1);
+      // Imported nodes appended to existing tree
+      expect(session.treeModel.root.subnodes.length).toBeGreaterThan(existingChildCount);
+
+      await session.dispose();
+    });
+
+    it('preserves existing tree nodes on import', async () => {
+      // Load a session with a pre-existing saved window
+      const storedJso = {
+        n: { type: 'session', data: { treeId: 'existing', nextDId: 1, nonDumpedDId: 1 } },
+        s: [
+          { n: { type: 'savedwin', data: {} }, s: [
+            { n: { data: { url: 'https://existing.com', title: 'Existing' } } },
+          ] },
+        ],
+      };
+      mockTreeExists.mockResolvedValue(true);
+      mockLoadTree.mockResolvedValue(storedJso);
+      const session = await ActiveSession.create();
+
+      expect(session.treeModel.root.subnodes.length).toBe(1);
+
+      // Import another window
+      const importJso = {
+        n: { type: 'session', data: { treeId: 'imported', nextDId: 1, nonDumpedDId: 1 } },
+        s: [
+          { n: { type: 'savedwin', data: {} }, s: [
+            { n: { data: { url: 'https://imported.com', title: 'Imported' } } },
+          ] },
+        ],
+      };
+      const result = await session.importTree(JSON.stringify(importJso));
+
+      expect(result.success).toBe(true);
+      expect(result.nodeCount).toBe(2); // window + tab
+      // Both the existing and imported windows should be present
+      expect(session.treeModel.root.subnodes.length).toBe(2);
+
+      await session.dispose();
+    });
+
+    it('accumulates nodes across multiple imports', async () => {
+      const session = await ActiveSession.create();
+
+      const makeImport = (url: string) => ({
+        n: { type: 'session', data: { treeId: 'x', nextDId: 1, nonDumpedDId: 1 } },
+        s: [
+          { n: { type: 'savedwin', data: {} }, s: [
+            { n: { data: { url, title: url } } },
+          ] },
+        ],
+      });
+
+      const result1 = await session.importTree(JSON.stringify(makeImport('https://first.com')));
+      expect(result1.success).toBe(true);
+
+      const result2 = await session.importTree(JSON.stringify(makeImport('https://second.com')));
+      expect(result2.success).toBe(true);
+
+      // Both imported windows should be present
+      expect(session.treeModel.root.subnodes.length).toBe(2);
 
       await session.dispose();
     });

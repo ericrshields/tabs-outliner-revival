@@ -13,15 +13,14 @@ import { loadTree, saveTree, treeExists } from '@/storage/tree-storage';
 import { isMigrationNeeded, migrateFromLegacy } from '@/storage/migration';
 import {
   isValidHierarchyJSO,
-  countNodes,
   exportTreeFile,
 } from '@/serialization/hierarchy-jso';
 import {
   validateOperationsLog,
   operationsToHierarchy,
 } from '@/serialization/operations-codec';
+import { restoreTree } from '@/tree/deserialize';
 import type { HierarchyJSO } from '@/types/serialized';
-import type { SerializedNode } from '@/types/serialized';
 import type { Msg_InitTreeView } from '@/types/messages';
 import { SaveScheduler } from './save-scheduler';
 import { ViewBridge } from './view-bridge';
@@ -176,7 +175,17 @@ export class ActiveSession {
       const deactivated = deactivateHierarchy(hierarchy);
       console.log(`[importTree] Deactivated ${deactivated} active nodes`);
 
-      this.treeModel.replaceWith(TreeModel.fromHierarchyJSO(hierarchy));
+      // Append imported windows as children of the existing root
+      // (skip the imported root — we already have our own session node)
+      const children = hierarchy.s ?? [];
+      let importedNodeCount = 0;
+      for (const childJSO of children) {
+        importedNodeCount += countHierarchyNodes(childJSO);
+        const childNode = restoreTree(childJSO);
+        if (childNode) {
+          this.treeModel.insertAsLastChild(this.treeModel.root, childNode);
+        }
+      }
 
       // Convert orphaned active nodes → saved (imported tabs/windows
       // won't match any current Chrome entities)
@@ -184,10 +193,9 @@ export class ActiveSession {
       console.log(
         `[importTree] Crash recovery: ${recovery.recoveredCount} recovered, ${recovery.newCount} new`,
       );
-      const finalHierarchy = this.treeModel.toHierarchyJSO();
-      await saveTree(finalHierarchy);
+      await saveTree(this.treeModel.toHierarchyJSO());
 
-      return { success: true, nodeCount: countNodes(finalHierarchy) };
+      return { success: true, nodeCount: importedNodeCount };
     } catch (err) {
       return {
         success: false,
@@ -248,6 +256,17 @@ export class ActiveSession {
 }
 
 // -- Import helpers --
+
+/** Count all nodes in a HierarchyJSO subtree (inclusive). */
+function countHierarchyNodes(jso: HierarchyJSO): number {
+  let count = 1;
+  if (jso.s) {
+    for (const child of jso.s) {
+      count += countHierarchyNodes(child);
+    }
+  }
+  return count;
+}
 
 /** Map active node types to their saved equivalents. */
 const ACTIVE_TO_SAVED: Record<string, string> = {
