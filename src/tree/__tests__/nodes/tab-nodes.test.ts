@@ -123,11 +123,13 @@ describe('TabTreeNode', () => {
     expect(node.chromeTabObj.title).toBe('Updated');
   });
 
-  it('cloneAsSaved returns SavedTabTreeNode', () => {
+  it('cloneAsSaved returns SavedTabTreeNode with active cleared', () => {
     const node = new TabTreeNode(sampleTabData);
+    expect(node.isSelectedTab()).toBe(true); // source has active:true
     const clone = node.cloneAsSaved();
     expect(clone).toBeInstanceOf(SavedTabTreeNode);
     expect(clone.getNodeText()).toBe('Example');
+    expect(clone.isSelectedTab()).toBe(false);
   });
 
   it('has close action in hovering menu', () => {

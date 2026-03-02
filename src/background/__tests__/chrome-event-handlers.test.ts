@@ -6,6 +6,7 @@ import { CloseTracker } from '@/tree/close-tracker';
 import { SessionTreeNode } from '@/tree/nodes/session-node';
 import { WindowTreeNode } from '@/tree/nodes/window-node';
 import { SavedWindowTreeNode } from '@/tree/nodes/saved-window-node';
+import { TreeNode } from '@/tree/tree-node';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
 import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
 import { resetMvcIdCounter } from '@/tree/mvc-id';
@@ -233,11 +234,14 @@ describe('onTabRemoved handler', () => {
       10, { windowId: 1, isWindowClosing: false },
     );
 
-    let savedCount = 0;
+    let savedNode: TreeNode | null = null;
     model.forEach((n) => {
-      if (n.type === NodeTypesEnum.SAVEDTAB) savedCount++;
+      if (n.type === NodeTypesEnum.SAVEDTAB) savedNode = n;
     });
-    expect(savedCount).toBe(1);
+    expect(savedNode).not.toBeNull();
+    // Active flag must be cleared so the saved tab doesn't keep
+    // the "selected tab" highlight from its previous Chrome state
+    expect(savedNode!.isSelectedTab()).toBe(false);
   });
 
   it('converts restoredFromSaved tab to saved instead of removing', () => {
@@ -250,11 +254,14 @@ describe('onTabRemoved handler', () => {
       10, { windowId: 1, isWindowClosing: false },
     );
 
-    let savedCount = 0;
+    let savedNode: TreeNode | null = null;
     model.forEach((n) => {
-      if (n.type === NodeTypesEnum.SAVEDTAB) savedCount++;
+      if (n.type === NodeTypesEnum.SAVEDTAB) savedNode = n;
     });
-    expect(savedCount).toBe(1);
+    expect(savedNode).not.toBeNull();
+    // Active flag must be cleared so the saved tab doesn't keep
+    // the "selected tab" highlight from its previous Chrome state
+    expect(savedNode!.isSelectedTab()).toBe(false);
   });
 
   it('does not remove tab when window is closing (defers to window handler)', () => {
@@ -583,14 +590,17 @@ describe('onWindowRemoved handler', () => {
 
     expect(model.findActiveWindow(1)).toBeNull();
 
-    let savedWinCount = 0;
-    let savedTabCount = 0;
-    model.forEach((n) => {
-      if (n.type === NodeTypesEnum.SAVEDWINDOW) savedWinCount++;
-      if (n.type === NodeTypesEnum.SAVEDTAB) savedTabCount++;
-    });
-    expect(savedWinCount).toBe(1);
-    expect(savedTabCount).toBe(1);
+    // Verify tree structure: root → savedwin → savedtab
+    const root = model.root;
+    expect(root.subnodes.length).toBe(1);
+    const savedWin = root.subnodes[0];
+    expect(savedWin.type).toBe(NodeTypesEnum.SAVEDWINDOW);
+    expect(savedWin.subnodes.length).toBe(1);
+    const savedTab = savedWin.subnodes[0];
+    expect(savedTab.type).toBe(NodeTypesEnum.SAVEDTAB);
+    // Active flag must be cleared so saved tabs don't keep
+    // the "selected tab" highlight from Chrome runtime state
+    expect(savedTab.isSelectedTab()).toBe(false);
     expect(session.scheduleSave).toHaveBeenCalled();
   });
 

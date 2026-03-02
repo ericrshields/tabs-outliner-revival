@@ -187,8 +187,10 @@ function handleTabRemoved(
     node.subnodes.length > 0 ||
     (node as TabTreeNode).restoredFromSaved
   ) {
-    // Convert to saved — preserve marks/children
-    const saved = new SavedTabTreeNode(tabData);
+    // Convert to saved — preserve marks/children.
+    // Clear active/focused so the saved node doesn't inherit the
+    // "selected tab" highlight from the Chrome runtime state.
+    const saved = new SavedTabTreeNode({ ...tabData, active: false });
     saved.copyMarksAndCollapsedFrom(node);
     const oldParent = node.parent;
     if (!oldParent) {
@@ -396,11 +398,13 @@ function handleWindowRemoved(
   });
   saved.copyMarksAndCollapsedFrom(node);
 
-  // Convert all active tabs to saved before replacing the window
+  // Convert all active tabs to saved before replacing the window.
+  // Clear active/focused so saved nodes don't inherit the
+  // "selected tab" highlight from Chrome runtime state.
   for (const child of [...node.subnodes]) {
     if (child.type === NodeTypesEnum.TAB) {
       const tabData = child.data as TabData;
-      const savedTab = new SavedTabTreeNode(tabData);
+      const savedTab = new SavedTabTreeNode({ ...tabData, active: false });
       savedTab.copyMarksAndCollapsedFrom(child);
       session.treeModel.replaceNode(child, savedTab);
     }
