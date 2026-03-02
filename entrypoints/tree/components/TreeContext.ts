@@ -9,6 +9,7 @@ export interface HoveringMenuActions {
 
 export interface TreeContextValue {
   cursorId: string | null;
+  hoveredId: string | null;
   singleClickActivation: boolean;
   onRowEnter: (
     id: string,
@@ -20,6 +21,7 @@ export interface TreeContextValue {
 
 export const TreeContext = createContext<TreeContextValue>({
   cursorId: null,
+  hoveredId: null,
   singleClickActivation: false,
   onRowEnter: () => {},
   onAction: () => {},

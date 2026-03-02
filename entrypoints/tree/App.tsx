@@ -161,11 +161,12 @@ export function App() {
   const ctxValue: TreeContextValue = useMemo(
     () => ({
       cursorId: state.selectedId ?? null,
+      hoveredId: hoverState?.idMVC ?? null,
       singleClickActivation,
       onRowEnter: handleRowEnter,
       onAction: handleAction,
     }),
-    [state.selectedId, singleClickActivation, handleRowEnter, handleAction],
+    [state.selectedId, hoverState?.idMVC, singleClickActivation, handleRowEnter, handleAction],
   );
 
   // Request tree on mount

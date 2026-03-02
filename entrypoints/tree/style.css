@@ -119,7 +119,8 @@ body {
   white-space: nowrap;
 }
 
-.tree-node:hover {
+.tree-node:hover,
+.tree-node.hovered {
   background: var(--hover-bg);
 }
 

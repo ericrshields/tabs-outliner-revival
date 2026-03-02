@@ -35,6 +35,7 @@ function makeNodeApi(
 function makeCtx(overrides: Partial<TreeContextValue> = {}): TreeContextValue {
   return {
     cursorId: null,
+    hoveredId: null,
     singleClickActivation: false,
     onRowEnter: vi.fn(),
     onAction: vi.fn(),
@@ -118,6 +119,20 @@ describe('NodeRow', () => {
     const ctx = makeCtx({ cursorId: 'cursor-test' });
     const { container } = renderNodeRow(makeNodeApi(data), ctx);
     expect(container.querySelector('.cursor-node')).toBeNull();
+  });
+
+  it('applies hovered class when id matches hoveredId', () => {
+    const data = makeNodeDTO({ idMVC: 'hover-test' as MvcId });
+    const ctx = makeCtx({ hoveredId: 'hover-test' });
+    const { container } = renderNodeRow(makeNodeApi(data), ctx);
+    expect(container.querySelector('.hovered')).toBeTruthy();
+  });
+
+  it('does not apply hovered class when id does not match', () => {
+    const data = makeNodeDTO({ idMVC: 'other' as MvcId });
+    const ctx = makeCtx({ hoveredId: 'hover-test' });
+    const { container } = renderNodeRow(makeNodeApi(data), ctx);
+    expect(container.querySelector('.hovered')).toBeNull();
   });
 
   it('applies ncc- content CSS class', () => {

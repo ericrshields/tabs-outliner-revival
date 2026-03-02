@@ -22,6 +22,7 @@ export function NodeRow({
   const ctx = useContext(TreeContext);
 
   const isCursor = ctx.cursorId === data.idMVC;
+  const isHovered = ctx.hoveredId === data.idMVC;
   const isWindowFrame = data.titleBackgroundCssClass === 'windowFrame';
 
   const classNames = [
@@ -31,6 +32,7 @@ export function NodeRow({
     data.isSelectedTab ? 'is-selected-tab' : '',
     data.isFocusedWindow ? 'is-focused-window' : '',
     isCursor ? 'cursor-node' : '',
+    isHovered ? 'hovered' : '',
     data.nodeContentCssClass ? `ncc-${data.nodeContentCssClass}` : '',
   ]
     .filter(Boolean)

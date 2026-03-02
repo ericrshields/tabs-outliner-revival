@@ -22,6 +22,7 @@ function makeCtx(
 ): TreeContextValue {
   return {
     cursorId: null,
+    hoveredId: null,
     singleClickActivation: false,
     onRowEnter: vi.fn(),
     onAction: vi.fn(),
