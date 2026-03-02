@@ -24,7 +24,7 @@ import { NodeRow } from './components/NodeRow';
 import { ClickRow } from './components/ClickRow';
 import { HoveringMenu } from './components/HoveringMenu';
 import { FirstRunImport } from './components/FirstRunImport';
-import { extractTreeFromDrag, readFileAsText } from './components/drag-import';
+import { extractTreeFromDrag, readFileAsText, importContainsTabs } from './components/drag-import';
 
 const FIRST_RUN_KEY = 'importDismissed';
 const SINGLE_CLICK_KEY = 'singleClickActivation';
@@ -63,7 +63,17 @@ export function App() {
 
   // Import handler shared by overlay and tree container drop
   const handleImport = useCallback(
-    (json: string) => postMessage(importTree(json)),
+    (json: string) => {
+      if (!importContainsTabs(json)) {
+        const proceed = window.confirm(
+          'This import appears to contain no tab data (only empty window shells). ' +
+          'This can happen when dragging collapsed nodes from the legacy extension.\n\n' +
+          'Import anyway?',
+        );
+        if (!proceed) return;
+      }
+      postMessage(importTree(json));
+    },
     [postMessage],
   );
 

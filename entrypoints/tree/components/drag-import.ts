@@ -1,6 +1,62 @@
 import type { HierarchyJSO } from '@/types/serialized';
 import type { SerializedNode } from '@/types/serialized';
 
+/** Non-tab node types — everything else is a tab variant (or defaults to savedtab). */
+const NON_TAB_TYPES = new Set([
+  'session',
+  'win',
+  'savedwin',
+  'group',
+  'textnote',
+  'separatorline',
+]);
+
+/** Check if a JSON tree string contains any tab nodes. */
+export function importContainsTabs(json: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(json);
+    // Unrecognized structure — don't warn on ambiguous data
+    if (!parsed || typeof parsed !== 'object') return true;
+    if (!Array.isArray(parsed) && !(parsed as Record<string, unknown>).n) return true;
+    return hierarchyHasTabs(parsed);
+  } catch {
+    return true; // let the backend handle parse errors
+  }
+}
+
+function hierarchyHasTabs(obj: unknown): boolean {
+  if (!obj || typeof obj !== 'object') return false;
+
+  // Operations log format (array at top level)
+  if (Array.isArray(obj)) {
+    return obj.some((entry) => {
+      if (Array.isArray(entry) && entry.length >= 2) {
+        // Operation entry: [opcode, nodeData, path]
+        return true; // operations logs always have tab data
+      }
+      return false;
+    });
+  }
+
+  // HierarchyJSO node: { n: SerializedNode, s?: HierarchyJSO[] }
+  const rec = obj as Record<string, unknown>;
+  const node = rec.n as Record<string, unknown> | undefined;
+  if (node) {
+    const type = node.type as string | undefined;
+    // No type field = savedtab (default); explicit tab types also count
+    if (!type || !NON_TAB_TYPES.has(type)) {
+      return true;
+    }
+  }
+
+  const children = rec.s as unknown[];
+  if (Array.isArray(children)) {
+    return children.some(hierarchyHasTabs);
+  }
+
+  return false;
+}
+
 /** Legacy extension's custom MIME type for cross-instance tree interchange. */
 const TABS_OUTLINER_MIME = 'application/x-tabsoutliner-items';
 
