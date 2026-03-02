@@ -5,7 +5,9 @@ import { TreeModel } from '@/tree/tree-model';
 import { CloseTracker } from '@/tree/close-tracker';
 import { SessionTreeNode } from '@/tree/nodes/session-node';
 import { WindowTreeNode } from '@/tree/nodes/window-node';
+import { SavedWindowTreeNode } from '@/tree/nodes/saved-window-node';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
+import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
 import { resetMvcIdCounter } from '@/tree/mvc-id';
 import { NodeTypesEnum } from '@/types/enums';
 import type { TabData, WindowData } from '@/types/node-data';
@@ -296,6 +298,123 @@ describe('onTabRemoved handler', () => {
       (p) => Array.isArray(p) && p.includes('onNodeRemoved'),
     );
     expect(hasRemoved).toBe(false);
+  });
+
+  it('removes empty unmarked window parent after last tab removed', () => {
+    const root = new SessionTreeNode();
+    const win = new SavedWindowTreeNode({ type: 'normal' });
+    const tab = new SavedTabTreeNode({
+      url: 'https://example.com',
+      title: 'Example',
+    });
+    root.insertSubnode(0, win);
+    win.insertSubnode(0, tab);
+    // Add an active tab so findActiveTab works for the removal trigger
+    const activeWin = new WindowTreeNode({ id: 1, type: 'normal', focused: true });
+    const activeTab = new TabTreeNode({
+      id: 10,
+      windowId: 1,
+      url: 'https://active.com',
+      title: 'Active',
+      active: true,
+    });
+    root.insertSubnode(1, activeWin);
+    activeWin.insertSubnode(0, activeTab);
+
+    const model = new TreeModel(root);
+    const session = createMockSession(model);
+    const mockPort = {
+      postMessage: vi.fn(),
+      disconnect: vi.fn(),
+      onDisconnect: { addListener: vi.fn(), removeListener: vi.fn(), hasListener: vi.fn(), hasListeners: vi.fn() },
+      onMessage: { addListener: vi.fn(), removeListener: vi.fn(), hasListener: vi.fn(), hasListeners: vi.fn() },
+      name: 'tree-view',
+    } as unknown as Browser.runtime.Port;
+    session.viewBridge.addPort(mockPort);
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    const activeWinIdMVC = activeWin.idMVC;
+
+    // Remove the active tab (unmarked, no children) — parent is activeWin
+    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(
+      10, { windowId: 1, isWindowClosing: false },
+    );
+
+    // Active window should be auto-removed since it's now empty and unmarked
+    expect(root.subnodes.length).toBe(1);
+    expect(root.subnodes[0]).toBe(win); // Only the saved window remains
+
+    // Verify window removal was broadcast
+    const broadcasts = (mockPort.postMessage as ReturnType<typeof vi.fn>).mock.calls.map(
+      (c) => c[0] as Record<string, unknown>,
+    );
+    const windowRemoved = broadcasts.find(
+      (m) =>
+        m.command === 'msg2view_notifyObserver' &&
+        Array.isArray(m.parameters) &&
+        (m.parameters as string[]).includes('onNodeRemoved') &&
+        m.idMVC === activeWinIdMVC,
+    );
+    expect(windowRemoved).toBeDefined();
+  });
+
+  it('preserves empty window parent if it has marks', () => {
+    const root = new SessionTreeNode();
+    const win = new WindowTreeNode({ id: 1, type: 'normal', focused: true });
+    win.marks = { relicons: [], customTitle: 'Important Window' };
+    const tab = new TabTreeNode({
+      id: 10,
+      windowId: 1,
+      url: 'https://example.com',
+      title: 'Example',
+      active: true,
+    });
+    root.insertSubnode(0, win);
+    win.insertSubnode(0, tab);
+    const model = new TreeModel(root);
+    const session = createMockSession(model);
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(
+      10, { windowId: 1, isWindowClosing: false },
+    );
+
+    // Window should still exist — it has marks
+    expect(root.subnodes.length).toBe(1);
+    expect(root.subnodes[0]).toBe(win);
+  });
+
+  it('preserves window parent that still has other children', () => {
+    const root = new SessionTreeNode();
+    const win = new WindowTreeNode({ id: 1, type: 'normal', focused: true });
+    const tab1 = new TabTreeNode({
+      id: 10,
+      windowId: 1,
+      url: 'https://a.com',
+      title: 'A',
+      active: true,
+    });
+    const tab2 = new TabTreeNode({
+      id: 20,
+      windowId: 1,
+      url: 'https://b.com',
+      title: 'B',
+      active: false,
+    });
+    root.insertSubnode(0, win);
+    win.insertSubnode(0, tab1);
+    win.insertSubnode(1, tab2);
+    const model = new TreeModel(root);
+    const session = createMockSession(model);
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(
+      10, { windowId: 1, isWindowClosing: false },
+    );
+
+    // Window should still exist — it has tab2
+    expect(root.subnodes.length).toBe(1);
+    expect(win.subnodes.length).toBe(1);
   });
 });
 

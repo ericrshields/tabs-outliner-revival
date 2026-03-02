@@ -24,6 +24,7 @@ import { focusWindow, removeWindow } from '@/chrome/windows';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
 import type { TabData, WindowData } from '@/types/node-data';
 import { NodeTypesEnum } from '@/types/enums';
+import { removeEmptyWindowParent } from './chrome-event-handlers';
 
 const ALLOWED_ACTIONS = new Set([
   'closeAction',
@@ -294,12 +295,17 @@ function handleHoveringMenuAction(
     }
 
     case 'deleteAction': {
+      const oldParent = node.parent;
       session.treeModel.removeSubtree(node);
       bridge.broadcast({
         command: 'msg2view_notifyObserver',
         idMVC: node.idMVC,
         parameters: ['onNodeRemoved'],
+        parentsUpdateData: oldParent
+          ? computeParentUpdatesToRoot(oldParent)
+          : undefined,
       });
+      removeEmptyWindowParent(session, bridge, oldParent);
       session.scheduleSave();
       break;
     }

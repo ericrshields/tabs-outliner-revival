@@ -215,6 +215,7 @@ function handleTabRemoved(
         ? computeParentUpdatesToRoot(oldParent)
         : undefined,
     });
+    removeEmptyWindowParent(session, bridge, oldParent);
   }
 
   session.scheduleSave();
@@ -464,5 +465,34 @@ function notifyNodeUpdated(bridge: ViewBridge, node: TreeNode): void {
     command: 'msg2view_notifyObserver_onNodeUpdated',
     idMVC: node.idMVC,
     modelDataCopy: toNodeDTO(node),
+  });
+}
+
+/**
+ * Remove a window/saved-window parent that has become empty and has no marks.
+ * Called after a child is removed to clean up orphan window headers.
+ */
+export function removeEmptyWindowParent(
+  session: ActiveSession,
+  bridge: ViewBridge,
+  parent: TreeNode | null,
+): void {
+  if (!parent) return;
+  if (parent.subnodes.length > 0) return;
+  if (parent.isCustomMarksPresent()) return;
+  if (
+    parent.type !== NodeTypesEnum.WINDOW &&
+    parent.type !== NodeTypesEnum.SAVEDWINDOW
+  ) return;
+
+  const grandparent = parent.parent;
+  session.treeModel.removeSubtree(parent);
+  bridge.broadcast({
+    command: 'msg2view_notifyObserver',
+    idMVC: parent.idMVC,
+    parameters: ['onNodeRemoved'],
+    parentsUpdateData: grandparent
+      ? computeParentUpdatesToRoot(grandparent)
+      : undefined,
   });
 }

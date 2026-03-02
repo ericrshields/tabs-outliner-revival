@@ -509,6 +509,83 @@ describe('handleViewMessage()', () => {
       expect(broadcastMsg.parameters).toContain('onNodeRemoved');
     });
 
+    it('deleteAction removes empty unmarked window parent after last child', () => {
+      const root = new SessionTreeNode();
+      const savedWin = new SavedWindowTreeNode({ type: 'normal' });
+      const savedTab = new SavedTabTreeNode({
+        url: 'https://example.com',
+        title: 'Example',
+      });
+      root.insertSubnode(0, savedWin);
+      savedWin.insertSubnode(0, savedTab);
+      const model = new TreeModel(root);
+      const session = createMockSession(model);
+      const port = createMockPort();
+      const viewPort = createMockPort();
+      session.viewBridge.addPort(viewPort);
+
+      const savedWinIdMVC = savedWin.idMVC;
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateHoveringMenuActionOnNode',
+          targetNodeIdMVC: savedTab.idMVC,
+          actionId: 'deleteAction',
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      // Tab removed, then empty window auto-removed
+      expect(model.findByMvcId(savedTab.idMVC)).toBeNull();
+      expect(model.findByMvcId(savedWinIdMVC)).toBeNull();
+      expect(root.subnodes.length).toBe(0);
+
+      // Verify window removal was broadcast
+      const broadcasts = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock.calls.map(
+        (c) => c[0] as Record<string, unknown>,
+      );
+      const windowRemoved = broadcasts.find(
+        (m) =>
+          m.command === 'msg2view_notifyObserver' &&
+          Array.isArray(m.parameters) &&
+          (m.parameters as string[]).includes('onNodeRemoved') &&
+          m.idMVC === savedWinIdMVC,
+      );
+      expect(windowRemoved).toBeDefined();
+    });
+
+    it('deleteAction preserves marked empty window parent', () => {
+      const root = new SessionTreeNode();
+      const savedWin = new SavedWindowTreeNode({ type: 'normal' });
+      savedWin.marks = { relicons: [], customTitle: 'Keep Me' };
+      const savedTab = new SavedTabTreeNode({
+        url: 'https://example.com',
+        title: 'Example',
+      });
+      root.insertSubnode(0, savedWin);
+      savedWin.insertSubnode(0, savedTab);
+      const model = new TreeModel(root);
+      const session = createMockSession(model);
+      const port = createMockPort();
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateHoveringMenuActionOnNode',
+          targetNodeIdMVC: savedTab.idMVC,
+          actionId: 'deleteAction',
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      // Window should still exist — it has marks
+      expect(root.subnodes.length).toBe(1);
+      expect(root.subnodes[0]).toBe(savedWin);
+    });
+
     it('handles closeAction on a tab by calling removeTab', () => {
       const { model, tab } = buildModel();
       const session = createMockSession(model);
