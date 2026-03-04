@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { fakeBrowser } from 'wxt/testing';
 import { synchronizeTreeWithChrome } from '../crash-recovery';
 import { TreeModel } from '@/tree/tree-model';
 import { SessionTreeNode } from '@/tree/nodes/session-node';
@@ -15,6 +16,11 @@ vi.mock('@/chrome/windows', () => ({
 
 vi.mock('@/chrome/tabs', () => ({
   queryTabs: vi.fn().mockResolvedValue([]),
+  isExtensionUrl: vi.fn((url: string | undefined) => {
+    if (!url) return false;
+    const { browser } = require('wxt/browser');
+    return url.startsWith(browser.runtime.getURL('/'));
+  }),
 }));
 
 import { queryWindows } from '@/chrome/windows';
@@ -248,5 +254,106 @@ describe('synchronizeTreeWithChrome()', () => {
     const result = await synchronizeTreeWithChrome(model);
     expect(result.recoveredCount).toBe(2); // window 1 + tab 10
     expect(result.newCount).toBe(2); // window 5 + tab 50
+  });
+
+  it('does not create nodes for extension tabs', async () => {
+    const model = buildTree([]);
+    const extUrl = fakeBrowser.runtime.getURL('/tree.html');
+
+    mockQueryWindows.mockResolvedValue([{ id: 1, type: 'normal' }]);
+    mockQueryTabs.mockResolvedValue([
+      { id: 10, windowId: 1, url: 'https://normal.com' },
+      { id: 11, windowId: 1, url: extUrl },
+    ]);
+
+    const result = await synchronizeTreeWithChrome(model);
+
+    // 1 window + 1 normal tab (extension tab skipped)
+    expect(result.newCount).toBe(2);
+
+    let tabCount = 0;
+    model.forEach((n) => {
+      if (n.type === NodeTypesEnum.TAB) tabCount++;
+    });
+    expect(tabCount).toBe(1);
+  });
+
+  it('removes persisted extension tab nodes on startup', async () => {
+    const extUrl = fakeBrowser.runtime.getURL('/tree.html');
+    // Build tree with an extension tab that leaked in from a previous session
+    const root = new SessionTreeNode();
+    const win = new WindowTreeNode({ id: 1, type: 'normal', focused: false });
+    const normalTab = new TabTreeNode({
+      id: 10,
+      url: 'https://example.com',
+      title: 'Example',
+      windowId: 1,
+    });
+    const extTab = new SavedTabTreeNode({
+      url: extUrl,
+      title: 'Tree',
+    });
+    root.insertSubnode(0, win);
+    win.insertSubnode(0, normalTab);
+    win.insertSubnode(1, extTab);
+    const model = new TreeModel(root);
+
+    mockQueryWindows.mockResolvedValue([{ id: 1, type: 'normal' }]);
+    mockQueryTabs.mockResolvedValue([
+      { id: 10, windowId: 1, url: 'https://example.com' },
+    ]);
+
+    const result = await synchronizeTreeWithChrome(model);
+
+    expect(result.cleanedCount).toBe(1);
+    expect(result.recoveredCount).toBe(0);
+
+    let extNodeCount = 0;
+    model.forEach((n) => {
+      if (n.type === NodeTypesEnum.TAB || n.type === NodeTypesEnum.SAVEDTAB) {
+        const data = n.data as { url?: string };
+        if (data.url && data.url.startsWith(fakeBrowser.runtime.getURL('/'))) {
+          extNodeCount++;
+        }
+      }
+    });
+    expect(extNodeCount).toBe(0);
+
+    // Normal tab should still be there
+    expect(model.findActiveTab(10)).not.toBeNull();
+  });
+
+  it('re-parents children when removing extension tab node', async () => {
+    const extUrl = fakeBrowser.runtime.getURL('/tree.html');
+    const root = new SessionTreeNode();
+    const win = new WindowTreeNode({ id: 1, type: 'normal', focused: false });
+    const extTab = new SavedTabTreeNode({ url: extUrl, title: 'Tree' });
+    const childTab = new SavedTabTreeNode({
+      url: 'https://child.com',
+      title: 'Child',
+    });
+    root.insertSubnode(0, win);
+    win.insertSubnode(0, extTab);
+    extTab.insertSubnode(0, childTab);
+    const model = new TreeModel(root);
+
+    mockQueryWindows.mockResolvedValue([{ id: 1, type: 'normal' }]);
+    mockQueryTabs.mockResolvedValue([]);
+
+    const result = await synchronizeTreeWithChrome(model);
+
+    expect(result.cleanedCount).toBe(1);
+
+    // Child should be re-parented under win, not destroyed
+    let childFound = false;
+    model.forEach((n) => {
+      if (n.type === NodeTypesEnum.SAVEDTAB) {
+        const data = n.data as { url?: string };
+        if (data.url === 'https://child.com') childFound = true;
+      }
+    });
+    expect(childFound).toBe(true);
+    expect(win.subnodes.length).toBe(1);
+    expect(win.subnodes[0]).toBe(childTab);
   });
 });

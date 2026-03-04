@@ -91,9 +91,9 @@ export class ActiveSession {
 
     // Synchronize tree with current Chrome state (crash recovery)
     const recovery = await synchronizeTreeWithChrome(treeModel);
-    if (recovery.recoveredCount > 0 || recovery.newCount > 0) {
+    if (recovery.recoveredCount > 0 || recovery.newCount > 0 || recovery.cleanedCount > 0) {
       console.log(
-        `[ActiveSession] Crash recovery: ${recovery.recoveredCount} recovered, ${recovery.newCount} new`,
+        `[ActiveSession] Crash recovery: ${recovery.recoveredCount} recovered, ${recovery.newCount} new, ${recovery.cleanedCount} cleaned`,
       );
       // Save the recovered state
       await saveTree(treeModel.toHierarchyJSO());
@@ -191,7 +191,7 @@ export class ActiveSession {
       // won't match any current Chrome entities)
       const recovery = await synchronizeTreeWithChrome(this.treeModel);
       console.log(
-        `[importTree] Crash recovery: ${recovery.recoveredCount} recovered, ${recovery.newCount} new`,
+        `[importTree] Crash recovery: ${recovery.recoveredCount} recovered, ${recovery.newCount} new, ${recovery.cleanedCount} cleaned`,
       );
       await saveTree(this.treeModel.toHierarchyJSO());
 

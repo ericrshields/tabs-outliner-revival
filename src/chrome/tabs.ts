@@ -9,6 +9,13 @@ import { browser } from 'wxt/browser';
 import type { ChromeTabData } from '@/types/chrome';
 import { ChromeApiError } from './errors';
 
+/** Check if a URL belongs to this extension (tree.html, options.html, etc.). */
+export function isExtensionUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  const extOrigin = browser.runtime.getURL('/');
+  return url.startsWith(extOrigin);
+}
+
 /** Extract the fields we persist from a native Chrome tab. */
 export function toChromeTabData(tab: Browser.tabs.Tab): ChromeTabData {
   return {

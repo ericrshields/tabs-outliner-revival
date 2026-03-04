@@ -33,6 +33,11 @@ vi.mock('@/chrome/tabs', () => ({
   onTabActivated: vi.fn(() => vi.fn()),
   onTabReplaced: vi.fn(() => vi.fn()),
   getTab: vi.fn().mockResolvedValue(null),
+  isExtensionUrl: vi.fn((url: string | undefined) => {
+    if (!url) return false;
+    const { browser } = require('wxt/browser');
+    return url.startsWith(browser.runtime.getURL('/'));
+  }),
 }));
 
 vi.mock('@/chrome/alarms', () => ({

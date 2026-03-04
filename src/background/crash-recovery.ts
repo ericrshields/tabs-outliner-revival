@@ -18,11 +18,12 @@ import { WindowTreeNode } from '@/tree/nodes/window-node';
 import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
 import { SavedWindowTreeNode } from '@/tree/nodes/saved-window-node';
 import { queryWindows } from '@/chrome/windows';
-import { queryTabs } from '@/chrome/tabs';
+import { queryTabs, isExtensionUrl } from '@/chrome/tabs';
 
 export interface RecoveryResult {
   readonly recoveredCount: number;
   readonly newCount: number;
+  readonly cleanedCount: number;
 }
 
 /**
@@ -72,6 +73,28 @@ export async function synchronizeTreeWithChrome(
     recoveredCount++;
   }
 
+  // Phase 1b: Remove extension's own tab nodes that leaked into the tree
+  let cleanedCount = 0;
+  const extNodes: TreeNode[] = [];
+  model.forEach((node) => {
+    if (node.type === NodeTypesEnum.TAB || node.type === NodeTypesEnum.SAVEDTAB) {
+      const data = node.data as TabData;
+      if (isExtensionUrl(data.url)) extNodes.push(node);
+    }
+  });
+  for (const node of extNodes) {
+    const parent = node.parent;
+    if (!parent) continue;
+    // Re-parent children before removing so user data isn't lost
+    const idx = parent.subnodes.indexOf(node);
+    for (const child of [...node.subnodes]) {
+      child.removeFromParent();
+      parent.insertSubnode(idx, child);
+    }
+    model.removeSubtree(node);
+    cleanedCount++;
+  }
+
   // Phase 2: Create nodes for Chrome entities not in tree
   const treeWindowIds = new Set<number>();
   const treeTabIds = new Set<number>();
@@ -90,6 +113,7 @@ export async function synchronizeTreeWithChrome(
   const tabsByWindow = new Map<number, ChromeTabData[]>();
   for (const tab of chromeTabs) {
     if (tab.id != null && !treeTabIds.has(tab.id) && tab.windowId != null) {
+      if (isExtensionUrl(tab.url)) continue; // Skip extension's own tabs
       const list = tabsByWindow.get(tab.windowId) ?? [];
       list.push(tab);
       tabsByWindow.set(tab.windowId, list);
@@ -126,7 +150,7 @@ export async function synchronizeTreeWithChrome(
     }
   }
 
-  return { recoveredCount, newCount };
+  return { recoveredCount, newCount, cleanedCount };
 }
 
 /** Find active window nodes whose Chrome window no longer exists. */

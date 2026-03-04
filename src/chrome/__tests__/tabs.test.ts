@@ -10,6 +10,7 @@ import {
   onTabCreated,
   onTabRemoved,
   onTabUpdated,
+  isExtensionUrl,
 } from '../tabs';
 import { ChromeApiError } from '../errors';
 import type { ChromeTabData } from '@/types/chrome';
@@ -17,6 +18,30 @@ import type { ChromeTabData } from '@/types/chrome';
 describe('tabs', () => {
   beforeEach(() => {
     fakeBrowser.reset();
+  });
+
+  describe('isExtensionUrl', () => {
+    it('returns true for extension URLs', () => {
+      const extUrl = fakeBrowser.runtime.getURL('/tree.html');
+      expect(isExtensionUrl(extUrl)).toBe(true);
+    });
+
+    it('returns true for extension root', () => {
+      const extUrl = fakeBrowser.runtime.getURL('/');
+      expect(isExtensionUrl(extUrl)).toBe(true);
+    });
+
+    it('returns false for regular URLs', () => {
+      expect(isExtensionUrl('https://example.com')).toBe(false);
+    });
+
+    it('returns false for undefined', () => {
+      expect(isExtensionUrl(undefined)).toBe(false);
+    });
+
+    it('returns false for empty string', () => {
+      expect(isExtensionUrl('')).toBe(false);
+    });
   });
 
   describe('toChromeTabData', () => {

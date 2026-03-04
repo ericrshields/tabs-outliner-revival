@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { fakeBrowser } from 'wxt/testing';
 import { registerChromeEventHandlers } from '../chrome-event-handlers';
 import { ViewBridge } from '../view-bridge';
 import { TreeModel } from '@/tree/tree-model';
@@ -41,6 +42,11 @@ vi.mock('@/chrome/tabs', () => ({
   createTab: vi.fn().mockResolvedValue(undefined),
   focusTab: vi.fn().mockResolvedValue(undefined),
   removeTab: vi.fn().mockResolvedValue(undefined),
+  isExtensionUrl: vi.fn((url: string | undefined) => {
+    if (!url) return false;
+    const { browser } = require('wxt/browser');
+    return url.startsWith(browser.runtime.getURL('/'));
+  }),
 }));
 
 vi.mock('@/chrome/windows', () => ({
@@ -191,6 +197,20 @@ describe('onTabCreated handler', () => {
     );
 
     expect(model.findActiveTab(20)).toBeNull();
+  });
+
+  it('skips extension\'s own tabs', () => {
+    const { model } = buildTreeWithWindow();
+    const session = createMockSession(model);
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    const extUrl = fakeBrowser.runtime.getURL('/tree.html');
+    getLastListener(onTabCreated as ReturnType<typeof vi.fn>)(
+      { id: 30, windowId: 1, url: extUrl, title: 'Tree' },
+    );
+
+    expect(model.findActiveTab(30)).toBeNull();
+    expect(session.scheduleSave).not.toHaveBeenCalled();
   });
 
   it('inserts tab even if URL matches an existing saved tab (dedup is handled by message-handlers)', () => {
@@ -426,6 +446,21 @@ describe('onTabRemoved handler', () => {
 });
 
 describe('onTabUpdated handler', () => {
+  it('removes tab when updated to extension URL', () => {
+    const { model, win } = buildTreeWithWindow();
+    const session = createMockSession(model);
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    const extUrl = fakeBrowser.runtime.getURL('/tree.html');
+    getLastListener(onTabUpdated as ReturnType<typeof vi.fn>)(
+      10, { url: extUrl },
+      { id: 10, windowId: 1, url: extUrl, title: 'Tree' },
+    );
+
+    expect(model.findActiveTab(10)).toBeNull();
+    expect(session.scheduleSave).toHaveBeenCalled();
+  });
+
   it('updates tab node chrome data', () => {
     const { model } = buildTreeWithWindow();
     const session = createMockSession(model);
@@ -531,6 +566,28 @@ describe('onTabReplaced handler', () => {
     expect(model.findActiveTab(10)).toBeNull();
     expect(model.findActiveTab(99)).not.toBeNull();
     expect((model.findActiveTab(99)!.data as TabData).url).toBe('https://replaced.com');
+    expect(session.scheduleSave).toHaveBeenCalled();
+  });
+
+  it('removes tab when replaced with extension URL', async () => {
+    const { model } = buildTreeWithWindow();
+    const session = createMockSession(model);
+
+    const extUrl = fakeBrowser.runtime.getURL('/tree.html');
+    (getTab as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 99,
+      windowId: 1,
+      url: extUrl,
+      title: 'Tree',
+    });
+
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    const handler = getLastListener(onTabReplaced as ReturnType<typeof vi.fn>);
+    await handler(99, 10);
+
+    expect(model.findActiveTab(10)).toBeNull();
+    expect(model.findActiveTab(99)).toBeNull();
     expect(session.scheduleSave).toHaveBeenCalled();
   });
 

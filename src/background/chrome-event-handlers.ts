@@ -30,6 +30,7 @@ import {
   onTabActivated,
   onTabReplaced,
   getTab,
+  isExtensionUrl,
 } from '@/chrome/tabs';
 import {
   onWindowCreated,
@@ -129,6 +130,7 @@ function handleTabCreated(
   tab: ChromeTabData,
 ): void {
   if (tab.id == null || tab.windowId == null) return;
+  if (isExtensionUrl(tab.url)) return; // Don't track extension's own tabs
 
   // Check for Ctrl+Shift+T undo-close pattern
   const closeRecord = tab.url
@@ -231,6 +233,23 @@ function handleTabUpdated(
 ): void {
   const node = session.treeModel.findActiveTab(tabId);
   if (!node) return;
+
+  // If tab navigated to an extension page, remove it from the tree
+  if (isExtensionUrl(tab.url)) {
+    const parent = node.parent;
+    session.treeModel.removeSubtree(node);
+    if (parent) {
+      bridge.broadcast({
+        command: 'msg2view_notifyObserver',
+        idMVC: node.idMVC,
+        parameters: ['onNodeRemoved'],
+        parentsUpdateData: computeParentUpdatesToRoot(parent),
+      });
+      removeEmptyWindowParent(session, bridge, parent);
+    }
+    session.scheduleSave();
+    return;
+  }
 
   if (node.type === NodeTypesEnum.TAB) {
     (node as TabTreeNode).updateChromeData(tab as TabData);
@@ -352,6 +371,23 @@ async function handleTabReplaced(
   // Fetch the new tab data from Chrome
   const newTab = await getTab(addedTabId);
   if (!newTab) return;
+
+  // If the replacement is an extension page, remove the node from the tree
+  if (isExtensionUrl(newTab.url)) {
+    const parent = node.parent;
+    session.treeModel.removeSubtree(node);
+    if (parent) {
+      bridge.broadcast({
+        command: 'msg2view_notifyObserver',
+        idMVC: node.idMVC,
+        parameters: ['onNodeRemoved'],
+        parentsUpdateData: computeParentUpdatesToRoot(parent),
+      });
+      removeEmptyWindowParent(session, bridge, parent);
+    }
+    session.scheduleSave();
+    return;
+  }
 
   // Rebuild indices: remove with old ID, update data, re-insert with new ID
   const parent = node.parent;
