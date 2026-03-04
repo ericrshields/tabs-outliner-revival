@@ -22,6 +22,7 @@ import { toNodeDTO, computeParentUpdatesToRoot } from '@/tree/dto';
 import { focusTab, createTab, removeTab } from '@/chrome/tabs';
 import { focusWindow, removeWindow } from '@/chrome/windows';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
+import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
 import type { TabData, WindowData } from '@/types/node-data';
 import { NodeTypesEnum } from '@/types/enums';
 import { removeEmptyWindowParent } from './chrome-event-handlers';
@@ -282,6 +283,22 @@ function handleHoveringMenuAction(
     case 'closeAction': {
       if (node.type === NodeTypesEnum.TAB) {
         const tabData = node.data as TabData;
+        // Convert to saved BEFORE closing — "Close" preserves the node.
+        // When handleTabRemoved fires, findActiveTab won't find the
+        // saved node, so it no-ops.
+        const saved = new SavedTabTreeNode({ ...tabData, active: false });
+        saved.copyMarksAndCollapsedFrom(node);
+        const oldParent = node.parent;
+        if (oldParent) {
+          session.treeModel.replaceNode(node, saved);
+          bridge.broadcast({
+            command: 'msg2view_notifyObserver',
+            idMVC: saved.idMVC,
+            parameters: ['onNodeReplaced'],
+            parentsUpdateData: computeParentUpdatesToRoot(oldParent),
+          });
+          session.scheduleSave();
+        }
         if (tabData.id != null) {
           void removeTab(tabData.id);
         }

@@ -586,10 +586,12 @@ describe('handleViewMessage()', () => {
       expect(root.subnodes[0]).toBe(savedWin);
     });
 
-    it('handles closeAction on a tab by calling removeTab', () => {
-      const { model, tab } = buildModel();
+    it('handles closeAction on a tab by converting to saved then closing', () => {
+      const { model, tab, win } = buildModel();
       const session = createMockSession(model);
       const port = createMockPort();
+      const viewPort = createMockPort();
+      session.viewBridge.addPort(viewPort);
 
       handleViewMessage(
         {
@@ -602,7 +604,21 @@ describe('handleViewMessage()', () => {
         session.viewBridge,
       );
 
+      // Tab should be converted to saved before Chrome close
+      const child = win.subnodes[0];
+      expect(child.type).toBe('savedtab');
+      expect((child.data as { active: boolean }).active).toBe(false);
+
+      // Chrome tab should still be closed
       expect(removeTab).toHaveBeenCalledWith(10);
+
+      // View should be notified of the replacement
+      expect(viewPort.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: 'msg2view_notifyObserver',
+          parameters: ['onNodeReplaced'],
+        }),
+      );
     });
 
     it('handles closeAction on a window by calling removeWindow', () => {
