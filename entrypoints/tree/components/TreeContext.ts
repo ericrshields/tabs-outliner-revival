@@ -1,23 +1,7 @@
 import { createContext } from 'react';
-import type { HoveringMenuActionId } from '@/types/node';
-import type { NodeDTO } from '@/types/node-dto';
+import type { TreeContextValue } from '@/types/tree-context';
 
-export interface HoveringMenuActions {
-  actions: NodeDTO['hoveringMenuActions'];
-  idMVC: string;
-}
-
-export interface TreeContextValue {
-  cursorId: string | null;
-  hoveredId: string | null;
-  singleClickActivation: boolean;
-  onRowEnter: (
-    id: string,
-    actions: HoveringMenuActions,
-    rect: DOMRect,
-  ) => void;
-  onAction: (idMVC: string, actionId: HoveringMenuActionId) => void;
-}
+export type { HoveringMenuActions, TreeContextValue } from '@/types/tree-context';
 
 export const TreeContext = createContext<TreeContextValue>({
   cursorId: null,

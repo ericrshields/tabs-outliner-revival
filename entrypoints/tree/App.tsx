@@ -1,287 +1,56 @@
-import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
-import type { DragEvent as ReactDragEvent } from 'react';
-import { Tree } from 'react-arborist';
-import type { TreeApi } from 'react-arborist';
+import { useRef, useCallback } from 'react';
+import { Tree, type TreeApi } from 'react-arborist';
 import type { NodeDTO } from '@/types/node-dto';
-import type { HoveringMenuActionId } from '@/types/node';
 import {
   usePort,
   useTreeData,
   useWindowSize,
+  useTreeSync,
+  useTreeInteractions,
+  useTreeDrop,
   nodeId,
   nodeChildren,
-  buildOpenMap,
-  activateNode,
-  toggleCollapse,
-  executeAction,
-  notifyUnload,
   requestTree,
-  importTree,
 } from '@/view/index';
 import { TreeContext } from './components/TreeContext';
-import type { HoveringMenuActions, TreeContextValue } from './components/TreeContext';
 import { NodeRow } from './components/NodeRow';
 import { ClickRow } from './components/ClickRow';
 import { HoveringMenu } from './components/HoveringMenu';
 import { FirstRunImport } from './components/FirstRunImport';
-import { extractTreeFromDrag, readFileAsText, importContainsTabs } from './components/drag-import';
-
-const FIRST_RUN_KEY = 'importDismissed';
-const SINGLE_CLICK_KEY = 'singleClickActivation';
 
 export function App() {
   const treeRef = useRef<TreeApi<NodeDTO>>(null);
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const { state, isLoading, handleMessage, clearExport } = useTreeData();
   const { height: windowHeight } = useWindowSize();
-
-  // First-run overlay: shown until dismissed or import succeeds
-  const [showFirstRun, setShowFirstRun] = useState(
-    () => !localStorage.getItem(FIRST_RUN_KEY),
-  );
-
-  const dismissFirstRun = useCallback(() => {
-    localStorage.setItem(FIRST_RUN_KEY, 'true');
-    setShowFirstRun(false);
-  }, []);
-
-  // Auto-dismiss after successful import
-  useEffect(() => {
-    if (state.importResult?.success) {
-      dismissFirstRun();
-    }
-  }, [state.importResult, dismissFirstRun]);
-
-  // Guard: suppress onToggle during programmatic open/close sync
-  const isSyncingRef = useRef(false);
-
-  const onReconnect = useCallback(() => {
-    postMessage(requestTree());
-  }, []);
-
+  // postMessage is stable (useCallback with [] deps in usePort) — safe to omit from deps.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const onReconnect = useCallback(() => postMessage(requestTree()), []);
   const { postMessage, connectionState } = usePort(handleMessage, onReconnect);
 
-  // Import handler shared by overlay and tree container drop
-  const handleImport = useCallback(
-    (json: string) => {
-      if (!importContainsTabs(json)) {
-        const proceed = window.confirm(
-          'This import appears to contain no tab data (only empty window shells). ' +
-          'This can happen when dragging collapsed nodes from the legacy extension.\n\n' +
-          'Import anyway?',
-        );
-        if (!proceed) return;
-      }
-      postMessage(importTree(json));
-    },
-    [postMessage],
-  );
-
-  // External drop on tree container (legacy extension DnD)
-  const [isExternalDragOver, setIsExternalDragOver] = useState(false);
-
-  const handleTreeDragOver = useCallback((e: ReactDragEvent<HTMLDivElement>) => {
-    // Only handle external drags (not react-arborist internal ones)
-    const dt = e.dataTransfer;
-    if (!dt) return;
-    const types = Array.from(dt.types);
-    const isExternal =
-      types.includes('application/x-tabsoutliner-items') ||
-      types.includes('text/html') ||
-      types.includes('Files');
-    if (isExternal) {
-      e.preventDefault();
-      setIsExternalDragOver(true);
-    }
-  }, []);
-
-  const handleTreeDragLeave = useCallback(() => {
-    setIsExternalDragOver(false);
-  }, []);
-
-  const handleTreeDrop = useCallback(
-    (e: ReactDragEvent<HTMLDivElement>) => {
-      if (!e.dataTransfer) return;
-
-      // Try extracting tree data from legacy extension DnD
-      const treeJson = extractTreeFromDrag(e.dataTransfer);
-      if (treeJson) {
-        e.preventDefault();
-        setIsExternalDragOver(false);
-        handleImport(treeJson);
-        return;
-      }
-
-      // File drop
-      const file = e.dataTransfer.files?.[0];
-      if (file) {
-        e.preventDefault();
-        setIsExternalDragOver(false);
-        void readFileAsText(file).then((text) => handleImport(text));
-      }
-    },
-    [handleImport],
-  );
-
-  // Hover state for hovering menu
-  const [hoverState, setHoverState] = useState<{
-    idMVC: string;
-    actions: HoveringMenuActions;
-    rect: DOMRect;
-  } | null>(null);
-
-  const handleRowEnter = useCallback(
-    (
-      id: string,
-      actions: HoveringMenuActions,
-      rect: DOMRect,
-    ) => {
-      setHoverState({ idMVC: id, actions, rect });
-    },
-    [],
-  );
-
-  const clearHover = useCallback(() => {
-    setHoverState(null);
-  }, []);
-
-  const handleAction = useCallback(
-    (idMVC: string, actionId: HoveringMenuActionId) => {
-      postMessage(executeAction(idMVC, actionId));
-      setHoverState(null);
-    },
-    [postMessage],
-  );
-
-  // Clear hover menu on scroll (position becomes stale)
-  useEffect(() => {
-    const container = treeContainerRef.current;
-    if (!container) return;
-    container.addEventListener('scroll', clearHover, true);
-    return () => container.removeEventListener('scroll', clearHover, true);
-  }, [clearHover]);
-
-  // Activation mode: double-click (default) or single-click (legacy)
-  const singleClickActivation = useMemo(
-    () => localStorage.getItem(SINGLE_CLICK_KEY) === 'true',
-    [],
-  );
-
-  // Stable context value
-  const ctxValue: TreeContextValue = useMemo(
-    () => ({
-      cursorId: state.selectedId ?? null,
-      hoveredId: hoverState?.idMVC ?? null,
-      singleClickActivation,
-      onRowEnter: handleRowEnter,
-      onAction: handleAction,
-    }),
-    [state.selectedId, hoverState?.idMVC, singleClickActivation, handleRowEnter, handleAction],
-  );
-
-  // Request tree on mount
-  useEffect(() => {
-    postMessage(requestTree());
-  }, [postMessage]);
-
-  // Re-request tree when background signals a structural change
-  useEffect(() => {
-    if (state.needsFullRefresh) {
-      postMessage(requestTree());
-    }
-  }, [state.needsFullRefresh, postMessage]);
-
-  // Trigger file download when export is ready
-  useEffect(() => {
-    if (!state.exportJson) return;
-    const blob = new Blob([state.exportJson], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `tabs-outliner-backup-${new Date().toISOString().slice(0, 10)}.tree`;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    // Defer revocation to ensure download starts before the URL is invalidated
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 100);
-    // Reset so a subsequent export triggers a new download
-    clearExport();
-  }, [state.exportJson, clearExport]);
-
-  // Best-effort save on unload
-  useEffect(() => {
-    const handler = () => postMessage(notifyUnload());
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [postMessage]);
-
-  // Sync react-arborist open/close state from background updates.
-  // On full tree replacement (new globalViewId), reset tracking so we
-  // do a full sync instead of incremental diff.
-  const prevOpenMapRef = useRef<Record<string, boolean> | null>(null);
-  const prevViewIdRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!treeRef.current || !state.root) return;
-
-    // Detect full tree replacement (import, reconnect)
-    const isFullReplacement = state.globalViewId !== prevViewIdRef.current;
-    prevViewIdRef.current = state.globalViewId;
-
-    const currentMap = buildOpenMap(state.root);
-    const prev = prevOpenMapRef.current;
-
-    const tree = treeRef.current!;
-    if (!tree.open || !tree.close) {
-      // Tree API not fully initialized (e.g., test environment)
-      prevOpenMapRef.current = currentMap;
-      return;
-    }
-
-    isSyncingRef.current = true;
-    try {
-      if (isFullReplacement || !prev) {
-        // Full sync — apply all open/close states
-        for (const [id, isOpen] of Object.entries(currentMap)) {
-          if (isOpen) tree.open(id);
-          else tree.close(id);
-        }
-      } else {
-        // Incremental sync — only apply differences
-        for (const [id, isOpen] of Object.entries(currentMap)) {
-          if (prev[id] === undefined) continue;
-          if (prev[id] !== isOpen) {
-            if (isOpen) tree.open(id);
-            else tree.close(id);
-          }
-        }
-      }
-    } finally {
-      isSyncingRef.current = false;
-    }
-    prevOpenMapRef.current = currentMap;
-  }, [state.root, state.globalViewId]);
-
-  const onToggle = useCallback(
-    (id: string) => {
-      // Skip programmatic toggles from sync effect
-      if (isSyncingRef.current) return;
-      postMessage(toggleCollapse(id));
-    },
-    [postMessage],
-  );
-
-  const onActivate = useCallback(
-    (node: { data: NodeDTO } | null) => {
-      if (node) {
-        postMessage(activateNode(node.data.idMVC));
-      }
-    },
-    [postMessage],
-  );
+  const { onToggle, onActivate } = useTreeSync({
+    treeRef,
+    root: state.root,
+    globalViewId: state.globalViewId,
+    needsFullRefresh: state.needsFullRefresh,
+    postMessage,
+  });
+  const { hoverState, clearHover, handleAction, ctxValue } = useTreeInteractions({
+    postMessage,
+    treeContainerRef,
+    selectedId: state.selectedId,
+  });
+  const {
+    showFirstRun, dismissFirstRun,
+    isExternalDragOver,
+    handleTreeDragOver, handleTreeDragLeave, handleTreeDrop,
+    handleImport,
+  } = useTreeDrop({
+    postMessage,
+    importResult: state.importResult,
+    exportJson: state.exportJson,
+    clearExport,
+  });
 
   return (
     <div className="tree-view-container">
@@ -303,9 +72,7 @@ export function App() {
           onDrop={handleTreeDrop}
         >
           {isExternalDragOver && (
-            <div className="external-drop-indicator">
-              Drop to import tree
-            </div>
+            <div className="external-drop-indicator">Drop to import tree</div>
           )}
           <TreeContext.Provider value={ctxValue}>
             <Tree<NodeDTO>
