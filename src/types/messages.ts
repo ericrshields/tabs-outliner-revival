@@ -113,6 +113,7 @@ export interface Msg_ExportResult {
   readonly command: 'msg2view_exportResult';
   readonly success: boolean;
   readonly treeJson?: string;
+  readonly treeHtml?: string;
   readonly error?: string;
 }
 
@@ -239,6 +240,7 @@ export interface Req_ImportTree {
 
 export interface Req_ExportTree {
   readonly request: 'request2bkg_export_tree';
+  readonly format?: 'json' | 'html';
 }
 
 /** Catch-all for remaining view->background messages not yet fully typed */

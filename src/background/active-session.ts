@@ -15,6 +15,7 @@ import {
   isValidHierarchyJSO,
   exportTreeFile,
 } from '@/serialization/hierarchy-jso';
+import { treeToHtml } from '@/serialization/html-export';
 import {
   validateOperationsLog,
   operationsToHierarchy,
@@ -210,6 +211,19 @@ export class ActiveSession {
     try {
       const hierarchy = this.treeModel.toHierarchyJSO();
       return { success: true, treeJson: exportTreeFile(hierarchy) };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  /** Export the current tree as HTML. */
+  exportTreeHtml(): { success: boolean; treeHtml?: string; error?: string } {
+    try {
+      const html = treeToHtml(this.treeModel.root);
+      return { success: true, treeHtml: html };
     } catch (err) {
       return {
         success: false,

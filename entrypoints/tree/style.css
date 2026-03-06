@@ -416,6 +416,11 @@ body {
   background: #555;
 }
 
+.import-btn:focus-visible {
+  outline: 2px solid var(--fg-link);
+  outline-offset: 2px;
+}
+
 .import-btn:disabled {
   opacity: 0.5;
   cursor: default;
@@ -448,4 +453,21 @@ body {
 .dismiss-btn:hover {
   color: var(--fg-default);
   border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ---- Export toolbar ---- */
+
+.export-toolbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--wf-savedwin);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 10;
 }

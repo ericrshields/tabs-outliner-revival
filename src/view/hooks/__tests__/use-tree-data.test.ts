@@ -533,5 +533,41 @@ describe('useTreeData', () => {
       expect(result.current.state.exportJson).toBeNull();
       expect(result.current.state.exportError).toBe('Serialization failed');
     });
+
+    it('stores HTML export on success', () => {
+      const { result } = renderHook(() => useTreeData());
+      act(() => result.current.handleMessage(makeInitMessage()));
+
+      const html = '<li>Current Session</li>';
+      act(() => {
+        result.current.handleMessage({
+          command: 'msg2view_exportResult',
+          success: true,
+          treeHtml: html,
+        } as Msg_ExportResult);
+      });
+
+      expect(result.current.state.exportHtml).toBe(html);
+      expect(result.current.state.exportError).toBeNull();
+    });
+
+    it('clears HTML export via clearExportHtml', () => {
+      const { result } = renderHook(() => useTreeData());
+      act(() => result.current.handleMessage(makeInitMessage()));
+
+      act(() => {
+        result.current.handleMessage({
+          command: 'msg2view_exportResult',
+          success: true,
+          treeHtml: '<li>test</li>',
+        } as Msg_ExportResult);
+      });
+
+      expect(result.current.state.exportHtml).toBe('<li>test</li>');
+
+      act(() => result.current.clearExportHtml());
+
+      expect(result.current.state.exportHtml).toBeNull();
+    });
   });
 });

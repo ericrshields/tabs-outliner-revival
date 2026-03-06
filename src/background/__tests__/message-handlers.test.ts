@@ -74,6 +74,7 @@ function createMockSession(model: TreeModel): ActiveSession {
     }),
     importTree: vi.fn().mockResolvedValue({ success: false, nodeCount: 0, error: 'not configured' }),
     exportTree: vi.fn().mockReturnValue({ success: false, error: 'not configured' }),
+    exportTreeHtml: vi.fn().mockReturnValue({ success: false, error: 'not configured' }),
     dispose: vi.fn(),
   } as unknown as ActiveSession;
 }
@@ -856,6 +857,52 @@ describe('handleViewMessage()', () => {
       expect(resultMsg.command).toBe('msg2view_exportResult');
       expect(resultMsg.success).toBe(true);
       expect(resultMsg.treeJson).toBeTruthy();
+    });
+
+    it('sends HTML export result when format is html', () => {
+      const { model } = buildModel();
+      const session = createMockSession(model);
+      (session.exportTreeHtml as ReturnType<typeof vi.fn>).mockReturnValue({
+        success: true,
+        treeHtml: '<li>Current Session</li>',
+      });
+      const port = createMockPort();
+
+      handleViewMessage(
+        { request: 'request2bkg_export_tree', format: 'html' },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      expect(session.exportTreeHtml).toHaveBeenCalled();
+      expect(session.exportTree).not.toHaveBeenCalled();
+      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(resultMsg.command).toBe('msg2view_exportResult');
+      expect(resultMsg.success).toBe(true);
+      expect(resultMsg.treeHtml).toBe('<li>Current Session</li>');
+    });
+
+    it('sends error result when HTML export fails', () => {
+      const { model } = buildModel();
+      const session = createMockSession(model);
+      (session.exportTreeHtml as ReturnType<typeof vi.fn>).mockReturnValue({
+        success: false,
+        error: 'Serialization failed',
+      });
+      const port = createMockPort();
+
+      handleViewMessage(
+        { request: 'request2bkg_export_tree', format: 'html' },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(resultMsg.command).toBe('msg2view_exportResult');
+      expect(resultMsg.success).toBe(false);
+      expect(resultMsg.error).toBe('Serialization failed');
     });
   });
 

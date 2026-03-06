@@ -38,6 +38,7 @@ export interface TreeState {
   needsFullRefresh: boolean;
   importResult: ImportResultState | null;
   exportJson: string | null;
+  exportHtml: string | null;
   exportError: string | null;
 }
 
@@ -50,6 +51,7 @@ const INITIAL_STATE: TreeState = {
   needsFullRefresh: false,
   importResult: null,
   exportJson: null,
+  exportHtml: null,
   exportError: null,
 };
 
@@ -63,8 +65,10 @@ type TreeAction =
   | { type: 'FULL_REFRESH_NEEDED' }
   | { type: 'IMPORT_RESULT'; success: boolean; nodeCount: number; error?: string }
   | { type: 'EXPORT_READY'; treeJson: string }
+  | { type: 'EXPORT_HTML_READY'; treeHtml: string }
   | { type: 'EXPORT_ERROR'; error: string }
-  | { type: 'EXPORT_CLEAR' };
+  | { type: 'EXPORT_CLEAR' }
+  | { type: 'EXPORT_HTML_CLEAR' };
 
 // -- Index types --
 
@@ -170,6 +174,7 @@ function createReducer(indexesRef: { current: Indexes }) {
           needsFullRefresh: false,
           importResult: null,
           exportJson: null,
+          exportHtml: null,
           exportError: null,
         };
       }
@@ -260,11 +265,17 @@ function createReducer(indexesRef: { current: Indexes }) {
       case 'EXPORT_READY':
         return { ...state, exportJson: action.treeJson, exportError: null };
 
+      case 'EXPORT_HTML_READY':
+        return { ...state, exportHtml: action.treeHtml, exportError: null };
+
       case 'EXPORT_ERROR':
         return { ...state, exportError: action.error };
 
       case 'EXPORT_CLEAR':
-        return { ...state, exportJson: null };
+        return { ...state, exportJson: null, exportError: null };
+
+      case 'EXPORT_HTML_CLEAR':
+        return { ...state, exportHtml: null, exportError: null };
 
       default:
         return state;
@@ -279,6 +290,7 @@ export interface UseTreeDataReturn {
   isLoading: boolean;
   handleMessage: (msg: BackgroundToViewMessage) => void;
   clearExport: () => void;
+  clearExportHtml: () => void;
 }
 
 export function useTreeData(): UseTreeDataReturn {
@@ -346,7 +358,9 @@ export function useTreeData(): UseTreeDataReturn {
 
       case 'msg2view_exportResult': {
         const result = msg as Msg_ExportResult;
-        if (result.success && result.treeJson) {
+        if (result.success && result.treeHtml) {
+          dispatch({ type: 'EXPORT_HTML_READY', treeHtml: result.treeHtml });
+        } else if (result.success && result.treeJson) {
           dispatch({ type: 'EXPORT_READY', treeJson: result.treeJson });
         } else {
           dispatch({
@@ -368,10 +382,15 @@ export function useTreeData(): UseTreeDataReturn {
     dispatch({ type: 'EXPORT_CLEAR' });
   }, []);
 
+  const clearExportHtml = useCallback(() => {
+    dispatch({ type: 'EXPORT_HTML_CLEAR' });
+  }, []);
+
   return {
     state,
     isLoading: state.root === null,
     handleMessage,
     clearExport,
+    clearExportHtml,
   };
 }

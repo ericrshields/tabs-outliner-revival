@@ -14,6 +14,7 @@ import type {
   Req_ActivateHoveringMenuAction,
   Req_FocusTab,
   Req_ImportTree,
+  Req_ExportTree,
 } from '@/types/messages';
 import type { MvcId } from '@/types/brands';
 import type { ActiveSession } from './active-session';
@@ -100,13 +101,24 @@ export function handleViewMessage(
     }
 
     case 'request2bkg_export_tree': {
-      const result = session.exportTree();
-      bridge.sendTo(port, {
-        command: 'msg2view_exportResult',
-        success: result.success,
-        treeJson: result.treeJson,
-        error: result.error,
-      });
+      const exportReq = msg as Req_ExportTree;
+      if (exportReq.format === 'html') {
+        const result = session.exportTreeHtml();
+        bridge.sendTo(port, {
+          command: 'msg2view_exportResult',
+          success: result.success,
+          treeHtml: result.treeHtml,
+          error: result.error,
+        });
+      } else {
+        const result = session.exportTree();
+        bridge.sendTo(port, {
+          command: 'msg2view_exportResult',
+          success: result.success,
+          treeJson: result.treeJson,
+          error: result.error,
+        });
+      }
       break;
     }
 

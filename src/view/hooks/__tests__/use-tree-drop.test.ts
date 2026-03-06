@@ -28,7 +28,9 @@ function makeOptions(overrides: Partial<UseTreeDropOptions> = {}): UseTreeDropOp
     postMessage: vi.fn(),
     importResult: null,
     exportJson: null,
+    exportHtml: null,
     clearExport: vi.fn(),
+    clearExportHtml: vi.fn(),
     ...overrides,
   };
 }
@@ -180,6 +182,27 @@ describe('useTreeDrop', () => {
       renderHook(() => useTreeDrop(makeOptions({ exportJson: null, clearExport })));
 
       expect(clearExport).not.toHaveBeenCalled();
+    });
+
+    it('triggers HTML download and calls clearExportHtml when exportHtml set', () => {
+      const clearExportHtml = vi.fn();
+      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test-html');
+      vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+      const appendSpy = vi.spyOn(document.body, 'appendChild');
+
+      renderHook(() =>
+        useTreeDrop(makeOptions({ exportHtml: '<li>test</li>', clearExportHtml })),
+      );
+
+      expect(clearExportHtml).toHaveBeenCalledTimes(1);
+      expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+      const anchorCall = appendSpy.mock.calls.find(
+        ([el]) => (el as HTMLElement).tagName === 'A',
+      );
+      expect(anchorCall).toBeTruthy();
+      const anchor = anchorCall![0] as HTMLAnchorElement;
+      expect(anchor.download).toMatch(/\.html$/);
+      expect(anchor.href).toBe('blob:test-html');
     });
   });
 });

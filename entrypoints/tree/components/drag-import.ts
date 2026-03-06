@@ -139,6 +139,7 @@ export function extractTreeFromDrag(dataTransfer: DataTransferLike): string | nu
 interface FlatNode {
   title: string;
   url: string | null;
+  customTitle: string | null;
   depth: number;
 }
 
@@ -176,6 +177,16 @@ function parseHtmlTreeDrop(html: string): HierarchyJSO | null {
 }
 
 /**
+ * Parse an HTML file's text content into a tree JSON string.
+ * Returns null if the HTML doesn't contain a recognizable tree structure.
+ */
+export function parseHtmlFile(html: string): string | null {
+  const hierarchy = parseHtmlTreeDrop(html);
+  if (!hierarchy) return null;
+  return JSON.stringify(hierarchy);
+}
+
+/**
  * Walk the HTML string as a tag stream. Track depth via <ul>/<\/ul> tags.
  * Extract node data from each <li>...</li> span.
  */
@@ -189,6 +200,7 @@ function tokenizeFromHtml(html: string): FlatNode[] {
   let inLi = false;
   let liDepth = 0;
   let currentUrl: string | null = null;
+  let currentCustomTitle: string | null = null;
   let currentTitle = '';
 
   while ((m = tagRe.exec(html)) !== null) {
@@ -205,6 +217,7 @@ function tokenizeFromHtml(html: string): FlatNode[] {
           nodes.push({
             title: decodeEntities(currentTitle.trim()),
             url: currentUrl ? decodeEntities(currentUrl) : currentUrl,
+            customTitle: currentCustomTitle ? decodeEntities(currentCustomTitle) : null,
             depth: liDepth,
           });
           inLi = false;
@@ -213,6 +226,7 @@ function tokenizeFromHtml(html: string): FlatNode[] {
         inLi = true;
         liDepth = depth;
         currentUrl = null;
+        currentCustomTitle = null;
         currentTitle = '';
         // Grab direct text between <li> and the next tag
         const afterTag = html.substring(m.index + m[0].length);
@@ -224,6 +238,8 @@ function tokenizeFromHtml(html: string): FlatNode[] {
     } else if (tag === 'a' && !isClose && inLi) {
       const hrefMatch = /href="([^"]*)"/.exec(attrs);
       if (hrefMatch) currentUrl = hrefMatch[1];
+      const customTitleMatch = /data-custom-title="([^"]*)"/.exec(attrs);
+      if (customTitleMatch) currentCustomTitle = customTitleMatch[1];
       // Text between <a...> and </a>
       const afterTag = html.substring(m.index + m[0].length);
       const closeIdx = afterTag.indexOf('</a>');
@@ -306,6 +322,12 @@ function toSerializedNode(
 
   // Tabs — nodes with a real URL
   if (node.url) {
+    if (node.customTitle) {
+      return {
+        data: { url: node.url, title: node.title || undefined },
+        marks: { relicons: [], customTitle: node.customTitle },
+      };
+    }
     return { data: { url: node.url, title: node.title || undefined } };
   }
 

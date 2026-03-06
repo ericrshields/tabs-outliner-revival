@@ -62,3 +62,8 @@ export function importTree(treeJson: string): Req_ImportTree {
 export function exportTree(): Req_ExportTree {
   return { request: 'request2bkg_export_tree' };
 }
+
+/** Request export of the current tree as HTML. */
+export function exportTreeHtml(): Req_ExportTree {
+  return { request: 'request2bkg_export_tree', format: 'html' };
+}

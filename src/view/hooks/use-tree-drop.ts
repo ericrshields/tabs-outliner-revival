@@ -12,6 +12,7 @@ import {
   extractTreeFromDrag,
   readFileAsText,
   importContainsTabs,
+  parseHtmlFile,
 } from '../../../entrypoints/tree/components/drag-import';
 
 const FIRST_RUN_KEY = 'importDismissed';
@@ -23,7 +24,9 @@ export interface UseTreeDropOptions {
   postMessage: (msg: ViewToBackgroundMessage) => void;
   importResult: ImportResultState | null;
   exportJson: string | null;
+  exportHtml: string | null;
   clearExport: () => void;
+  clearExportHtml: () => void;
 }
 
 export interface UseTreeDropReturn {
@@ -40,7 +43,9 @@ export function useTreeDrop({
   postMessage,
   importResult,
   exportJson,
+  exportHtml,
   clearExport,
+  clearExportHtml,
 }: UseTreeDropOptions): UseTreeDropReturn {
   // First-run overlay: shown until dismissed or import succeeds
   const [showFirstRun, setShowFirstRun] = useState(
@@ -115,13 +120,23 @@ export function useTreeDrop({
       if (file) {
         e.preventDefault();
         setIsExternalDragOver(false);
-        void readFileAsText(file).then((text) => handleImport(text));
+        void readFileAsText(file).then((text) => {
+          // HTML files need client-side parsing — the background only handles JSON
+          if (file.name.endsWith('.html') || file.name.endsWith('.htm')) {
+            const treeJson = parseHtmlFile(text);
+            if (treeJson) {
+              handleImport(treeJson);
+            }
+            return;
+          }
+          handleImport(text);
+        });
       }
     },
     [handleImport],
   );
 
-  // Trigger file download when export is ready
+  // Trigger file download when JSON export is ready
   useEffect(() => {
     if (!exportJson) return;
     const blob = new Blob([exportJson], { type: 'application/json' });
@@ -140,6 +155,24 @@ export function useTreeDrop({
     // Reset so a subsequent export triggers a new download
     clearExport();
   }, [exportJson, clearExport]);
+
+  // Trigger file download when HTML export is ready
+  useEffect(() => {
+    if (!exportHtml) return;
+    const blob = new Blob([exportHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tabs-outliner-backup-${new Date().toISOString().slice(0, 10)}.html`;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, URL_REVOCATION_DELAY_MS);
+    clearExportHtml();
+  }, [exportHtml, clearExportHtml]);
 
   return {
     showFirstRun,

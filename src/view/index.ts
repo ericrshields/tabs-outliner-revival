@@ -36,4 +36,5 @@ export {
   notifyUnload,
   importTree,
   exportTree,
+  exportTreeHtml,
 } from './tree-actions';

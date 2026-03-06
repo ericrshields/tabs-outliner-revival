@@ -17,11 +17,15 @@ import { NodeRow } from './components/NodeRow';
 import { ClickRow } from './components/ClickRow';
 import { HoveringMenu } from './components/HoveringMenu';
 import { FirstRunImport } from './components/FirstRunImport';
+import { ExportToolbar } from './components/ExportToolbar';
+
+/** Height of the fixed export toolbar (padding + button + border). */
+const EXPORT_TOOLBAR_HEIGHT = 36;
 
 export function App() {
   const treeRef = useRef<TreeApi<NodeDTO>>(null);
   const treeContainerRef = useRef<HTMLDivElement>(null);
-  const { state, isLoading, handleMessage, clearExport } = useTreeData();
+  const { state, isLoading, handleMessage, clearExport, clearExportHtml } = useTreeData();
   const { height: windowHeight } = useWindowSize();
   // postMessage is stable (useCallback with [] deps in usePort) — safe to omit from deps.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,7 +53,9 @@ export function App() {
     postMessage,
     importResult: state.importResult,
     exportJson: state.exportJson,
+    exportHtml: state.exportHtml,
     clearExport,
+    clearExportHtml,
   });
 
   return (
@@ -86,7 +92,7 @@ export function App() {
               renderRow={ClickRow}
               selection={state.selectedId ?? undefined}
               width="100%"
-              height={windowHeight}
+              height={windowHeight - EXPORT_TOOLBAR_HEIGHT - 10}
               rowHeight={24}
               indent={20}
               disableDrag
@@ -112,6 +118,7 @@ export function App() {
           importResult={state.importResult}
         />
       )}
+      {!isLoading && <ExportToolbar postMessage={postMessage} />}
     </div>
   );
 }
