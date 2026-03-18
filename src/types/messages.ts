@@ -175,8 +175,9 @@ export interface Req_PerformDrop {
 
 export interface Req_MoveHierarchy {
   readonly request: 'request2bkg_moveHierarchy';
-  readonly targetNodeIdMVC: string;
-  readonly position: number;
+  readonly targetNodeIdMVC: string; // source node being moved
+  readonly containerIdMVC: string | null; // new parent (null = root)
+  readonly position: number; // index within new parent
 }
 
 export interface Req_DeleteHierarchy {

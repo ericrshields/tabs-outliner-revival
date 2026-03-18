@@ -11,6 +11,7 @@ import {
   nodeId,
   nodeChildren,
   requestTree,
+  moveHierarchy,
 } from '@/view/index';
 import { TreeContext } from './components/TreeContext';
 import { NodeRow } from './components/NodeRow';
@@ -46,6 +47,27 @@ export function App() {
       treeContainerRef,
       selectedId: state.selectedId,
     });
+
+  const handleTreeMove = useCallback(
+    ({
+      dragIds,
+      parentId,
+      index,
+    }: {
+      dragIds: string[];
+      parentId: string | null;
+      index: number;
+    }) => {
+      if (dragIds.length === 0) return;
+      // Multi-drag not yet supported — only the first node is moved.
+      if (dragIds.length > 1) {
+        console.warn('[App] Multi-drag not supported; only moving first node');
+      }
+      postMessage(moveHierarchy(dragIds[0], parentId, index));
+    },
+    [postMessage],
+  );
+
   const {
     showFirstRun,
     dismissFirstRun,
@@ -94,14 +116,13 @@ export function App() {
               initialOpenState={state.initialOpenMap ?? {}}
               onToggle={onToggle}
               onActivate={onActivate}
+              onMove={handleTreeMove}
               renderRow={ClickRow}
               selection={state.selectedId ?? undefined}
               width="100%"
               height={windowHeight - EXPORT_TOOLBAR_HEIGHT - 10}
               rowHeight={24}
               indent={20}
-              disableDrag
-              disableDrop
             >
               {NodeRow}
             </Tree>

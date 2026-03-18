@@ -13,6 +13,7 @@ import type {
   Req_OnViewWindowBeforeUnload,
   Req_ImportTree,
   Req_ExportTree,
+  Req_MoveHierarchy,
 } from '@/types/messages';
 
 /** Request the full tree structure from the background. */
@@ -66,4 +67,18 @@ export function exportTree(): Req_ExportTree {
 /** Request export of the current tree as HTML. */
 export function exportTreeHtml(): Req_ExportTree {
   return { request: 'request2bkg_export_tree', format: 'html' };
+}
+
+/** Move a node to a new position in the tree. */
+export function moveHierarchy(
+  sourceIdMVC: string,
+  containerIdMVC: string | null,
+  position: number,
+): Req_MoveHierarchy {
+  return {
+    request: 'request2bkg_moveHierarchy',
+    targetNodeIdMVC: sourceIdMVC,
+    containerIdMVC,
+    position,
+  };
 }

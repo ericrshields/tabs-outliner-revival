@@ -43,4 +43,5 @@ export {
   importTree,
   exportTree,
   exportTreeHtml,
+  moveHierarchy,
 } from './tree-actions';

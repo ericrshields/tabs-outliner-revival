@@ -15,6 +15,7 @@ import type {
   Req_FocusTab,
   Req_ImportTree,
   Req_ExportTree,
+  Req_MoveHierarchy,
 } from '@/types/messages';
 import type { MvcId } from '@/types/brands';
 import type { ActiveSession } from './active-session';
@@ -24,6 +25,7 @@ import { focusTab, createTab, removeTab } from '@/chrome/tabs';
 import { focusWindow, removeWindow } from '@/chrome/windows';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
 import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
+import { SavedWindowTreeNode } from '@/tree/nodes/saved-window-node';
 import type { TabData, WindowData } from '@/types/node-data';
 import { NodeTypesEnum } from '@/types/enums';
 import { removeEmptyWindowParent } from './chrome-event-handlers';
@@ -126,10 +128,21 @@ export function handleViewMessage(
       break;
     }
 
+    case 'request2bkg_moveHierarchy': {
+      const moveReq = msg as Req_MoveHierarchy;
+      handleMoveHierarchy(
+        moveReq.targetNodeIdMVC,
+        moveReq.containerIdMVC,
+        moveReq.position,
+        session,
+        bridge,
+      );
+      break;
+    }
+
     // -- Deferred handlers (stubbed for later epics) --
 
     case 'request2bkg_performDrop':
-    case 'request2bkg_moveHierarchy':
     case 'request2bkg_deleteHierarchy':
     case 'request2bkg_communicateDragStartDataToOtherViews':
       console.warn(
@@ -387,4 +400,47 @@ function handleHoveringMenuAction(
     default:
       break;
   }
+}
+
+function handleMoveHierarchy(
+  sourceIdMVC: string,
+  containerIdMVC: string | null,
+  position: number,
+  session: ActiveSession,
+  bridge: ViewBridge,
+): void {
+  const source = session.treeModel.findByMvcId(sourceIdMVC as MvcId);
+  if (!source || !source.parent) return;
+
+  // Tab nodes cannot live at root — auto-wrap in a new saved window.
+  if (
+    containerIdMVC === null &&
+    source.titleBackgroundCssClass === 'tabFrame'
+  ) {
+    const wrapper = new SavedWindowTreeNode();
+    const root = session.treeModel.root;
+    if (!root) return;
+    session.treeModel.insertSubnode(root, position, wrapper);
+    containerIdMVC = wrapper.idMVC;
+  }
+
+  const oldParent = source.parent;
+  try {
+    session.treeModel.moveNode(source, { containerIdMVC, position: 0 });
+  } catch (err) {
+    console.error('[message-handlers] moveNode failed:', err);
+    return;
+  }
+
+  bridge.broadcast({
+    command: 'msg2view_notifyObserver',
+    idMVC: source.idMVC,
+    parameters: ['onNodeMoved'],
+    parentsUpdateData: computeParentUpdatesToRoot(oldParent),
+  });
+
+  // Remove the old parent if it's now an empty window (no custom marks).
+  removeEmptyWindowParent(session, bridge, oldParent);
+
+  session.scheduleSave();
 }

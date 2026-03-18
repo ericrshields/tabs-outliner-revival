@@ -5,6 +5,7 @@ import {
   toggleCollapse,
   executeAction,
   notifyUnload,
+  moveHierarchy,
 } from '../tree-actions';
 
 describe('tree-actions', () => {
@@ -51,6 +52,28 @@ describe('tree-actions', () => {
       const msg = notifyUnload();
       expect(msg).toEqual({
         request: 'request2bkg_onViewWindowBeforeUnload_saveNow',
+      });
+    });
+  });
+
+  describe('moveHierarchy', () => {
+    it('returns a moveHierarchy request with source, container, and position', () => {
+      const msg = moveHierarchy('src-id', 'container-id', 2);
+      expect(msg).toEqual({
+        request: 'request2bkg_moveHierarchy',
+        targetNodeIdMVC: 'src-id',
+        containerIdMVC: 'container-id',
+        position: 2,
+      });
+    });
+
+    it('accepts null containerIdMVC for root-level drops', () => {
+      const msg = moveHierarchy('src-id', null, 0);
+      expect(msg).toEqual({
+        request: 'request2bkg_moveHierarchy',
+        targetNodeIdMVC: 'src-id',
+        containerIdMVC: null,
+        position: 0,
       });
     });
   });

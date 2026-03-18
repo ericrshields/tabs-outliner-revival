@@ -951,6 +951,163 @@ describe('handleViewMessage()', () => {
     });
   });
 
+  describe('request2bkg_moveHierarchy', () => {
+    it('wraps a tab in a new SavedWindow when dropped at root', () => {
+      const { model, tab, win } = buildModel();
+      const session = createMockSession(model);
+      const port = createMockPort();
+      const broadcastSpy = vi.spyOn(session.viewBridge, 'broadcast');
+      const tabIdMVC = tab.idMVC;
+
+      // tab is a child of win; drop it at root position 0
+      handleViewMessage(
+        {
+          request: 'request2bkg_moveHierarchy',
+          targetNodeIdMVC: tabIdMVC,
+          containerIdMVC: null,
+          position: 0,
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      // A new SavedWindow was inserted at root position 0 and the tab moved inside it
+      const wrapper = model.root?.subnodes[0];
+      expect(wrapper?.type).toBe(NodeTypesEnum.SAVEDWINDOW);
+      expect(wrapper?.subnodes[0].idMVC).toBe(tabIdMVC);
+      expect(tab.parent?.idMVC).toBe(wrapper?.idMVC);
+      expect(win.subnodes).toHaveLength(0);
+
+      // Broadcast fired with correct idMVC
+      expect(broadcastSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: 'msg2view_notifyObserver',
+          idMVC: tabIdMVC,
+          parameters: ['onNodeMoved'],
+        }),
+      );
+      expect(session.scheduleSave).toHaveBeenCalled();
+    });
+
+    it('moves a node into a named container', () => {
+      // Build: root → win1 → tab, root → win2
+      const root = new SessionTreeNode();
+      const win1 = new WindowTreeNode({ id: 1, type: 'normal', focused: true });
+      const win2 = new WindowTreeNode({
+        id: 2,
+        type: 'normal',
+        focused: false,
+      });
+      const tab = new TabTreeNode({
+        id: 10,
+        windowId: 1,
+        url: 'https://example.com',
+        title: 'Example',
+        active: true,
+      });
+      root.insertSubnode(0, win1);
+      root.insertSubnode(1, win2);
+      win1.insertSubnode(0, tab);
+      const model = new TreeModel(root);
+      const session = createMockSession(model);
+      const port = createMockPort();
+      const broadcastSpy = vi.spyOn(session.viewBridge, 'broadcast');
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_moveHierarchy',
+          targetNodeIdMVC: tab.idMVC,
+          containerIdMVC: win2.idMVC,
+          position: 0,
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      expect(tab.parent?.idMVC).toBe(win2.idMVC);
+      expect(win1.subnodes).toHaveLength(0);
+      expect(win2.subnodes[0].idMVC).toBe(tab.idMVC);
+      expect(broadcastSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ parameters: ['onNodeMoved'] }),
+      );
+      expect(session.scheduleSave).toHaveBeenCalled();
+    });
+
+    it('is a no-op when the source node is not found', () => {
+      const { model } = buildModel();
+      const session = createMockSession(model);
+      const port = createMockPort();
+      const broadcastSpy = vi.spyOn(session.viewBridge, 'broadcast');
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_moveHierarchy',
+          targetNodeIdMVC: 'nonexistent',
+          containerIdMVC: null,
+          position: 0,
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      expect(broadcastSpy).not.toHaveBeenCalled();
+      expect(session.scheduleSave).not.toHaveBeenCalled();
+    });
+
+    it('is a no-op when the source node has no parent (root guard)', () => {
+      const { model } = buildModel();
+      const session = createMockSession(model);
+      const port = createMockPort();
+      const broadcastSpy = vi.spyOn(session.viewBridge, 'broadcast');
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_moveHierarchy',
+          targetNodeIdMVC: model.root!.idMVC,
+          containerIdMVC: null,
+          position: 0,
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      expect(broadcastSpy).not.toHaveBeenCalled();
+      expect(session.scheduleSave).not.toHaveBeenCalled();
+    });
+
+    it('is a no-op (no broadcast, no save) when the container is not found', () => {
+      const { model, tab } = buildModel();
+      const session = createMockSession(model);
+      const port = createMockPort();
+      const broadcastSpy = vi.spyOn(session.viewBridge, 'broadcast');
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_moveHierarchy',
+          targetNodeIdMVC: tab.idMVC,
+          containerIdMVC: 'nonexistent-container',
+          position: 0,
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      expect(broadcastSpy).not.toHaveBeenCalled();
+      expect(session.scheduleSave).not.toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('moveNode failed'),
+        expect.any(Error),
+      );
+      errorSpy.mockRestore();
+    });
+  });
+
   describe('deferred handlers', () => {
     it('logs warning for deferred Epic 8 messages', () => {
       const { model } = buildModel();
