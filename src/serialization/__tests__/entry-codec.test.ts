@@ -5,7 +5,10 @@ import type { NodeMarks } from '@/types/marks';
 
 describe('decodeEntry', () => {
   it('decodes a savedtab (type 5, positive = expanded)', () => {
-    const json = JSON.stringify([5, { url: 'https://example.com', title: 'Example' }]);
+    const json = JSON.stringify([
+      5,
+      { url: 'https://example.com', title: 'Example' },
+    ]);
     const node = decodeEntry(json);
     expect(node.type).toBeUndefined(); // savedtab is default, omitted
     expect(node.colapsed).toBeUndefined();

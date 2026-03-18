@@ -47,9 +47,7 @@ export function registerChromeEventHandlers(
 ): () => void {
   const cleanups: Array<() => void> = [];
 
-  cleanups.push(
-    onTabCreated((tab) => handleTabCreated(session, bridge, tab)),
-  );
+  cleanups.push(onTabCreated((tab) => handleTabCreated(session, bridge, tab)));
 
   cleanups.push(
     onTabRemoved((tabId, removeInfo) =>
@@ -133,13 +131,13 @@ function handleTabCreated(
   if (isExtensionUrl(tab.url)) return; // Don't track extension's own tabs
 
   // Check for Ctrl+Shift+T undo-close pattern
-  const closeRecord = tab.url
-    ? session.closeTracker.findByUrl(tab.url)
-    : null;
+  const closeRecord = tab.url ? session.closeTracker.findByUrl(tab.url) : null;
 
   const winNode = session.treeModel.findActiveWindow(tab.windowId);
   if (!winNode) {
-    console.warn(`[chrome-event-handlers] Window ${tab.windowId} not found for new tab ${tab.id}`);
+    console.warn(
+      `[chrome-event-handlers] Window ${tab.windowId} not found for new tab ${tab.id}`,
+    );
     return;
   }
 
@@ -269,7 +267,9 @@ function handleTabMoved(
 
   const winNode = session.treeModel.findActiveWindow(moveInfo.windowId);
   if (!winNode) {
-    console.warn(`[chrome-event-handlers] Window ${moveInfo.windowId} not found for moved tab ${tabId}`);
+    console.warn(
+      `[chrome-event-handlers] Window ${moveInfo.windowId} not found for moved tab ${tabId}`,
+    );
     return;
   }
 
@@ -297,11 +297,11 @@ function handleTabAttached(
   const node = session.treeModel.findActiveTab(tabId);
   if (!node) return;
 
-  const newWinNode = session.treeModel.findActiveWindow(
-    attachInfo.newWindowId,
-  );
+  const newWinNode = session.treeModel.findActiveWindow(attachInfo.newWindowId);
   if (!newWinNode) {
-    console.warn(`[chrome-event-handlers] Window ${attachInfo.newWindowId} not found for attached tab ${tabId}`);
+    console.warn(
+      `[chrome-event-handlers] Window ${attachInfo.newWindowId} not found for attached tab ${tabId}`,
+    );
     return;
   }
 
@@ -335,10 +335,7 @@ function handleTabActivated(
   if (!winNode) return;
 
   for (const child of winNode.subnodes) {
-    if (
-      child.type === NodeTypesEnum.TAB &&
-      (child.data as TabData).active
-    ) {
+    if (child.type === NodeTypesEnum.TAB && (child.data as TabData).active) {
       (child as TabTreeNode).updateChromeData({
         ...(child.data as TabData),
         active: false,
@@ -523,7 +520,8 @@ export function removeEmptyWindowParent(
   if (
     parent.type !== NodeTypesEnum.WINDOW &&
     parent.type !== NodeTypesEnum.SAVEDWINDOW
-  ) return;
+  )
+    return;
 
   const grandparent = parent.parent;
   session.treeModel.removeSubtree(parent);

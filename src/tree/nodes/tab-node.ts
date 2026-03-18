@@ -51,8 +51,7 @@ export class TabTreeNode extends TreeNode {
     if (this._chromeTabObj.status === 'loading') {
       return 'img/loading.gif';
     }
-    return this._chromeTabObj.favIconUrl
-      ?? ('img/chromeFavicon.png');
+    return this._chromeTabObj.favIconUrl ?? 'img/chromeFavicon.png';
   }
 
   getIconForHtmlExport(): string | null {
@@ -109,7 +108,10 @@ export class TabTreeNode extends TreeNode {
 
   /** Active tab clones as a saved tab for drag-and-drop. */
   cloneAsSaved(): SavedTabTreeNode {
-    const clone = new SavedTabTreeNode({ ...this._chromeTabObj, active: false });
+    const clone = new SavedTabTreeNode({
+      ...this._chromeTabObj,
+      active: false,
+    });
     clone.copyMarksAndCollapsedFrom(this);
     return clone;
   }

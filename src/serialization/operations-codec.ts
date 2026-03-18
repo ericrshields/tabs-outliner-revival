@@ -45,7 +45,10 @@ export function validateOperationsLog(operations: readonly unknown[]): {
   }
 
   if (operations.length < 2) {
-    return { valid: false, reason: 'Too few operations (need at least root + EOF)' };
+    return {
+      valid: false,
+      reason: 'Too few operations (need at least root + EOF)',
+    };
   }
 
   const first = operations[0] as Record<string, unknown>;
@@ -116,7 +119,9 @@ export function operationsToHierarchy(
  * Port of treemodel.js:821-848 (serializeHierarchyAsJSO is the format, but
  * the inverse operation reconstructs the operations log).
  */
-export function hierarchyToOperations(hierarchy: HierarchyJSO): WireOperation[] {
+export function hierarchyToOperations(
+  hierarchy: HierarchyJSO,
+): WireOperation[] {
   const ops: WireOperation[] = [];
 
   // Root operation
@@ -156,7 +161,8 @@ function getOpType(op: unknown): number {
 function getOpNode(op: unknown): Record<string, unknown> | null {
   const obj = op as Record<string, unknown>;
   if (obj['node'] !== undefined) return obj['node'] as Record<string, unknown>;
-  if (Array.isArray(op) && op[1] !== undefined) return op[1] as Record<string, unknown>;
+  if (Array.isArray(op) && op[1] !== undefined)
+    return op[1] as Record<string, unknown>;
   return null;
 }
 

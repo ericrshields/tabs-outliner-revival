@@ -7,7 +7,10 @@ import { useEffect, useCallback, useState, useMemo } from 'react';
 import type { MutableRef } from 'preact/hooks';
 import type { ViewToBackgroundMessage } from '@/types/messages';
 import type { HoveringMenuActionId } from '@/types/node';
-import type { HoveringMenuActions, TreeContextValue } from '@/types/tree-context';
+import type {
+  HoveringMenuActions,
+  TreeContextValue,
+} from '@/types/tree-context';
 import { executeAction } from '../tree-actions';
 
 const SINGLE_CLICK_KEY = 'singleClickActivation';
@@ -39,11 +42,7 @@ export function useTreeInteractions({
   const [hoverState, setHoverState] = useState<HoverState | null>(null);
 
   const handleRowEnter = useCallback(
-    (
-      id: string,
-      actions: HoveringMenuActions,
-      rect: DOMRect,
-    ) => {
+    (id: string, actions: HoveringMenuActions, rect: DOMRect) => {
       setHoverState({ idMVC: id, actions, rect });
     },
     [],
@@ -84,7 +83,13 @@ export function useTreeInteractions({
       onRowEnter: handleRowEnter,
       onAction: handleAction,
     }),
-    [selectedId, hoverState?.idMVC, singleClickActivation, handleRowEnter, handleAction],
+    [
+      selectedId,
+      hoverState?.idMVC,
+      singleClickActivation,
+      handleRowEnter,
+      handleAction,
+    ],
   );
 
   return { hoverState, clearHover, handleAction, ctxValue };

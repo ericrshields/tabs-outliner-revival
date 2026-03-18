@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/preact';
 import { useTreeData } from '../use-tree-data';
-import { makeNodeDTO, makeTree, resetFixtureCounter } from '../../__tests__/fixtures';
+import {
+  makeNodeDTO,
+  makeTree,
+  resetFixtureCounter,
+} from '../../__tests__/fixtures';
 import type { MvcId } from '@/types/brands';
 import type {
   Msg_InitTreeView,
@@ -71,7 +75,6 @@ describe('useTreeData', () => {
       expect(result.current.state.initialOpenMap).toBeNull();
       expect(result.current.state.needsFullRefresh).toBe(false);
     });
-
   });
 
   describe('INIT (msg2view_initTreeView)', () => {
@@ -115,9 +118,7 @@ describe('useTreeData', () => {
       // Set up a state that needs refresh
       act(() => result.current.handleMessage(makeInitMessage()));
       act(() => {
-        result.current.handleMessage(
-          makeNotifyMessage('win1', 'onNodeMoved'),
-        );
+        result.current.handleMessage(makeNotifyMessage('win1', 'onNodeMoved'));
       });
       expect(result.current.state.needsFullRefresh).toBe(true);
 
@@ -292,21 +293,16 @@ describe('useTreeData', () => {
       'onParentUpdated',
     ];
 
-    it.each(structuralEvents)(
-      'sets needsFullRefresh for %s',
-      (eventName) => {
-        const { result } = renderHook(() => useTreeData());
-        act(() => result.current.handleMessage(makeInitMessage()));
+    it.each(structuralEvents)('sets needsFullRefresh for %s', (eventName) => {
+      const { result } = renderHook(() => useTreeData());
+      act(() => result.current.handleMessage(makeInitMessage()));
 
-        act(() => {
-          result.current.handleMessage(
-            makeNotifyMessage('win1', eventName),
-          );
-        });
+      act(() => {
+        result.current.handleMessage(makeNotifyMessage('win1', eventName));
+      });
 
-        expect(result.current.state.needsFullRefresh).toBe(true);
-      },
-    );
+      expect(result.current.state.needsFullRefresh).toBe(true);
+    });
 
     it('sets needsFullRefresh for unknown observer event', () => {
       const { result } = renderHook(() => useTreeData());

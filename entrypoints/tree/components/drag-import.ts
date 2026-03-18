@@ -17,7 +17,8 @@ export function importContainsTabs(json: string): boolean {
     const parsed: unknown = JSON.parse(json);
     // Unrecognized structure — don't warn on ambiguous data
     if (!parsed || typeof parsed !== 'object') return true;
-    if (!Array.isArray(parsed) && !(parsed as Record<string, unknown>).n) return true;
+    if (!Array.isArray(parsed) && !(parsed as Record<string, unknown>).n)
+      return true;
     return hierarchyHasTabs(parsed);
   } catch {
     return true; // let the backend handle parse errors
@@ -89,12 +90,15 @@ export function readFileAsText(file: File): Promise<string> {
       if (typeof reader.result === 'string') resolve(reader.result);
       else reject(new Error('FileReader did not return a string'));
     };
-    reader.onerror = () => reject(reader.error ?? new Error('FileReader error'));
+    reader.onerror = () =>
+      reject(reader.error ?? new Error('FileReader error'));
     reader.readAsText(file);
   });
 }
 
-export function extractTreeFromDrag(dataTransfer: DataTransferLike): string | null {
+export function extractTreeFromDrag(
+  dataTransfer: DataTransferLike,
+): string | null {
   // 1. Custom MIME type (same-origin only — blocked cross-extension)
   const tabsOutlinerData = dataTransfer.getData(TABS_OUTLINER_MIME);
   if (tabsOutlinerData) return tabsOutlinerData;
@@ -153,7 +157,9 @@ function decodeEntities(text: string): string {
     .replace(/&#39;/g, "'")
     .replace(/&#x27;/g, "'")
     .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) =>
+      String.fromCharCode(parseInt(hex, 16)),
+    );
 }
 
 /**
@@ -217,7 +223,9 @@ function tokenizeFromHtml(html: string): FlatNode[] {
           nodes.push({
             title: decodeEntities(currentTitle.trim()),
             url: currentUrl ? decodeEntities(currentUrl) : currentUrl,
-            customTitle: currentCustomTitle ? decodeEntities(currentCustomTitle) : null,
+            customTitle: currentCustomTitle
+              ? decodeEntities(currentCustomTitle)
+              : null,
             depth: liDepth,
           });
           inLi = false;
@@ -255,7 +263,10 @@ function tokenizeFromHtml(html: string): FlatNode[] {
 function buildHierarchy(nodes: FlatNode[]): HierarchyJSO | null {
   if (nodes.length === 0) return null;
 
-  function buildSubtree(index: number): { jso: HierarchyJSO; nextIndex: number } {
+  function buildSubtree(index: number): {
+    jso: HierarchyJSO;
+    nextIndex: number;
+  } {
     const node = nodes[index];
     const children: HierarchyJSO[] = [];
 
@@ -271,9 +282,10 @@ function buildHierarchy(nodes: FlatNode[]): HierarchyJSO | null {
     const serialized = toSerializedNode(node, children.length > 0);
 
     return {
-      jso: children.length > 0
-        ? { n: serialized, s: children }
-        : { n: serialized },
+      jso:
+        children.length > 0
+          ? { n: serialized, s: children }
+          : { n: serialized },
       nextIndex: i,
     };
   }

@@ -12,7 +12,7 @@ import type { TreeModel } from '@/tree/tree-model';
 import { TreeNode } from '@/tree/tree-node';
 import { NodeTypesEnum } from '@/types/enums';
 import type { TabData, WindowData } from '@/types/node-data';
-import type { ChromeTabData, ChromeWindowData } from '@/types/chrome';
+import type { ChromeTabData } from '@/types/chrome';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
 import { WindowTreeNode } from '@/tree/nodes/window-node';
 import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
@@ -77,7 +77,10 @@ export async function synchronizeTreeWithChrome(
   let cleanedCount = 0;
   const extNodes: TreeNode[] = [];
   model.forEach((node) => {
-    if (node.type === NodeTypesEnum.TAB || node.type === NodeTypesEnum.SAVEDTAB) {
+    if (
+      node.type === NodeTypesEnum.TAB ||
+      node.type === NodeTypesEnum.SAVEDTAB
+    ) {
       const data = node.data as TabData;
       if (isExtensionUrl(data.url)) extNodes.push(node);
     }

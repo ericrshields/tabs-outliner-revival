@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/preact';
 import type { NodeApi, RowRendererProps } from 'react-arborist';
 import type { NodeDTO } from '@/types/node-dto';
@@ -17,9 +17,7 @@ function makeNodeApi(overrides: { isSelected?: boolean } = {}) {
   } as unknown as NodeApi<NodeDTO>;
 }
 
-function makeCtx(
-  overrides: Partial<TreeContextValue> = {},
-): TreeContextValue {
+function makeCtx(overrides: Partial<TreeContextValue> = {}): TreeContextValue {
   return {
     cursorId: null,
     hoveredId: null,

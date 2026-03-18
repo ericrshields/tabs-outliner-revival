@@ -7,7 +7,8 @@ const mockConnect = vi.fn();
 const mockDispose = vi.fn();
 const mockPostMessage = vi.fn();
 const mockOnMessage = vi.fn<(cb: (msg: unknown) => void) => () => void>();
-const mockOnStateChange = vi.fn<(cb: (state: PortState) => void) => () => void>();
+const mockOnStateChange =
+  vi.fn<(cb: (state: PortState) => void) => () => void>();
 
 vi.mock('@/chrome/runtime', () => ({
   PortManager: vi.fn().mockImplementation(() => ({

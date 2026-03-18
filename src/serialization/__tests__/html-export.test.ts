@@ -49,9 +49,7 @@ describe('treeToHtml', () => {
         title: 'Example',
       });
       const html = treeToHtml(tab);
-      expect(html).toBe(
-        '<li><a href="https://example.com">Example</a></li>',
-      );
+      expect(html).toBe('<li><a href="https://example.com">Example</a></li>');
     });
 
     it('serializes saved tab with customTitle as data attribute', () => {
@@ -181,9 +179,7 @@ describe('treeToHtml', () => {
 
       const html = treeToHtml(session);
       expect(html).toBe(
-        '<li>Current Session</li><ul>' +
-          '<li>W1</li><li>W2</li>' +
-          '</ul>',
+        '<li>Current Session</li><ul>' + '<li>W1</li><li>W2</li>' + '</ul>',
       );
     });
   });
@@ -195,15 +191,15 @@ describe('round-trip: treeToHtml → parseHtmlTreeDrop', () => {
 
   // Use a simulated parseHtmlTreeDrop since the actual function uses a regex-based
   // tokenizer that we can import directly.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  let parseHtmlTreeDrop: (html: string) => import('@/types/serialized').HierarchyJSO | null;
+  let parseHtmlTreeDrop: (
+    html: string,
+  ) => import('@/types/serialized').HierarchyJSO | null;
 
   // We need to re-implement the parse since drag-import.ts is not easily importable
   // in test context. Instead, import the module.
   beforeAll(async () => {
-    const mod = await import(
-      '../../../entrypoints/tree/components/drag-import'
-    );
+    const mod =
+      await import('../../../entrypoints/tree/components/drag-import');
     // parseHtmlTreeDrop is not exported — we test the full extractTreeFromDrag path
     // by creating a mock DataTransfer. Or better: we use tokenizeFromHtml if exported.
     // Since parseHtmlTreeDrop is not exported, we'll test via extractTreeFromDrag.
@@ -220,7 +216,10 @@ describe('round-trip: treeToHtml → parseHtmlTreeDrop', () => {
 
   it('round-trips session with tabs', () => {
     const session = new SessionTreeNode();
-    const tab = new SavedTabTreeNode({ url: 'https://example.com', title: 'Example' });
+    const tab = new SavedTabTreeNode({
+      url: 'https://example.com',
+      title: 'Example',
+    });
     session.insertSubnode(0, tab);
 
     const html = treeToHtml(session);
@@ -241,8 +240,14 @@ describe('round-trip: treeToHtml → parseHtmlTreeDrop', () => {
     const session = new SessionTreeNode();
     const win = new SavedWindowTreeNode();
     win.setMarks({ relicons: [], customTitle: 'Research' });
-    const tab1 = new SavedTabTreeNode({ url: 'https://a.com', title: 'Page A' });
-    const tab2 = new SavedTabTreeNode({ url: 'https://b.com', title: 'Page B' });
+    const tab1 = new SavedTabTreeNode({
+      url: 'https://a.com',
+      title: 'Page A',
+    });
+    const tab2 = new SavedTabTreeNode({
+      url: 'https://b.com',
+      title: 'Page B',
+    });
     win.insertSubnode(0, tab1);
     win.insertSubnode(1, tab2);
     session.insertSubnode(0, win);
@@ -265,7 +270,10 @@ describe('round-trip: treeToHtml → parseHtmlTreeDrop', () => {
 
   it('round-trips tab customTitle via data-custom-title attribute', () => {
     const session = new SessionTreeNode();
-    const tab = new SavedTabTreeNode({ url: 'https://example.com', title: 'Example Page' });
+    const tab = new SavedTabTreeNode({
+      url: 'https://example.com',
+      title: 'Example Page',
+    });
     tab.setMarks({ relicons: [], customTitle: 'My Bookmark' });
     session.insertSubnode(0, tab);
 
@@ -293,8 +301,12 @@ describe('round-trip: treeToHtml → parseHtmlTreeDrop', () => {
 
     expect(parsed).not.toBeNull();
     const tabNode = parsed!.s![0].n;
-    expect((tabNode.data as { url: string }).url).toBe('https://example.com/search?q=a&b=c');
-    expect((tabNode.data as { title: string }).title).toBe('Results for "a & b"');
+    expect((tabNode.data as { url: string }).url).toBe(
+      'https://example.com/search?q=a&b=c',
+    );
+    expect((tabNode.data as { title: string }).title).toBe(
+      'Results for "a & b"',
+    );
   });
 
   it('round-trips empty text note', () => {

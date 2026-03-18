@@ -140,7 +140,9 @@ describe('PortManager', () => {
     });
     pm.connect();
 
-    expect(fakePort.postMessage).not.toHaveBeenCalledWith({ __heartbeat: true });
+    expect(fakePort.postMessage).not.toHaveBeenCalledWith({
+      __heartbeat: true,
+    });
 
     vi.advanceTimersByTime(100);
     vi.advanceTimersByTime(100);
@@ -256,7 +258,9 @@ describe('PortManager', () => {
 
   it('isolates listener exceptions — one throwing does not block others', () => {
     const pm = new PortManager({ name: 'test-port' });
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
     const received: unknown[] = [];
 
     pm.onMessage(() => {
@@ -379,12 +383,13 @@ describe('onPortConnect', () => {
         listeners.push(cb);
       },
     );
-    vi.spyOn(fakeBrowser.runtime.onConnect, 'removeListener').mockImplementation(
-      (cb: (port: Browser.runtime.Port) => void) => {
-        const idx = listeners.indexOf(cb);
-        if (idx >= 0) listeners.splice(idx, 1);
-      },
-    );
+    vi.spyOn(
+      fakeBrowser.runtime.onConnect,
+      'removeListener',
+    ).mockImplementation((cb: (port: Browser.runtime.Port) => void) => {
+      const idx = listeners.indexOf(cb);
+      if (idx >= 0) listeners.splice(idx, 1);
+    });
   });
 
   afterEach(() => {

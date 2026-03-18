@@ -42,8 +42,16 @@ describe('useWindowSize', () => {
     const { result } = renderHook(() => useWindowSize());
 
     act(() => {
-      Object.defineProperty(window, 'innerWidth', { value: 1024, writable: true, configurable: true });
-      Object.defineProperty(window, 'innerHeight', { value: 768, writable: true, configurable: true });
+      Object.defineProperty(window, 'innerWidth', {
+        value: 1024,
+        writable: true,
+        configurable: true,
+      });
+      Object.defineProperty(window, 'innerHeight', {
+        value: 768,
+        writable: true,
+        configurable: true,
+      });
       window.dispatchEvent(new Event('resize'));
     });
 

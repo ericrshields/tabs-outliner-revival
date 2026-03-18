@@ -3,9 +3,7 @@ import { render } from '@testing-library/preact';
 import { StatsBlockView } from './StatsBlock';
 import type { StatsBlock } from '@/types/node-dto';
 
-function makeStats(
-  overrides: Partial<StatsBlock> = {},
-): StatsBlock {
+function makeStats(overrides: Partial<StatsBlock> = {}): StatsBlock {
   return {
     nodesCount: 0,
     activeWinsCount: 0,
@@ -16,9 +14,7 @@ function makeStats(
 
 describe('StatsBlockView', () => {
   it('returns null when all counts are zero', () => {
-    const { container } = render(
-      <StatsBlockView data={makeStats()} />,
-    );
+    const { container } = render(<StatsBlockView data={makeStats()} />);
     expect(container.querySelector('.stats-block')).toBeNull();
   });
 
@@ -58,7 +54,9 @@ describe('StatsBlockView', () => {
         data={makeStats({ activeTabsCount: 3, nodesCount: 5 })}
       />,
     );
-    expect(container.querySelector('.stats-nodes-count')!.textContent).toBe('5');
+    expect(container.querySelector('.stats-nodes-count')!.textContent).toBe(
+      '5',
+    );
   });
 
   it('hides node count when equal to activeTabsCount', () => {

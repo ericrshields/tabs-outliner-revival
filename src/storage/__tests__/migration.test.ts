@@ -125,7 +125,10 @@ describe('migrateFromLegacy', () => {
   it('falls back to V33 when V34 is invalid', async () => {
     // V34 with invalid data (no EOF)
     await populateDB(DB_V34, [
-      { type: DbOperationEnum.NODE_NEWROOT, node: { type: 'session', data: null } },
+      {
+        type: DbOperationEnum.NODE_NEWROOT,
+        node: { type: 'session', data: null },
+      },
       // Missing EOF
     ]);
 
@@ -146,9 +149,7 @@ describe('migrateFromLegacy', () => {
   });
 
   it('validates round-trip after migration', async () => {
-    const ops = makeValidOps([
-      { url: 'https://test.com', title: 'Test' },
-    ]);
+    const ops = makeValidOps([{ url: 'https://test.com', title: 'Test' }]);
     await populateDB(DB_V34, ops);
 
     const result = await migrateFromLegacy();

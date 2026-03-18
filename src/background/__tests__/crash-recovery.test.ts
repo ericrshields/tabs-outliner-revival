@@ -5,7 +5,6 @@ import { TreeModel } from '@/tree/tree-model';
 import { SessionTreeNode } from '@/tree/nodes/session-node';
 import { WindowTreeNode } from '@/tree/nodes/window-node';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
-import { SavedWindowTreeNode } from '@/tree/nodes/saved-window-node';
 import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
 import { resetMvcIdCounter } from '@/tree/mvc-id';
 import { NodeTypesEnum } from '@/types/enums';
@@ -196,7 +195,9 @@ describe('synchronizeTreeWithChrome()', () => {
     });
 
     expect(savedWin).not.toBeNull();
-    expect((savedWin!.data as { crashDetectedDate?: number }).crashDetectedDate).toBe(now);
+    expect(
+      (savedWin!.data as { crashDetectedDate?: number }).crashDetectedDate,
+    ).toBe(now);
 
     vi.useRealTimers();
   });

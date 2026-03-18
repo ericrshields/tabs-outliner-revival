@@ -13,11 +13,22 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint entrypoints/ src/ *.ts *.js",
-    "format": "prettier --write 'entrypoints/**/*.{ts,tsx}' 'src/**/*.{ts,tsx}' '*.{ts,js,json}'"
+    "format": "prettier --write 'entrypoints/**/*.{ts,tsx}' 'src/**/*.{ts,tsx}' '*.{ts,tsx,js,json}'",
+    "format:check": "prettier --check 'entrypoints/**/*.{ts,tsx}' 'src/**/*.{ts,tsx}' '*.{ts,tsx,js,json}'",
+    "prepare": "husky"
   },
   "dependencies": {
     "preact": "^10.25.4",
     "react-arborist": "^3.4.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,json}": [
+      "prettier --write"
+    ]
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
@@ -29,6 +40,8 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "fake-indexeddb": "^6.2.5",
     "happy-dom": "^20.6.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.0",

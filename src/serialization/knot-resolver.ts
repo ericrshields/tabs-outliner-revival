@@ -52,7 +52,12 @@ function resolveNode(
   visited.add(dId);
 
   const knotContent = snapshot.allKnots.get(dId) ?? '';
-  const knotData = getKnotSubnodes(dId, knotContent, snapshot.allKnots, knotVisited);
+  const knotData = getKnotSubnodes(
+    dId,
+    knotContent,
+    snapshot.allKnots,
+    knotVisited,
+  );
   const subnodesDIds = knotData.subnodesDids;
   const cdId = knotData.cdId;
 
@@ -170,7 +175,9 @@ function deserializeKnot(
   if (entryJson) {
     const decoded = decodeEntry(entryJson);
     // Merge diff IDs into the decoded node
-    const raw: Record<string, unknown> = { ...(decoded as unknown as Record<string, unknown>) };
+    const raw: Record<string, unknown> = {
+      ...(decoded as unknown as Record<string, unknown>),
+    };
     raw.dId = parseInt(dId, 36) || undefined;
     raw.cdId = parseInt(cdId, 36) || undefined;
     return normalizeSerializedNode(raw);

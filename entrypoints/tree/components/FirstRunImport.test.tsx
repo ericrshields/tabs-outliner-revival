@@ -9,7 +9,11 @@ beforeEach(() => {
 describe('FirstRunImport', () => {
   it('renders welcome message, import button, and dismiss button', () => {
     const { container } = render(
-      <FirstRunImport onImport={vi.fn()} onDismiss={vi.fn()} importResult={null} />,
+      <FirstRunImport
+        onImport={vi.fn()}
+        onDismiss={vi.fn()}
+        importResult={null}
+      />,
     );
 
     expect(container.textContent).toContain('Welcome to Tabs Outliner Revival');
@@ -20,7 +24,11 @@ describe('FirstRunImport', () => {
 
   it('renders as an overlay', () => {
     const { container } = render(
-      <FirstRunImport onImport={vi.fn()} onDismiss={vi.fn()} importResult={null} />,
+      <FirstRunImport
+        onImport={vi.fn()}
+        onDismiss={vi.fn()}
+        importResult={null}
+      />,
     );
 
     expect(container.querySelector('.first-run-overlay')).toBeTruthy();
@@ -29,7 +37,11 @@ describe('FirstRunImport', () => {
   it('calls onDismiss when dismiss button clicked', () => {
     const onDismiss = vi.fn();
     const { container } = render(
-      <FirstRunImport onImport={vi.fn()} onDismiss={onDismiss} importResult={null} />,
+      <FirstRunImport
+        onImport={vi.fn()}
+        onDismiss={onDismiss}
+        importResult={null}
+      />,
     );
 
     fireEvent.click(container.querySelector('.dismiss-btn')!);
@@ -39,18 +51,28 @@ describe('FirstRunImport', () => {
   it('calls onDismiss when overlay backdrop clicked', () => {
     const onDismiss = vi.fn();
     const { container } = render(
-      <FirstRunImport onImport={vi.fn()} onDismiss={onDismiss} importResult={null} />,
+      <FirstRunImport
+        onImport={vi.fn()}
+        onDismiss={onDismiss}
+        importResult={null}
+      />,
     );
 
     // detail > 0 distinguishes real clicks from DnD mouse-up
-    fireEvent.click(container.querySelector('.first-run-overlay')!, { detail: 1 });
+    fireEvent.click(container.querySelector('.first-run-overlay')!, {
+      detail: 1,
+    });
     expect(onDismiss).toHaveBeenCalled();
   });
 
   it('does not dismiss when modal content clicked', () => {
     const onDismiss = vi.fn();
     const { container } = render(
-      <FirstRunImport onImport={vi.fn()} onDismiss={onDismiss} importResult={null} />,
+      <FirstRunImport
+        onImport={vi.fn()}
+        onDismiss={onDismiss}
+        importResult={null}
+      />,
     );
 
     fireEvent.click(container.querySelector('.first-run-import')!);
@@ -60,7 +82,11 @@ describe('FirstRunImport', () => {
   it('calls onImport with DnD data from application/x-tabsoutliner-items', () => {
     const onImport = vi.fn();
     const { container } = render(
-      <FirstRunImport onImport={onImport} onDismiss={vi.fn()} importResult={null} />,
+      <FirstRunImport
+        onImport={onImport}
+        onDismiss={vi.fn()}
+        importResult={null}
+      />,
     );
 
     const dropZone = container.querySelector('.import-drop-zone')!;
@@ -80,7 +106,11 @@ describe('FirstRunImport', () => {
   it('calls onImport with embedded JSON from text/html fallback', () => {
     const onImport = vi.fn();
     const { container } = render(
-      <FirstRunImport onImport={onImport} onDismiss={vi.fn()} importResult={null} />,
+      <FirstRunImport
+        onImport={onImport}
+        onDismiss={vi.fn()}
+        importResult={null}
+      />,
     );
 
     const dropZone = container.querySelector('.import-drop-zone')!;
@@ -127,7 +157,11 @@ describe('FirstRunImport', () => {
 
   it('adds drag-over class during dragover', () => {
     const { container } = render(
-      <FirstRunImport onImport={vi.fn()} onDismiss={vi.fn()} importResult={null} />,
+      <FirstRunImport
+        onImport={vi.fn()}
+        onDismiss={vi.fn()}
+        importResult={null}
+      />,
     );
 
     const dropZone = container.querySelector('.import-drop-zone')!;

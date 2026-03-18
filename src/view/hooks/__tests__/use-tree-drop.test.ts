@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/preact';
 
 vi.mock('../../tree-actions', () => ({
-  importTree: vi.fn((json: string) => ({ request: 'request2bkg_import_tree', json })),
+  importTree: vi.fn((json: string) => ({
+    request: 'request2bkg_import_tree',
+    json,
+  })),
 }));
 
 vi.mock('../../../../entrypoints/tree/components/drag-import', () => ({
@@ -23,7 +26,9 @@ beforeEach(() => {
   vi.restoreAllMocks();
 });
 
-function makeOptions(overrides: Partial<UseTreeDropOptions> = {}): UseTreeDropOptions {
+function makeOptions(
+  overrides: Partial<UseTreeDropOptions> = {},
+): UseTreeDropOptions {
   return {
     postMessage: vi.fn(),
     importResult: null,
@@ -75,7 +80,9 @@ describe('useTreeDrop', () => {
     it('posts importTree message for valid import with tabs', () => {
       const postMessage = vi.fn();
       mockImportContainsTabs.mockReturnValue(true);
-      const { result } = renderHook(() => useTreeDrop(makeOptions({ postMessage })));
+      const { result } = renderHook(() =>
+        useTreeDrop(makeOptions({ postMessage })),
+      );
 
       act(() => result.current.handleImport('{"n":{}}'));
 
@@ -89,7 +96,9 @@ describe('useTreeDrop', () => {
       mockImportContainsTabs.mockReturnValue(false);
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
-      const { result } = renderHook(() => useTreeDrop(makeOptions({ postMessage })));
+      const { result } = renderHook(() =>
+        useTreeDrop(makeOptions({ postMessage })),
+      );
 
       act(() => result.current.handleImport('{"n":{"type":"savedwin"}}'));
 
@@ -102,7 +111,9 @@ describe('useTreeDrop', () => {
       mockImportContainsTabs.mockReturnValue(false);
       vi.spyOn(window, 'confirm').mockReturnValue(false);
 
-      const { result } = renderHook(() => useTreeDrop(makeOptions({ postMessage })));
+      const { result } = renderHook(() =>
+        useTreeDrop(makeOptions({ postMessage })),
+      );
 
       act(() => result.current.handleImport('{"n":{"type":"savedwin"}}'));
 
@@ -114,7 +125,9 @@ describe('useTreeDrop', () => {
       mockImportContainsTabs.mockReturnValue(false);
       vi.spyOn(window, 'confirm').mockReturnValue(true);
 
-      const { result } = renderHook(() => useTreeDrop(makeOptions({ postMessage })));
+      const { result } = renderHook(() =>
+        useTreeDrop(makeOptions({ postMessage })),
+      );
 
       act(() => result.current.handleImport('{"n":{"type":"savedwin"}}'));
 
@@ -163,7 +176,9 @@ describe('useTreeDrop', () => {
       vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
       const appendSpy = vi.spyOn(document.body, 'appendChild');
 
-      renderHook(() => useTreeDrop(makeOptions({ exportJson: '{"test":true}', clearExport })));
+      renderHook(() =>
+        useTreeDrop(makeOptions({ exportJson: '{"test":true}', clearExport })),
+      );
 
       expect(clearExport).toHaveBeenCalledTimes(1);
       expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
@@ -179,7 +194,9 @@ describe('useTreeDrop', () => {
     it('does nothing when exportJson is null', () => {
       const clearExport = vi.fn();
 
-      renderHook(() => useTreeDrop(makeOptions({ exportJson: null, clearExport })));
+      renderHook(() =>
+        useTreeDrop(makeOptions({ exportJson: null, clearExport })),
+      );
 
       expect(clearExport).not.toHaveBeenCalled();
     });
@@ -191,7 +208,9 @@ describe('useTreeDrop', () => {
       const appendSpy = vi.spyOn(document.body, 'appendChild');
 
       renderHook(() =>
-        useTreeDrop(makeOptions({ exportHtml: '<li>test</li>', clearExportHtml })),
+        useTreeDrop(
+          makeOptions({ exportHtml: '<li>test</li>', clearExportHtml }),
+        ),
       );
 
       expect(clearExportHtml).toHaveBeenCalledTimes(1);

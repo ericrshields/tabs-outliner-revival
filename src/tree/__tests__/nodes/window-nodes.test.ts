@@ -3,7 +3,6 @@ import { WindowTreeNode } from '../../nodes/window-node';
 import { SavedWindowTreeNode } from '../../nodes/saved-window-node';
 import { WaitingWindowTreeNode } from '../../nodes/waiting-window-node';
 import { SavedTabTreeNode } from '../../nodes/saved-tab-node';
-import { TabTreeNode } from '../../nodes/tab-node';
 import { NodeTypesEnum } from '@/types/enums';
 import type { WindowData } from '@/types/node-data';
 import { resetMvcIdCounter } from '../../mvc-id';

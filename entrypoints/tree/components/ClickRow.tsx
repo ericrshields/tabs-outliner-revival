@@ -25,7 +25,11 @@ export function ClickRow({
       onFocus={(e) => e.stopPropagation()}
       onClick={(e) => {
         if (e.metaKey) {
-          node.isSelected ? node.deselect() : node.selectMulti();
+          if (node.isSelected) {
+            node.deselect();
+          } else {
+            node.selectMulti();
+          }
         } else if (e.shiftKey) {
           node.selectContiguous();
         } else {

@@ -6,7 +6,6 @@
 
 import { NodeTypesEnum } from '@/types/enums';
 import type { TextNoteData } from '@/types/node-data';
-import type { NodeMarks } from '@/types/marks';
 import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
 import { TreeNode } from '../tree-node';
 

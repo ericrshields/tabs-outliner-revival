@@ -3,14 +3,9 @@ import { resolveKnotsToHierarchy } from '../knot-resolver';
 import type { DiffSnapshot } from '../knot-resolver';
 import { NODE_TYPE_STR2NUM } from '@/types/enums';
 import { countNodes } from '../hierarchy-jso';
-import { i2s36 } from '../base36';
 
 // Helper to build entry JSON (EntryWireFormat tuple as JSON string)
-function makeEntry(
-  type: string,
-  data: unknown,
-  collapsed = false,
-): string {
+function makeEntry(type: string, data: unknown, collapsed = false): string {
   const typeNum = NODE_TYPE_STR2NUM[type];
   const code = collapsed ? -typeNum : typeNum;
   return JSON.stringify([code, data]);
@@ -32,9 +27,9 @@ describe('resolveKnotsToHierarchy', () => {
     const snapshot: DiffSnapshot = {
       rootDid: 'a',
       allKnots: new Map([
-        ['a', 'ca@b&c'],     // root with 2 inline subnodes
-        ['b', 'cb'],          // child b, no subnodes
-        ['c', 'cc'],          // child c, no subnodes
+        ['a', 'ca@b&c'], // root with 2 inline subnodes
+        ['b', 'cb'], // child b, no subnodes
+        ['c', 'cc'], // child c, no subnodes
       ]),
       entries: new Map([
         ['cb', makeEntry('savedtab', { url: 'https://b.com' })],
@@ -54,11 +49,11 @@ describe('resolveKnotsToHierarchy', () => {
     const snapshot: DiffSnapshot = {
       rootDid: 'a',
       allKnots: new Map([
-        ['a', 'ca@d&e'],       // root: inline subnodes d, e
-        ['d', 'cd#b'],         // d references b for subnodes
-        ['b', 'cb@f'],         // b has inline subnode f
-        ['f', 'cf'],           // f is a leaf
-        ['e', 'ce'],           // e is a leaf
+        ['a', 'ca@d&e'], // root: inline subnodes d, e
+        ['d', 'cd#b'], // d references b for subnodes
+        ['b', 'cb@f'], // b has inline subnode f
+        ['f', 'cf'], // f is a leaf
+        ['e', 'ce'], // e is a leaf
       ]),
       entries: new Map([
         ['cd', makeEntry('savedwin', null)],
@@ -117,9 +112,7 @@ describe('resolveKnotsToHierarchy', () => {
         ['a', 'ca@b'],
         ['b', 'cb@a'], // cycle back to a
       ]),
-      entries: new Map([
-        ['cb', makeEntry('savedtab', { url: 'b' })],
-      ]),
+      entries: new Map([['cb', makeEntry('savedtab', { url: 'b' })]]),
     };
 
     // Should not throw (infinite recursion), should return placeholder
@@ -166,8 +159,8 @@ describe('resolveKnotsToHierarchy', () => {
       rootDid: 'a',
       allKnots: new Map([
         ['a', 'ca@d'],
-        ['d', 'cd#e'],     // d references e for subnodes
-        ['e', 'ce#d'],     // e references d — cycle!
+        ['d', 'cd#e'], // d references e for subnodes
+        ['e', 'ce#d'], // e references d — cycle!
       ]),
       entries: new Map([
         ['cd', makeEntry('savedwin', null)],

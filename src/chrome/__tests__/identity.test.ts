@@ -11,8 +11,10 @@ vi.mock('wxt/browser', () => ({
   browser: {
     identity: {
       getAuthToken: (...args: unknown[]) => mockGetAuthToken(...args),
-      removeCachedAuthToken: (...args: unknown[]) => mockRemoveCachedAuthToken(...args),
-      getProfileUserInfo: (...args: unknown[]) => mockGetProfileUserInfo(...args),
+      removeCachedAuthToken: (...args: unknown[]) =>
+        mockRemoveCachedAuthToken(...args),
+      getProfileUserInfo: (...args: unknown[]) =>
+        mockGetProfileUserInfo(...args),
     },
   },
 }));
@@ -53,7 +55,9 @@ describe('removeAuthToken', () => {
   it('removes the cached token', async () => {
     mockRemoveCachedAuthToken.mockResolvedValue(undefined);
     await removeAuthToken('old-token');
-    expect(mockRemoveCachedAuthToken).toHaveBeenCalledWith({ token: 'old-token' });
+    expect(mockRemoveCachedAuthToken).toHaveBeenCalledWith({
+      token: 'old-token',
+    });
   });
 
   it('throws ChromeApiError on failure', async () => {

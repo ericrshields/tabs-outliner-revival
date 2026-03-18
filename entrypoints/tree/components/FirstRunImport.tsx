@@ -1,5 +1,9 @@
 import { useRef, useState, useCallback } from 'react';
-import type { DragEvent as ReactDragEvent, ChangeEvent, MouseEvent } from 'react';
+import type {
+  DragEvent as ReactDragEvent,
+  ChangeEvent,
+  MouseEvent,
+} from 'react';
 import type { ImportResultState } from '@/view/hooks/use-tree-data';
 import { extractTreeFromDrag, readFileAsText } from './drag-import';
 
@@ -9,7 +13,11 @@ export interface FirstRunImportProps {
   importResult: ImportResultState | null;
 }
 
-export function FirstRunImport({ onImport, onDismiss, importResult }: FirstRunImportProps) {
+export function FirstRunImport({
+  onImport,
+  onDismiss,
+  importResult,
+}: FirstRunImportProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isReading, setIsReading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -65,10 +73,7 @@ export function FirstRunImport({ onImport, onDismiss, importResult }: FirstRunIm
     [onImport, handleFileRead],
   );
 
-  const dropZoneClass = [
-    'import-drop-zone',
-    isDragOver ? 'drag-over' : '',
-  ]
+  const dropZoneClass = ['import-drop-zone', isDragOver ? 'drag-over' : '']
     .filter(Boolean)
     .join(' ');
 
@@ -95,8 +100,8 @@ export function FirstRunImport({ onImport, onDismiss, importResult }: FirstRunIm
       <div className="first-run-import" onClick={(e) => e.stopPropagation()}>
         <h2>Welcome to Tabs Outliner Revival</h2>
         <p>
-          Import your tree from the original Tabs Outliner by dragging it
-          here, or choose a <code>.tree</code> backup file.
+          Import your tree from the original Tabs Outliner by dragging it here,
+          or choose a <code>.tree</code> backup file.
         </p>
 
         <div
@@ -109,8 +114,8 @@ export function FirstRunImport({ onImport, onDismiss, importResult }: FirstRunIm
             Drag your tree here from Tabs Outliner
           </p>
           <p className="drop-zone-subtext">
-            Use "Expand All" in the old extension first — collapsed
-            subtrees are not included.
+            Use "Expand All" in the old extension first — collapsed subtrees are
+            not included.
           </p>
           <p className="drop-zone-subtext">
             Or drop a <code>.tree</code> backup file for a complete import.

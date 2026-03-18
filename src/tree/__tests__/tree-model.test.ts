@@ -1,13 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TreeModel } from '../tree-model';
-import { TreeNode } from '../tree-node';
 import { SessionTreeNode } from '../nodes/session-node';
 import { SavedTabTreeNode } from '../nodes/saved-tab-node';
 import { TabTreeNode } from '../nodes/tab-node';
 import { WindowTreeNode } from '../nodes/window-node';
 import { SavedWindowTreeNode } from '../nodes/saved-window-node';
 import { GroupTreeNode } from '../nodes/group-node';
-import { TextNoteTreeNode } from '../nodes/text-note-node';
 import { NodeTypesEnum } from '@/types/enums';
 import type { HierarchyJSO } from '@/types/serialized';
 import type { MvcId } from '@/types/brands';
@@ -15,10 +13,25 @@ import type { TreeMutationResult } from '../types';
 import { resetMvcIdCounter } from '../mvc-id';
 
 function createTestTree(): TreeModel {
-  const session = new SessionTreeNode({ treeId: 't', nextDId: 1, nonDumpedDId: 1 });
+  const session = new SessionTreeNode({
+    treeId: 't',
+    nextDId: 1,
+    nonDumpedDId: 1,
+  });
   const win = new WindowTreeNode({ id: 1, type: 'normal', focused: true });
-  const tab1 = new TabTreeNode({ id: 101, windowId: 1, url: 'https://a.com', title: 'A', active: true });
-  const tab2 = new TabTreeNode({ id: 102, windowId: 1, url: 'https://b.com', title: 'B' });
+  const tab1 = new TabTreeNode({
+    id: 101,
+    windowId: 1,
+    url: 'https://a.com',
+    title: 'A',
+    active: true,
+  });
+  const tab2 = new TabTreeNode({
+    id: 102,
+    windowId: 1,
+    url: 'https://b.com',
+    title: 'B',
+  });
   const savedWin = new SavedWindowTreeNode({ id: 2 });
   const savedTab = new SavedTabTreeNode({ url: 'https://c.com', title: 'C' });
 
@@ -109,7 +122,10 @@ describe('TreeModel', () => {
   describe('insertSubnode', () => {
     it('adds node and indexes it', () => {
       const model = createTestTree();
-      const newTab = new SavedTabTreeNode({ url: 'https://new.com', title: 'New' });
+      const newTab = new SavedTabTreeNode({
+        url: 'https://new.com',
+        title: 'New',
+      });
       model.insertSubnode(model.root, 0, newTab);
 
       expect(model.findByMvcId(newTab.idMVC)).toBe(newTab);
@@ -325,9 +341,7 @@ describe('TreeModel', () => {
         s: [
           {
             n: { type: 'savedwin', data: { id: 1 } },
-            s: [
-              { n: { data: { url: 'https://a.com', title: 'A' } } },
-            ],
+            s: [{ n: { data: { url: 'https://a.com', title: 'A' } } }],
           },
         ],
       };

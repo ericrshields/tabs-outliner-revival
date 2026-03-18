@@ -12,7 +12,10 @@ import { resetMvcIdCounter } from '@/tree/mvc-id';
 import { NodeTypesEnum } from '@/types/enums';
 import type { TabData } from '@/types/node-data';
 import type { ActiveSession } from '../active-session';
-import type { ViewToBackgroundMessage, Msg_InitTreeView } from '@/types/messages';
+import type {
+  ViewToBackgroundMessage,
+  Msg_InitTreeView,
+} from '@/types/messages';
 
 vi.mock('@/chrome/tabs', () => ({
   focusTab: vi.fn().mockResolvedValue(undefined),
@@ -72,9 +75,17 @@ function createMockSession(model: TreeModel): ActiveSession {
         instanceId: 'test-456',
       } as unknown as Msg_InitTreeView;
     }),
-    importTree: vi.fn().mockResolvedValue({ success: false, nodeCount: 0, error: 'not configured' }),
-    exportTree: vi.fn().mockReturnValue({ success: false, error: 'not configured' }),
-    exportTreeHtml: vi.fn().mockReturnValue({ success: false, error: 'not configured' }),
+    importTree: vi.fn().mockResolvedValue({
+      success: false,
+      nodeCount: 0,
+      error: 'not configured',
+    }),
+    exportTree: vi
+      .fn()
+      .mockReturnValue({ success: false, error: 'not configured' }),
+    exportTreeHtml: vi
+      .fn()
+      .mockReturnValue({ success: false, error: 'not configured' }),
     dispose: vi.fn(),
   } as unknown as ActiveSession;
 }
@@ -193,7 +204,10 @@ describe('handleViewMessage()', () => {
       session.viewBridge.addPort(viewPort);
 
       handleViewMessage(
-        { request: 'request2bkg_activateNode', targetNodeIdMVC: savedTab.idMVC },
+        {
+          request: 'request2bkg_activateNode',
+          targetNodeIdMVC: savedTab.idMVC,
+        },
         port,
         session,
         session.viewBridge,
@@ -212,11 +226,12 @@ describe('handleViewMessage()', () => {
       expect(session.scheduleSave).toHaveBeenCalled();
 
       // Verify onNodeReplaced broadcast with parent updates
-      const broadcasts = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock.calls.map(
-        (c) => c[0] as Record<string, unknown>,
-      );
+      const broadcasts = (
+        viewPort.postMessage as ReturnType<typeof vi.fn>
+      ).mock.calls.map((c) => c[0] as Record<string, unknown>);
       const replaceBroadcast = broadcasts.find(
-        (m) => m.command === 'msg2view_notifyObserver' &&
+        (m) =>
+          m.command === 'msg2view_notifyObserver' &&
           Array.isArray(m.parameters) &&
           (m.parameters as string[]).includes('onNodeReplaced'),
       );
@@ -247,7 +262,10 @@ describe('handleViewMessage()', () => {
       const port = createMockPort();
 
       handleViewMessage(
-        { request: 'request2bkg_activateNode', targetNodeIdMVC: savedTab.idMVC },
+        {
+          request: 'request2bkg_activateNode',
+          targetNodeIdMVC: savedTab.idMVC,
+        },
         port,
         session,
         session.viewBridge,
@@ -297,7 +315,10 @@ describe('handleViewMessage()', () => {
       model.insertAsLastChild(win, duplicate);
 
       handleViewMessage(
-        { request: 'request2bkg_activateNode', targetNodeIdMVC: savedTab.idMVC },
+        {
+          request: 'request2bkg_activateNode',
+          targetNodeIdMVC: savedTab.idMVC,
+        },
         port,
         session,
         session.viewBridge,
@@ -313,11 +334,12 @@ describe('handleViewMessage()', () => {
       expect(win.subnodes[0].type).toBe(NodeTypesEnum.TAB);
 
       // Verify onNodeRemoved was broadcast for the duplicate
-      const broadcasts = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock.calls.map(
-        (c) => c[0] as Record<string, unknown>,
-      );
+      const broadcasts = (
+        viewPort.postMessage as ReturnType<typeof vi.fn>
+      ).mock.calls.map((c) => c[0] as Record<string, unknown>);
       const removeBroadcast = broadcasts.find(
-        (m) => m.command === 'msg2view_notifyObserver' &&
+        (m) =>
+          m.command === 'msg2view_notifyObserver' &&
           Array.isArray(m.parameters) &&
           (m.parameters as string[]).includes('onNodeRemoved'),
       );
@@ -335,7 +357,10 @@ describe('handleViewMessage()', () => {
       const port = createMockPort();
 
       handleViewMessage(
-        { request: 'request2bkg_activateNode', targetNodeIdMVC: savedTab.idMVC },
+        {
+          request: 'request2bkg_activateNode',
+          targetNodeIdMVC: savedTab.idMVC,
+        },
         port,
         session,
         session.viewBridge,
@@ -368,7 +393,10 @@ describe('handleViewMessage()', () => {
       const port = createMockPort();
 
       handleViewMessage(
-        { request: 'request2bkg_activateNode', targetNodeIdMVC: savedTab.idMVC },
+        {
+          request: 'request2bkg_activateNode',
+          targetNodeIdMVC: savedTab.idMVC,
+        },
         port,
         session,
         session.viewBridge,
@@ -398,7 +426,10 @@ describe('handleViewMessage()', () => {
       const port = createMockPort();
 
       handleViewMessage(
-        { request: 'request2bkg_activateNode', targetNodeIdMVC: savedTab.idMVC },
+        {
+          request: 'request2bkg_activateNode',
+          targetNodeIdMVC: savedTab.idMVC,
+        },
         port,
         session,
         session.viewBridge,
@@ -470,7 +501,10 @@ describe('handleViewMessage()', () => {
       expect(win.colapsed).toBe(false);
 
       handleViewMessage(
-        { request: 'request2bkg_invertCollapsedState', targetNodeIdMVC: win.idMVC },
+        {
+          request: 'request2bkg_invertCollapsedState',
+          targetNodeIdMVC: win.idMVC,
+        },
         port,
         session,
         session.viewBridge,
@@ -505,7 +539,8 @@ describe('handleViewMessage()', () => {
       expect(model.findByMvcId(tabIdMVC)).toBeNull();
       expect(session.scheduleSave).toHaveBeenCalled();
       // Verify broadcast
-      const broadcastMsg = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const broadcastMsg = (viewPort.postMessage as ReturnType<typeof vi.fn>)
+        .mock.calls[0][0];
       expect(broadcastMsg.command).toBe('msg2view_notifyObserver');
       expect(broadcastMsg.parameters).toContain('onNodeRemoved');
     });
@@ -544,9 +579,9 @@ describe('handleViewMessage()', () => {
       expect(root.subnodes.length).toBe(0);
 
       // Verify window removal was broadcast
-      const broadcasts = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock.calls.map(
-        (c) => c[0] as Record<string, unknown>,
-      );
+      const broadcasts = (
+        viewPort.postMessage as ReturnType<typeof vi.fn>
+      ).mock.calls.map((c) => c[0] as Record<string, unknown>);
       const windowRemoved = broadcasts.find(
         (m) =>
           m.command === 'msg2view_notifyObserver' &&
@@ -659,7 +694,8 @@ describe('handleViewMessage()', () => {
         session.viewBridge,
       );
 
-      const msg = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const msg = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
       expect(msg.command).toBe('msg2view_setCursorHere');
       expect(msg.targetNodeIdMVC).toBe(tab.idMVC);
       expect(msg.doNotScrollView).toBe(false);
@@ -683,7 +719,8 @@ describe('handleViewMessage()', () => {
         session.viewBridge,
       );
 
-      const msg = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const msg = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
       expect(msg.command).toBe('msg2view_activateNodeTabEditTextPrompt');
       expect(msg.targetNodeIdMVC).toBe(tab.idMVC);
     });
@@ -706,7 +743,8 @@ describe('handleViewMessage()', () => {
         session.viewBridge,
       );
 
-      const msg = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const msg = (viewPort.postMessage as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
       expect(msg.command).toBe('msg2view_activateNodeWindowEditTextPrompt');
     });
 
@@ -727,7 +765,9 @@ describe('handleViewMessage()', () => {
         session.viewBridge,
       );
 
-      expect(spy).toHaveBeenCalledWith(expect.stringContaining('Rejected unknown action'));
+      expect(spy).toHaveBeenCalledWith(
+        expect.stringContaining('Rejected unknown action'),
+      );
       // Tab should not be affected
       expect(model.findByMvcId(tab.idMVC)).not.toBeNull();
       spy.mockRestore();
@@ -793,7 +833,8 @@ describe('handleViewMessage()', () => {
       });
 
       // Result sent to requesting port
-      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
       expect(resultMsg.command).toBe('msg2view_importResult');
       expect(resultMsg.success).toBe(true);
       expect(resultMsg.nodeCount).toBe(42);
@@ -826,7 +867,8 @@ describe('handleViewMessage()', () => {
         expect(port.postMessage).toHaveBeenCalled();
       });
 
-      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
       expect(resultMsg.success).toBe(false);
       expect(resultMsg.error).toBe('Invalid format');
 
@@ -853,7 +895,8 @@ describe('handleViewMessage()', () => {
       );
 
       expect(session.exportTree).toHaveBeenCalled();
-      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
       expect(resultMsg.command).toBe('msg2view_exportResult');
       expect(resultMsg.success).toBe(true);
       expect(resultMsg.treeJson).toBeTruthy();
@@ -877,7 +920,8 @@ describe('handleViewMessage()', () => {
 
       expect(session.exportTreeHtml).toHaveBeenCalled();
       expect(session.exportTree).not.toHaveBeenCalled();
-      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
       expect(resultMsg.command).toBe('msg2view_exportResult');
       expect(resultMsg.success).toBe(true);
       expect(resultMsg.treeHtml).toBe('<li>Current Session</li>');
@@ -899,7 +943,8 @@ describe('handleViewMessage()', () => {
         session.viewBridge,
       );
 
-      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const resultMsg = (port.postMessage as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
       expect(resultMsg.command).toBe('msg2view_exportResult');
       expect(resultMsg.success).toBe(false);
       expect(resultMsg.error).toBe('Serialization failed');
@@ -914,7 +959,12 @@ describe('handleViewMessage()', () => {
       const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       handleViewMessage(
-        { request: 'request2bkg_performDrop', targetNodeIdMVC: 'x', position: 0, dataTransfer: null },
+        {
+          request: 'request2bkg_performDrop',
+          targetNodeIdMVC: 'x',
+          position: 0,
+          dataTransfer: null,
+        },
         port,
         session,
         session.viewBridge,

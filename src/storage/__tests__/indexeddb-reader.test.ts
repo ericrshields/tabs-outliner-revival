@@ -60,7 +60,10 @@ beforeEach(async () => {
 describe('readLegacyDB', () => {
   it('reads operations data from V34 database', async () => {
     const operations = [
-      { type: DbOperationEnum.NODE_NEWROOT, node: { type: 'session', data: null } },
+      {
+        type: DbOperationEnum.NODE_NEWROOT,
+        node: { type: 'session', data: null },
+      },
       { type: DbOperationEnum.EOF, time: 12345 },
     ];
 
@@ -69,7 +72,9 @@ describe('readLegacyDB', () => {
 
     expect(result).not.toBeNull();
     expect(result).toHaveLength(2);
-    expect((result![0] as Record<string, unknown>).type).toBe(DbOperationEnum.NODE_NEWROOT);
+    expect((result![0] as Record<string, unknown>).type).toBe(
+      DbOperationEnum.NODE_NEWROOT,
+    );
   });
 
   it('returns null for empty database', async () => {
@@ -79,7 +84,10 @@ describe('readLegacyDB', () => {
 
   it('reads V33 database', async () => {
     const operations = [
-      { type: DbOperationEnum.NODE_NEWROOT, node: { type: 'session', data: null } },
+      {
+        type: DbOperationEnum.NODE_NEWROOT,
+        node: { type: 'session', data: null },
+      },
       { type: DbOperationEnum.EOF, time: 99999 },
     ];
 
@@ -102,7 +110,10 @@ describe('readLegacyDB', () => {
 
   it('handles mixed object/array operation formats', async () => {
     const operations = [
-      { type: DbOperationEnum.NODE_NEWROOT, node: { type: 'session', data: null } },
+      {
+        type: DbOperationEnum.NODE_NEWROOT,
+        node: { type: 'session', data: null },
+      },
       [DbOperationEnum.NODE_INSERT, { data: { url: 'test' } }, [0]],
       { type: DbOperationEnum.EOF, time: 12345 },
     ];

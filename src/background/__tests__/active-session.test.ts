@@ -88,7 +88,10 @@ describe('ActiveSession', () => {
 
     it('loads from storage when tree exists', async () => {
       const jso = {
-        n: { type: 'session', data: { treeId: 't1', nextDId: 1, nonDumpedDId: 1 } },
+        n: {
+          type: 'session',
+          data: { treeId: 't1', nextDId: 1, nonDumpedDId: 1 },
+        },
         s: [],
       };
       mockTreeExists.mockResolvedValue(true);
@@ -104,7 +107,10 @@ describe('ActiveSession', () => {
 
     it('attempts migration when no new storage but legacy data exists', async () => {
       const jso = {
-        n: { type: 'session', data: { treeId: 't2', nextDId: 1, nonDumpedDId: 1 } },
+        n: {
+          type: 'session',
+          data: { treeId: 't2', nextDId: 1, nonDumpedDId: 1 },
+        },
         s: [],
       };
       mockTreeExists.mockResolvedValue(false);
@@ -196,12 +202,18 @@ describe('ActiveSession', () => {
       const existingChildCount = session.treeModel.root.subnodes.length;
 
       const jso = {
-        n: { type: 'session', data: { treeId: 'imported', nextDId: 1, nonDumpedDId: 1 } },
+        n: {
+          type: 'session',
+          data: { treeId: 'imported', nextDId: 1, nonDumpedDId: 1 },
+        },
         s: [
-          { n: { type: 'savedwin', data: { id: 1 } }, s: [
-            { n: { data: { url: 'https://a.com', title: 'A' } } },
-            { n: { data: { url: 'https://b.com', title: 'B' } } },
-          ] },
+          {
+            n: { type: 'savedwin', data: { id: 1 } },
+            s: [
+              { n: { data: { url: 'https://a.com', title: 'A' } } },
+              { n: { data: { url: 'https://b.com', title: 'B' } } },
+            ],
+          },
         ],
       };
 
@@ -211,7 +223,9 @@ describe('ActiveSession', () => {
       expect(result.nodeCount).toBe(3); // window + 2 tabs (root is skipped)
       expect(mockSaveTree).toHaveBeenCalled();
       // Imported window appended to existing children
-      expect(session.treeModel.root.subnodes.length).toBe(existingChildCount + 1);
+      expect(session.treeModel.root.subnodes.length).toBe(
+        existingChildCount + 1,
+      );
 
       await session.dispose();
     });
@@ -221,7 +235,13 @@ describe('ActiveSession', () => {
       const existingChildCount = session.treeModel.root.subnodes.length;
 
       const ops = [
-        { type: 2000, node: { type: 'session', data: { treeId: 'ops', nextDId: 1, nonDumpedDId: 1 } } },
+        {
+          type: 2000,
+          node: {
+            type: 'session',
+            data: { treeId: 'ops', nextDId: 1, nonDumpedDId: 1 },
+          },
+        },
         [2001, { data: { url: 'https://a.com' } }, [0]],
         { type: 11111, time: Date.now() },
       ];
@@ -231,7 +251,9 @@ describe('ActiveSession', () => {
       expect(result.success).toBe(true);
       expect(result.nodeCount).toBeGreaterThanOrEqual(1);
       // Imported nodes appended to existing tree
-      expect(session.treeModel.root.subnodes.length).toBeGreaterThan(existingChildCount);
+      expect(session.treeModel.root.subnodes.length).toBeGreaterThan(
+        existingChildCount,
+      );
 
       await session.dispose();
     });
@@ -239,11 +261,19 @@ describe('ActiveSession', () => {
     it('preserves existing tree nodes on import', async () => {
       // Load a session with a pre-existing saved window
       const storedJso = {
-        n: { type: 'session', data: { treeId: 'existing', nextDId: 1, nonDumpedDId: 1 } },
+        n: {
+          type: 'session',
+          data: { treeId: 'existing', nextDId: 1, nonDumpedDId: 1 },
+        },
         s: [
-          { n: { type: 'savedwin', data: {} }, s: [
-            { n: { data: { url: 'https://existing.com', title: 'Existing' } } },
-          ] },
+          {
+            n: { type: 'savedwin', data: {} },
+            s: [
+              {
+                n: { data: { url: 'https://existing.com', title: 'Existing' } },
+              },
+            ],
+          },
         ],
       };
       mockTreeExists.mockResolvedValue(true);
@@ -254,11 +284,19 @@ describe('ActiveSession', () => {
 
       // Import another window
       const importJso = {
-        n: { type: 'session', data: { treeId: 'imported', nextDId: 1, nonDumpedDId: 1 } },
+        n: {
+          type: 'session',
+          data: { treeId: 'imported', nextDId: 1, nonDumpedDId: 1 },
+        },
         s: [
-          { n: { type: 'savedwin', data: {} }, s: [
-            { n: { data: { url: 'https://imported.com', title: 'Imported' } } },
-          ] },
+          {
+            n: { type: 'savedwin', data: {} },
+            s: [
+              {
+                n: { data: { url: 'https://imported.com', title: 'Imported' } },
+              },
+            ],
+          },
         ],
       };
       const result = await session.importTree(JSON.stringify(importJso));
@@ -275,18 +313,26 @@ describe('ActiveSession', () => {
       const session = await ActiveSession.create();
 
       const makeImport = (url: string) => ({
-        n: { type: 'session', data: { treeId: 'x', nextDId: 1, nonDumpedDId: 1 } },
+        n: {
+          type: 'session',
+          data: { treeId: 'x', nextDId: 1, nonDumpedDId: 1 },
+        },
         s: [
-          { n: { type: 'savedwin', data: {} }, s: [
-            { n: { data: { url, title: url } } },
-          ] },
+          {
+            n: { type: 'savedwin', data: {} },
+            s: [{ n: { data: { url, title: url } } }],
+          },
         ],
       });
 
-      const result1 = await session.importTree(JSON.stringify(makeImport('https://first.com')));
+      const result1 = await session.importTree(
+        JSON.stringify(makeImport('https://first.com')),
+      );
       expect(result1.success).toBe(true);
 
-      const result2 = await session.importTree(JSON.stringify(makeImport('https://second.com')));
+      const result2 = await session.importTree(
+        JSON.stringify(makeImport('https://second.com')),
+      );
       expect(result2.success).toBe(true);
 
       // Both imported windows should be present
@@ -310,7 +356,9 @@ describe('ActiveSession', () => {
     it('returns error for unrecognized format', async () => {
       const session = await ActiveSession.create();
 
-      const result = await session.importTree(JSON.stringify({ random: 'object' }));
+      const result = await session.importTree(
+        JSON.stringify({ random: 'object' }),
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Unrecognized format');

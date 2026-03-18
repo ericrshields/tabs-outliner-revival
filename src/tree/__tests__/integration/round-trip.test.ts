@@ -26,7 +26,10 @@ describe('Round-trip: HierarchyJSO → TreeModel → HierarchyJSO', () => {
 
   it('round-trips a simple session with saved tabs', () => {
     const jso: HierarchyJSO = {
-      n: { type: 'session', data: { treeId: 'test', nextDId: 1, nonDumpedDId: 1 } },
+      n: {
+        type: 'session',
+        data: { treeId: 'test', nextDId: 1, nonDumpedDId: 1 },
+      },
       s: [
         {
           n: { type: 'savedwin', data: { id: 1 } },
@@ -46,20 +49,48 @@ describe('Round-trip: HierarchyJSO → TreeModel → HierarchyJSO', () => {
 
   it('round-trips all 11 node types', () => {
     const jso: HierarchyJSO = {
-      n: { type: 'session', data: { treeId: 'test', nextDId: 1, nonDumpedDId: 1 } },
+      n: {
+        type: 'session',
+        data: { treeId: 'test', nextDId: 1, nonDumpedDId: 1 },
+      },
       s: [
         {
           n: { type: 'win', data: { id: 1, type: 'normal', focused: true } },
           s: [
-            { n: { type: 'tab', data: { id: 101, url: 'https://a.com', title: 'A', active: true } } },
-            { n: { type: 'attachwaitingtab', data: { id: 102, url: 'https://b.com', title: 'B', active: true } } },
+            {
+              n: {
+                type: 'tab',
+                data: {
+                  id: 101,
+                  url: 'https://a.com',
+                  title: 'A',
+                  active: true,
+                },
+              },
+            },
+            {
+              n: {
+                type: 'attachwaitingtab',
+                data: {
+                  id: 102,
+                  url: 'https://b.com',
+                  title: 'B',
+                  active: true,
+                },
+              },
+            },
           ],
         },
         {
           n: { type: 'savedwin', data: { id: 2 } },
           s: [
             { n: { data: { url: 'https://c.com', title: 'C' } } },
-            { n: { type: 'waitingtab', data: { url: 'https://d.com', title: 'D' } } },
+            {
+              n: {
+                type: 'waitingtab',
+                data: { url: 'https://d.com', title: 'D' },
+              },
+            },
           ],
         },
         { n: { type: 'waitingwin', data: {} } },
@@ -80,7 +111,10 @@ describe('Round-trip: HierarchyJSO → TreeModel → HierarchyJSO', () => {
 
   it('round-trips marks and collapsed state', () => {
     const jso: HierarchyJSO = {
-      n: { type: 'session', data: { treeId: 'test', nextDId: 1, nonDumpedDId: 1 } },
+      n: {
+        type: 'session',
+        data: { treeId: 'test', nextDId: 1, nonDumpedDId: 1 },
+      },
       s: [
         {
           n: {
@@ -143,9 +177,7 @@ describe('Round-trip: HierarchyJSO → TreeModel → HierarchyJSO', () => {
             dId: 20,
             cdId: 21,
           },
-          s: [
-            { n: { data: { url: 'https://a.com' }, dId: 30, cdId: 31 } },
-          ],
+          s: [{ n: { data: { url: 'https://a.com' }, dId: 30, cdId: 31 } }],
         },
       ],
     };
@@ -169,7 +201,10 @@ describe('Round-trip: HierarchyJSO → TreeModel → HierarchyJSO', () => {
 
   it('normalizes legacy mangled marks during round-trip', () => {
     const inputJso: HierarchyJSO = {
-      n: { type: 'session', data: { treeId: 't', nextDId: 1, nonDumpedDId: 1 } },
+      n: {
+        type: 'session',
+        data: { treeId: 't', nextDId: 1, nonDumpedDId: 1 },
+      },
       s: [
         {
           n: {

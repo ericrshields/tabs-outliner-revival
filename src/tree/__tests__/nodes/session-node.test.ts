@@ -26,26 +26,42 @@ describe('SessionTreeNode', () => {
   });
 
   it('accepts partial persistent data', () => {
-    const node = new SessionTreeNode({ treeId: 'test-tree', nextDId: 42, nonDumpedDId: 10 });
+    const node = new SessionTreeNode({
+      treeId: 'test-tree',
+      nextDId: 42,
+      nonDumpedDId: 10,
+    });
     expect(node.treeId).toBe('test-tree');
     expect(node.nextDId).toBe(42);
   });
 
   it('allocateDId increments counter', () => {
-    const node = new SessionTreeNode({ treeId: 't', nextDId: 5, nonDumpedDId: 1 });
+    const node = new SessionTreeNode({
+      treeId: 't',
+      nextDId: 5,
+      nonDumpedDId: 1,
+    });
     expect(node.allocateDId()).toBe(5);
     expect(node.allocateDId()).toBe(6);
     expect(node.nextDId).toBe(7);
   });
 
   it('peekNextDId does not advance', () => {
-    const node = new SessionTreeNode({ treeId: 't', nextDId: 10, nonDumpedDId: 1 });
+    const node = new SessionTreeNode({
+      treeId: 't',
+      nextDId: 10,
+      nonDumpedDId: 1,
+    });
     expect(node.peekNextDId()).toBe(10);
     expect(node.peekNextDId()).toBe(10);
   });
 
   it('advanceNextDIdTo only advances forward', () => {
-    const node = new SessionTreeNode({ treeId: 't', nextDId: 10, nonDumpedDId: 1 });
+    const node = new SessionTreeNode({
+      treeId: 't',
+      nextDId: 10,
+      nonDumpedDId: 1,
+    });
     node.advanceNextDIdTo(5); // no change
     expect(node.nextDId).toBe(10);
     node.advanceNextDIdTo(20);
@@ -76,7 +92,11 @@ describe('SessionTreeNode', () => {
   });
 
   it('serializes data correctly', () => {
-    const node = new SessionTreeNode({ treeId: 'test', nextDId: 5, nonDumpedDId: 3 });
+    const node = new SessionTreeNode({
+      treeId: 'test',
+      nextDId: 5,
+      nonDumpedDId: 3,
+    });
     const data = node.serializeData();
     expect(data).toEqual({ treeId: 'test', nextDId: 5, nonDumpedDId: 3 });
   });

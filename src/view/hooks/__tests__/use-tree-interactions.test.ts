@@ -33,7 +33,10 @@ function makeOptions(
 
 function makeMockActions() {
   return {
-    actions: { close: { id: 'close' as HoveringMenuActionId } } as Record<string, { id: HoveringMenuActionId }>,
+    actions: { close: { id: 'close' as HoveringMenuActionId } } as Record<
+      string,
+      { id: HoveringMenuActionId }
+    >,
     idMVC: 'win1',
   };
 }
@@ -73,9 +76,13 @@ describe('useTreeInteractions', () => {
   describe('handleAction', () => {
     it('posts executeAction message', () => {
       const postMessage = vi.fn();
-      const { result } = renderHook(() => useTreeInteractions(makeOptions({ postMessage })));
+      const { result } = renderHook(() =>
+        useTreeInteractions(makeOptions({ postMessage })),
+      );
 
-      act(() => result.current.handleAction('win1', 'close' as HoveringMenuActionId));
+      act(() =>
+        result.current.handleAction('win1', 'close' as HoveringMenuActionId),
+      );
 
       expect(executeAction).toHaveBeenCalledWith('win1', 'close');
       expect(postMessage).toHaveBeenCalledWith(
@@ -85,14 +92,18 @@ describe('useTreeInteractions', () => {
 
     it('clears hoverState after action', () => {
       const postMessage = vi.fn();
-      const { result } = renderHook(() => useTreeInteractions(makeOptions({ postMessage })));
+      const { result } = renderHook(() =>
+        useTreeInteractions(makeOptions({ postMessage })),
+      );
       const actions = makeMockActions();
       const rect = new DOMRect(0, 0, 100, 24);
 
       act(() => result.current.ctxValue.onRowEnter('win1', actions, rect));
       expect(result.current.hoverState).not.toBeNull();
 
-      act(() => result.current.handleAction('win1', 'close' as HoveringMenuActionId));
+      act(() =>
+        result.current.handleAction('win1', 'close' as HoveringMenuActionId),
+      );
       expect(result.current.hoverState).toBeNull();
     });
   });
@@ -103,7 +114,9 @@ describe('useTreeInteractions', () => {
       const addSpy = vi.spyOn(container, 'addEventListener');
       const ref = { current: container } as MutableRef<HTMLDivElement | null>;
 
-      renderHook(() => useTreeInteractions(makeOptions({ treeContainerRef: ref })));
+      renderHook(() =>
+        useTreeInteractions(makeOptions({ treeContainerRef: ref })),
+      );
 
       expect(addSpy).toHaveBeenCalledWith('scroll', expect.any(Function), true);
     });
@@ -118,7 +131,11 @@ describe('useTreeInteractions', () => {
       );
       unmount();
 
-      expect(removeSpy).toHaveBeenCalledWith('scroll', expect.any(Function), true);
+      expect(removeSpy).toHaveBeenCalledWith(
+        'scroll',
+        expect.any(Function),
+        true,
+      );
     });
   });
 

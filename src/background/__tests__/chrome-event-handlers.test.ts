@@ -25,7 +25,8 @@ function mockEventSubscription() {
     mockEventCleanups.push(cleanup);
     return cleanup;
   });
-  (subscribe as unknown as { _listeners: typeof listeners })._listeners = listeners;
+  (subscribe as unknown as { _listeners: typeof listeners })._listeners =
+    listeners;
   return subscribe;
 }
 
@@ -57,8 +58,6 @@ vi.mock('@/chrome/windows', () => ({
   removeWindow: vi.fn().mockResolvedValue(undefined),
 }));
 
-
-
 import {
   onTabCreated,
   onTabRemoved,
@@ -75,11 +74,17 @@ import {
   onWindowFocusChanged,
 } from '@/chrome/windows';
 
-function getListeners(mockFn: ReturnType<typeof vi.fn>): Array<(...args: unknown[]) => void> {
-  return (mockFn as unknown as { _listeners: Array<(...args: unknown[]) => void> })._listeners;
+function getListeners(
+  mockFn: ReturnType<typeof vi.fn>,
+): Array<(...args: unknown[]) => void> {
+  return (
+    mockFn as unknown as { _listeners: Array<(...args: unknown[]) => void> }
+  )._listeners;
 }
 
-function getLastListener(mockFn: ReturnType<typeof vi.fn>): (...args: unknown[]) => void {
+function getLastListener(
+  mockFn: ReturnType<typeof vi.fn>,
+): (...args: unknown[]) => void {
   const listeners = getListeners(mockFn);
   return listeners[listeners.length - 1];
 }
@@ -128,8 +133,20 @@ function buildTreeWithTwoWindows(): {
   const root = new SessionTreeNode();
   const win1 = new WindowTreeNode({ id: 1, type: 'normal', focused: true });
   const win2 = new WindowTreeNode({ id: 2, type: 'normal', focused: false });
-  const tab1 = new TabTreeNode({ id: 10, windowId: 1, url: 'https://a.com', title: 'A', active: true });
-  const tab2 = new TabTreeNode({ id: 20, windowId: 2, url: 'https://b.com', title: 'B', active: true });
+  const tab1 = new TabTreeNode({
+    id: 10,
+    windowId: 1,
+    url: 'https://a.com',
+    title: 'A',
+    active: true,
+  });
+  const tab2 = new TabTreeNode({
+    id: 20,
+    windowId: 2,
+    url: 'https://b.com',
+    title: 'B',
+    active: true,
+  });
   root.insertSubnode(0, win1);
   root.insertSubnode(1, win2);
   win1.insertSubnode(0, tab1);
@@ -177,9 +194,12 @@ describe('onTabCreated handler', () => {
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onTabCreated as ReturnType<typeof vi.fn>)(
-      { id: 20, windowId: 1, url: 'https://new.com', title: 'New' },
-    );
+    getLastListener(onTabCreated as ReturnType<typeof vi.fn>)({
+      id: 20,
+      windowId: 1,
+      url: 'https://new.com',
+      title: 'New',
+    });
 
     const newTab = model.findActiveTab(20);
     expect(newTab).not.toBeNull();
@@ -192,36 +212,44 @@ describe('onTabCreated handler', () => {
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onTabCreated as ReturnType<typeof vi.fn>)(
-      { id: 20, url: 'https://new.com', title: 'New' },
-    );
+    getLastListener(onTabCreated as ReturnType<typeof vi.fn>)({
+      id: 20,
+      url: 'https://new.com',
+      title: 'New',
+    });
 
     expect(model.findActiveTab(20)).toBeNull();
   });
 
-  it('skips extension\'s own tabs', () => {
+  it("skips extension's own tabs", () => {
     const { model } = buildTreeWithWindow();
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
     const extUrl = fakeBrowser.runtime.getURL('/tree.html');
-    getLastListener(onTabCreated as ReturnType<typeof vi.fn>)(
-      { id: 30, windowId: 1, url: extUrl, title: 'Tree' },
-    );
+    getLastListener(onTabCreated as ReturnType<typeof vi.fn>)({
+      id: 30,
+      windowId: 1,
+      url: extUrl,
+      title: 'Tree',
+    });
 
     expect(model.findActiveTab(30)).toBeNull();
     expect(session.scheduleSave).not.toHaveBeenCalled();
   });
 
   it('inserts tab even if URL matches an existing saved tab (dedup is handled by message-handlers)', () => {
-    const { model, win } = buildTreeWithWindow();
+    const { model } = buildTreeWithWindow();
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
     // onTabCreated always inserts — handleActivateNode cleans up duplicates
-    getLastListener(onTabCreated as ReturnType<typeof vi.fn>)(
-      { id: 50, windowId: 1, url: 'https://new.com', title: 'New' },
-    );
+    getLastListener(onTabCreated as ReturnType<typeof vi.fn>)({
+      id: 50,
+      windowId: 1,
+      url: 'https://new.com',
+      title: 'New',
+    });
 
     expect(model.findActiveTab(50)).not.toBeNull();
     expect(session.scheduleSave).toHaveBeenCalled();
@@ -235,9 +263,10 @@ describe('onTabRemoved handler', () => {
     registerChromeEventHandlers(session, session.viewBridge);
 
     expect(win.subnodes.length).toBe(1);
-    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(
-      10, { windowId: 1, isWindowClosing: false },
-    );
+    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(10, {
+      windowId: 1,
+      isWindowClosing: false,
+    });
 
     expect(model.findActiveTab(10)).toBeNull();
     expect(session.closeTracker.size).toBe(1);
@@ -250,9 +279,10 @@ describe('onTabRemoved handler', () => {
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(
-      10, { windowId: 1, isWindowClosing: false },
-    );
+    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(10, {
+      windowId: 1,
+      isWindowClosing: false,
+    });
 
     let savedNode: TreeNode | null = null;
     model.forEach((n) => {
@@ -270,9 +300,10 @@ describe('onTabRemoved handler', () => {
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(
-      10, { windowId: 1, isWindowClosing: false },
-    );
+    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(10, {
+      windowId: 1,
+      isWindowClosing: false,
+    });
 
     let savedNode: TreeNode | null = null;
     model.forEach((n) => {
@@ -289,9 +320,10 @@ describe('onTabRemoved handler', () => {
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(
-      10, { windowId: 1, isWindowClosing: true },
-    );
+    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(10, {
+      windowId: 1,
+      isWindowClosing: true,
+    });
 
     // Tab should still be in the tree — window handler owns conversion
     expect(win.subnodes.length).toBe(1);
@@ -306,21 +338,32 @@ describe('onTabRemoved handler', () => {
     const mockPort = {
       postMessage: vi.fn(),
       disconnect: vi.fn(),
-      onDisconnect: { addListener: vi.fn(), removeListener: vi.fn(), hasListener: vi.fn(), hasListeners: vi.fn() },
-      onMessage: { addListener: vi.fn(), removeListener: vi.fn(), hasListener: vi.fn(), hasListeners: vi.fn() },
+      onDisconnect: {
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        hasListener: vi.fn(),
+        hasListeners: vi.fn(),
+      },
+      onMessage: {
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        hasListener: vi.fn(),
+        hasListeners: vi.fn(),
+      },
       name: 'tree-view',
     } as unknown as Browser.runtime.Port;
     session.viewBridge.addPort(mockPort);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(
-      10, { windowId: 1, isWindowClosing: false },
-    );
+    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(10, {
+      windowId: 1,
+      isWindowClosing: false,
+    });
 
     // Should NOT have broadcast onNodeRemoved (it was replaced, not removed)
-    const messages = (mockPort.postMessage as ReturnType<typeof vi.fn>).mock.calls.map(
-      (c) => (c[0] as { parameters?: unknown[] }).parameters,
-    );
+    const messages = (
+      mockPort.postMessage as ReturnType<typeof vi.fn>
+    ).mock.calls.map((c) => (c[0] as { parameters?: unknown[] }).parameters);
     const hasRemoved = messages.some(
       (p) => Array.isArray(p) && p.includes('onNodeRemoved'),
     );
@@ -337,7 +380,11 @@ describe('onTabRemoved handler', () => {
     root.insertSubnode(0, win);
     win.insertSubnode(0, tab);
     // Add an active tab so findActiveTab works for the removal trigger
-    const activeWin = new WindowTreeNode({ id: 1, type: 'normal', focused: true });
+    const activeWin = new WindowTreeNode({
+      id: 1,
+      type: 'normal',
+      focused: true,
+    });
     const activeTab = new TabTreeNode({
       id: 10,
       windowId: 1,
@@ -353,8 +400,18 @@ describe('onTabRemoved handler', () => {
     const mockPort = {
       postMessage: vi.fn(),
       disconnect: vi.fn(),
-      onDisconnect: { addListener: vi.fn(), removeListener: vi.fn(), hasListener: vi.fn(), hasListeners: vi.fn() },
-      onMessage: { addListener: vi.fn(), removeListener: vi.fn(), hasListener: vi.fn(), hasListeners: vi.fn() },
+      onDisconnect: {
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        hasListener: vi.fn(),
+        hasListeners: vi.fn(),
+      },
+      onMessage: {
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        hasListener: vi.fn(),
+        hasListeners: vi.fn(),
+      },
       name: 'tree-view',
     } as unknown as Browser.runtime.Port;
     session.viewBridge.addPort(mockPort);
@@ -363,18 +420,19 @@ describe('onTabRemoved handler', () => {
     const activeWinIdMVC = activeWin.idMVC;
 
     // Remove the active tab (unmarked, no children) — parent is activeWin
-    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(
-      10, { windowId: 1, isWindowClosing: false },
-    );
+    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(10, {
+      windowId: 1,
+      isWindowClosing: false,
+    });
 
     // Active window should be auto-removed since it's now empty and unmarked
     expect(root.subnodes.length).toBe(1);
     expect(root.subnodes[0]).toBe(win); // Only the saved window remains
 
     // Verify window removal was broadcast
-    const broadcasts = (mockPort.postMessage as ReturnType<typeof vi.fn>).mock.calls.map(
-      (c) => c[0] as Record<string, unknown>,
-    );
+    const broadcasts = (
+      mockPort.postMessage as ReturnType<typeof vi.fn>
+    ).mock.calls.map((c) => c[0] as Record<string, unknown>);
     const windowRemoved = broadcasts.find(
       (m) =>
         m.command === 'msg2view_notifyObserver' &&
@@ -402,9 +460,10 @@ describe('onTabRemoved handler', () => {
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(
-      10, { windowId: 1, isWindowClosing: false },
-    );
+    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(10, {
+      windowId: 1,
+      isWindowClosing: false,
+    });
 
     // Window should still exist — it has marks
     expect(root.subnodes.length).toBe(1);
@@ -435,9 +494,10 @@ describe('onTabRemoved handler', () => {
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(
-      10, { windowId: 1, isWindowClosing: false },
-    );
+    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(10, {
+      windowId: 1,
+      isWindowClosing: false,
+    });
 
     // Window should still exist — it has tab2
     expect(root.subnodes.length).toBe(1);
@@ -447,13 +507,14 @@ describe('onTabRemoved handler', () => {
 
 describe('onTabUpdated handler', () => {
   it('removes tab when updated to extension URL', () => {
-    const { model, win } = buildTreeWithWindow();
+    const { model } = buildTreeWithWindow();
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
     const extUrl = fakeBrowser.runtime.getURL('/tree.html');
     getLastListener(onTabUpdated as ReturnType<typeof vi.fn>)(
-      10, { url: extUrl },
+      10,
+      { url: extUrl },
       { id: 10, windowId: 1, url: extUrl, title: 'Tree' },
     );
 
@@ -467,7 +528,8 @@ describe('onTabUpdated handler', () => {
     registerChromeEventHandlers(session, session.viewBridge);
 
     getLastListener(onTabUpdated as ReturnType<typeof vi.fn>)(
-      10, { title: 'Updated' },
+      10,
+      { title: 'Updated' },
       { id: 10, windowId: 1, url: 'https://updated.com', title: 'Updated' },
     );
 
@@ -482,8 +544,20 @@ describe('onTabMoved handler', () => {
   it('reorders tab within its window', () => {
     const root = new SessionTreeNode();
     const win = new WindowTreeNode({ id: 1, type: 'normal', focused: true });
-    const tab1 = new TabTreeNode({ id: 10, windowId: 1, url: 'https://a.com', title: 'A', active: true });
-    const tab2 = new TabTreeNode({ id: 11, windowId: 1, url: 'https://b.com', title: 'B', active: false });
+    const tab1 = new TabTreeNode({
+      id: 10,
+      windowId: 1,
+      url: 'https://a.com',
+      title: 'A',
+      active: true,
+    });
+    const tab2 = new TabTreeNode({
+      id: 11,
+      windowId: 1,
+      url: 'https://b.com',
+      title: 'B',
+      active: false,
+    });
     root.insertSubnode(0, win);
     win.insertSubnode(0, tab1);
     win.insertSubnode(1, tab2);
@@ -492,9 +566,11 @@ describe('onTabMoved handler', () => {
     registerChromeEventHandlers(session, session.viewBridge);
 
     // Move tab1 from index 0 to index 1
-    getLastListener(onTabMoved as ReturnType<typeof vi.fn>)(
-      10, { windowId: 1, fromIndex: 0, toIndex: 1 },
-    );
+    getLastListener(onTabMoved as ReturnType<typeof vi.fn>)(10, {
+      windowId: 1,
+      fromIndex: 0,
+      toIndex: 1,
+    });
 
     expect(win.subnodes[0].type).toBe(NodeTypesEnum.TAB);
     expect((win.subnodes[0].data as TabData).id).toBe(11);
@@ -510,9 +586,10 @@ describe('onTabAttached handler', () => {
     registerChromeEventHandlers(session, session.viewBridge);
 
     // Move tab 10 from window 1 to window 2
-    getLastListener(onTabAttached as ReturnType<typeof vi.fn>)(
-      10, { newWindowId: 2, newPosition: 1 },
-    );
+    getLastListener(onTabAttached as ReturnType<typeof vi.fn>)(10, {
+      newWindowId: 2,
+      newPosition: 1,
+    });
 
     expect(win1.subnodes.length).toBe(0);
     expect(win2.subnodes.length).toBe(2);
@@ -525,8 +602,20 @@ describe('onTabActivated handler', () => {
   it('updates active state on tabs in window', () => {
     const root = new SessionTreeNode();
     const win = new WindowTreeNode({ id: 1, type: 'normal', focused: true });
-    const tab1 = new TabTreeNode({ id: 10, windowId: 1, url: 'https://a.com', title: 'A', active: true });
-    const tab2 = new TabTreeNode({ id: 11, windowId: 1, url: 'https://b.com', title: 'B', active: false });
+    const tab1 = new TabTreeNode({
+      id: 10,
+      windowId: 1,
+      url: 'https://a.com',
+      title: 'A',
+      active: true,
+    });
+    const tab2 = new TabTreeNode({
+      id: 11,
+      windowId: 1,
+      url: 'https://b.com',
+      title: 'B',
+      active: false,
+    });
     root.insertSubnode(0, win);
     win.insertSubnode(0, tab1);
     win.insertSubnode(1, tab2);
@@ -534,9 +623,10 @@ describe('onTabActivated handler', () => {
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onTabActivated as ReturnType<typeof vi.fn>)(
-      { tabId: 11, windowId: 1 },
-    );
+    getLastListener(onTabActivated as ReturnType<typeof vi.fn>)({
+      tabId: 11,
+      windowId: 1,
+    });
 
     expect((model.findActiveTab(10)!.data as TabData).active).toBe(false);
     expect((model.findActiveTab(11)!.data as TabData).active).toBe(true);
@@ -565,7 +655,9 @@ describe('onTabReplaced handler', () => {
     // Old ID gone, new ID indexed
     expect(model.findActiveTab(10)).toBeNull();
     expect(model.findActiveTab(99)).not.toBeNull();
-    expect((model.findActiveTab(99)!.data as TabData).url).toBe('https://replaced.com');
+    expect((model.findActiveTab(99)!.data as TabData).url).toBe(
+      'https://replaced.com',
+    );
     expect(session.scheduleSave).toHaveBeenCalled();
   });
 
@@ -610,9 +702,11 @@ describe('onWindowCreated handler', () => {
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)(
-      { id: 5, type: 'normal', focused: false },
-    );
+    getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
+      id: 5,
+      type: 'normal',
+      focused: false,
+    });
 
     const newWin = model.findActiveWindow(5);
     expect(newWin).not.toBeNull();
@@ -625,9 +719,11 @@ describe('onWindowCreated handler', () => {
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)(
-      { id: 1, type: 'normal', focused: true },
-    );
+    getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
+      id: 1,
+      type: 'normal',
+      focused: true,
+    });
 
     let winCount = 0;
     model.forEach((n) => {
@@ -667,9 +763,10 @@ describe('onWindowRemoved handler', () => {
     registerChromeEventHandlers(session, session.viewBridge);
 
     // Chrome fires onTabRemoved with isWindowClosing=true before onWindowRemoved
-    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(
-      10, { windowId: 1, isWindowClosing: true },
-    );
+    getLastListener(onTabRemoved as ReturnType<typeof vi.fn>)(10, {
+      windowId: 1,
+      isWindowClosing: true,
+    });
     getLastListener(onWindowRemoved as ReturnType<typeof vi.fn>)(1);
 
     // Saved window should still have the saved tab as a child
@@ -701,7 +798,9 @@ describe('onWindowFocusChanged handler', () => {
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    const handler = getLastListener(onWindowFocusChanged as ReturnType<typeof vi.fn>);
+    const handler = getLastListener(
+      onWindowFocusChanged as ReturnType<typeof vi.fn>,
+    );
 
     // Rapid focus changes — only last should apply
     handler(2);

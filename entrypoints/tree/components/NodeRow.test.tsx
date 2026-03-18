@@ -3,7 +3,7 @@ import { render, fireEvent } from '@testing-library/preact';
 import type { NodeApi, NodeRendererProps } from 'react-arborist';
 import type { NodeDTO, StatsBlock } from '@/types/node-dto';
 import type { MvcId } from '@/types/brands';
-import type { HoveringMenuActionId, TitleBackgroundCssClass } from '@/types/node';
+import type { TitleBackgroundCssClass } from '@/types/node';
 import { TreeContext } from './TreeContext';
 import type { TreeContextValue } from './TreeContext';
 import { NodeRow } from './NodeRow';
@@ -235,7 +235,16 @@ describe('NodeRow', () => {
     // Mock getBoundingClientRect
     const treeNode = container.querySelector('.tree-node')!;
     (treeNode as HTMLElement).getBoundingClientRect = () =>
-      ({ top: 10, right: 100, bottom: 34, left: 0, width: 100, height: 24, x: 0, y: 10 } as DOMRect);
+      ({
+        top: 10,
+        right: 100,
+        bottom: 34,
+        left: 0,
+        width: 100,
+        height: 24,
+        x: 0,
+        y: 10,
+      }) as DOMRect;
 
     fireEvent.mouseEnter(treeNode);
     expect(onRowEnter).toHaveBeenCalledWith(

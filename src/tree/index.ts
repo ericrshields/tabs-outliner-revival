@@ -4,7 +4,11 @@ export { TreeNode } from './tree-node';
 export { TreeModel } from './tree-model';
 export { generateMvcId, resetMvcIdCounter } from './mvc-id';
 export { deserializeNode, restoreTree } from './deserialize';
-export { toNodeDTO, computeParentUpdate, computeParentUpdatesToRoot } from './dto';
+export {
+  toNodeDTO,
+  computeParentUpdate,
+  computeParentUpdatesToRoot,
+} from './dto';
 export { CloseTracker } from './close-tracker';
 export type { CloseRecord } from './close-tracker';
 export type {

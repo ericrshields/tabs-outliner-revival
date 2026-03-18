@@ -48,7 +48,11 @@ export async function readLegacyDB(
     };
 
     openRequest.onerror = () => {
-      reject(new Error(`Failed to open ${config.dbName}: ${openRequest.error?.message}`));
+      reject(
+        new Error(
+          `Failed to open ${config.dbName}: ${openRequest.error?.message}`,
+        ),
+      );
     };
 
     openRequest.onblocked = () => {
@@ -101,9 +105,7 @@ export async function readLegacyDB(
  * Uses indexedDB.databases() where available (Chromium 100+),
  * falls back to opening with expected version and checking for stores.
  */
-export async function legacyDbExists(
-  config: LegacyDbConfig,
-): Promise<boolean> {
+export async function legacyDbExists(config: LegacyDbConfig): Promise<boolean> {
   // Modern API: indexedDB.databases() (Chromium 100+)
   if (typeof indexedDB.databases === 'function') {
     const dbs = await indexedDB.databases();

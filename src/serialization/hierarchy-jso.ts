@@ -134,7 +134,9 @@ export function hierarchiesEqual(a: HierarchyJSO, b: HierarchyJSO): boolean {
 export function importTreeFile(json: string): HierarchyJSO {
   const parsed: unknown = JSON.parse(json);
   if (!isValidHierarchyJSO(parsed)) {
-    throw new Error('Invalid .tree file: does not conform to HierarchyJSO shape');
+    throw new Error(
+      'Invalid .tree file: does not conform to HierarchyJSO shape',
+    );
   }
   return parsed;
 }

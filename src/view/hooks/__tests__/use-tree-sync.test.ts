@@ -3,8 +3,11 @@ import { renderHook, act } from '@testing-library/preact';
 import type { MutableRef } from 'preact/hooks';
 import type { TreeApi } from 'react-arborist';
 import type { NodeDTO } from '@/types/node-dto';
-import type { ViewToBackgroundMessage } from '@/types/messages';
-import { makeTree, makeNodeDTO, resetFixtureCounter } from '../../__tests__/fixtures';
+import {
+  makeTree,
+  makeNodeDTO,
+  resetFixtureCounter,
+} from '../../__tests__/fixtures';
 import type { MvcId } from '@/types/brands';
 
 // Mock tree-adapter and tree-actions at module level
@@ -39,7 +42,9 @@ beforeEach(() => {
   resetFixtureCounter();
 });
 
-function makeOptions(overrides: Partial<UseTreeSyncOptions> = {}): UseTreeSyncOptions {
+function makeOptions(
+  overrides: Partial<UseTreeSyncOptions> = {},
+): UseTreeSyncOptions {
   return {
     treeRef: { current: null } as MutableRef<TreeApi<NodeDTO> | null>,
     root: null,
@@ -111,14 +116,19 @@ describe('useTreeSync', () => {
     const { unmount } = renderHook(() => useTreeSync(makeOptions()));
     unmount();
 
-    expect(removeSpy).toHaveBeenCalledWith('beforeunload', expect.any(Function));
+    expect(removeSpy).toHaveBeenCalledWith(
+      'beforeunload',
+      expect.any(Function),
+    );
     removeSpy.mockRestore();
   });
 
   describe('open/close sync', () => {
     it('performs full sync when globalViewId changes', () => {
       const mockTree = makeMockTreeApi();
-      const treeRef = { current: mockTree } as MutableRef<TreeApi<NodeDTO> | null>;
+      const treeRef = {
+        current: mockTree,
+      } as MutableRef<TreeApi<NodeDTO> | null>;
       const root = makeTree();
       mockBuildOpenMap.mockReturnValue({ win1: true, win2: false });
 
@@ -143,7 +153,9 @@ describe('useTreeSync', () => {
 
     it('performs incremental sync for same globalViewId', () => {
       const mockTree = makeMockTreeApi();
-      const treeRef = { current: mockTree } as MutableRef<TreeApi<NodeDTO> | null>;
+      const treeRef = {
+        current: mockTree,
+      } as MutableRef<TreeApi<NodeDTO> | null>;
       const root = makeTree();
       mockBuildOpenMap.mockReturnValue({ win1: true, win2: false });
 
@@ -171,7 +183,9 @@ describe('useTreeSync', () => {
       const treeRef = { current: null } as MutableRef<TreeApi<NodeDTO> | null>;
       const root = makeTree();
 
-      renderHook(() => useTreeSync(makeOptions({ treeRef, root, globalViewId: 1 })));
+      renderHook(() =>
+        useTreeSync(makeOptions({ treeRef, root, globalViewId: 1 })),
+      );
 
       // buildOpenMap should not be called when treeRef is null
       expect(mockBuildOpenMap).not.toHaveBeenCalled();
@@ -181,13 +195,18 @@ describe('useTreeSync', () => {
   describe('onToggle', () => {
     it('posts toggleCollapse message', () => {
       const postMessage = vi.fn();
-      const { result } = renderHook(() => useTreeSync(makeOptions({ postMessage })));
+      const { result } = renderHook(() =>
+        useTreeSync(makeOptions({ postMessage })),
+      );
 
       act(() => result.current.onToggle('win1'));
 
       expect(toggleCollapse).toHaveBeenCalledWith('win1');
       expect(postMessage).toHaveBeenCalledWith(
-        expect.objectContaining({ request: 'request2bkg_invertCollapsedState', targetNodeIdMVC: 'win1' }),
+        expect.objectContaining({
+          request: 'request2bkg_invertCollapsedState',
+          targetNodeIdMVC: 'win1',
+        }),
       );
     });
   });
@@ -195,7 +214,9 @@ describe('useTreeSync', () => {
   describe('onActivate', () => {
     it('posts activateNode for non-null node', () => {
       const postMessage = vi.fn();
-      const { result } = renderHook(() => useTreeSync(makeOptions({ postMessage })));
+      const { result } = renderHook(() =>
+        useTreeSync(makeOptions({ postMessage })),
+      );
       const node = { data: makeNodeDTO({ idMVC: 'tab1' as MvcId }) };
 
       act(() => result.current.onActivate(node));
@@ -205,7 +226,9 @@ describe('useTreeSync', () => {
 
     it('does nothing for null node', () => {
       const postMessage = vi.fn();
-      const { result } = renderHook(() => useTreeSync(makeOptions({ postMessage })));
+      const { result } = renderHook(() =>
+        useTreeSync(makeOptions({ postMessage })),
+      );
 
       postMessage.mockClear();
       act(() => result.current.onActivate(null));

@@ -17,10 +17,6 @@ export class GroupTreeNode extends TreeNode {
   readonly isLink = false;
   readonly needFaviconAndTextHelperContainer = true;
 
-  constructor() {
-    super();
-  }
-
   get data(): GroupData {
     return null;
   }

@@ -19,7 +19,9 @@ describe('deserializeNode', () => {
   beforeEach(() => resetMvcIdCounter());
 
   it('defaults to SavedTabTreeNode when type is absent', () => {
-    const node = deserializeNode({ data: { url: 'https://example.com', title: 'Ex' } });
+    const node = deserializeNode({
+      data: { url: 'https://example.com', title: 'Ex' },
+    });
     expect(node).toBeInstanceOf(SavedTabTreeNode);
     expect(node!.type).toBe(NodeTypesEnum.SAVEDTAB);
   });
@@ -180,7 +182,10 @@ describe('restoreTree', () => {
 
   it('restores a tree with children', () => {
     const jso: HierarchyJSO = {
-      n: { type: 'session', data: { treeId: 't', nextDId: 1, nonDumpedDId: 1 } },
+      n: {
+        type: 'session',
+        data: { treeId: 't', nextDId: 1, nonDumpedDId: 1 },
+      },
       s: [
         {
           n: { type: 'savedwin', data: { id: 1 } },

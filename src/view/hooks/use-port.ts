@@ -11,7 +11,10 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { PortManager, type PortState } from '@/chrome/runtime';
-import type { BackgroundToViewMessage, ViewToBackgroundMessage } from '@/types/messages';
+import type {
+  BackgroundToViewMessage,
+  ViewToBackgroundMessage,
+} from '@/types/messages';
 
 export interface UsePortReturn {
   postMessage: (msg: ViewToBackgroundMessage) => void;
@@ -23,14 +26,17 @@ export function usePort(
   onMessage: (msg: BackgroundToViewMessage) => void,
   onReconnect: () => void,
 ): UsePortReturn {
-  const [connectionState, setConnectionState] = useState<PortState>('disconnected');
+  const [connectionState, setConnectionState] =
+    useState<PortState>('disconnected');
   const portRef = useRef<PortManager | null>(null);
   const onMessageRef = useRef(onMessage);
   const onReconnectRef = useRef(onReconnect);
   const hasConnectedRef = useRef(false);
 
   // Keep callback refs up to date without re-subscribing
+  // eslint-disable-next-line react-hooks/refs
   onMessageRef.current = onMessage;
+  // eslint-disable-next-line react-hooks/refs
   onReconnectRef.current = onReconnect;
 
   useEffect(() => {

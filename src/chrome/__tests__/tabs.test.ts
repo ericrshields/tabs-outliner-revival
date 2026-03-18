@@ -108,7 +108,9 @@ describe('tabs', () => {
 
   describe('getTab', () => {
     it('returns the tab when it exists', async () => {
-      const created = await fakeBrowser.tabs.create({ url: 'https://test.com' });
+      const created = await fakeBrowser.tabs.create({
+        url: 'https://test.com',
+      });
       const tab = await getTab(created.id!);
       expect(tab).not.toBeNull();
       expect(tab!.id).toBe(created.id);
@@ -141,7 +143,9 @@ describe('tabs', () => {
       const id = created.id!;
 
       // Spy on the underlying call
-      const spy = vi.spyOn(fakeBrowser.tabs, 'remove').mockResolvedValue(undefined);
+      const spy = vi
+        .spyOn(fakeBrowser.tabs, 'remove')
+        .mockResolvedValue(undefined);
       await removeTab(id);
       expect(spy).toHaveBeenCalledWith(id);
       spy.mockRestore();
@@ -195,8 +199,13 @@ describe('tabs', () => {
     });
 
     it('onTabRemoved passes through tabId and removeInfo', async () => {
-      const received: Array<{ tabId: number; info: { windowId: number; isWindowClosing: boolean } }> = [];
-      const cleanup = onTabRemoved((tabId, info) => received.push({ tabId, info }));
+      const received: Array<{
+        tabId: number;
+        info: { windowId: number; isWindowClosing: boolean };
+      }> = [];
+      const cleanup = onTabRemoved((tabId, info) =>
+        received.push({ tabId, info }),
+      );
 
       await fakeBrowser.tabs.onRemoved.trigger(99, {
         windowId: 5,
@@ -216,11 +225,11 @@ describe('tabs', () => {
         received.push({ tabId, tab });
       });
 
-      await fakeBrowser.tabs.onUpdated.trigger(
-        50,
-        { status: 'complete' },
-        { id: 50, index: 0, url: 'https://updated.com' } as Browser.tabs.Tab,
-      );
+      await fakeBrowser.tabs.onUpdated.trigger(50, { status: 'complete' }, {
+        id: 50,
+        index: 0,
+        url: 'https://updated.com',
+      } as Browser.tabs.Tab);
 
       expect(received).toHaveLength(1);
       expect(received[0].tabId).toBe(50);

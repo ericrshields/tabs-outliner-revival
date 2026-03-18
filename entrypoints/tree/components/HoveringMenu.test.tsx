@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/preact';
 import { HoveringMenu } from './HoveringMenu';
 import type { HoveringMenuProps } from './HoveringMenu';
-import type { HoveringMenuActionId } from '@/types/node';
 
 function makeRect(overrides: Partial<DOMRect> = {}): DOMRect {
   return {

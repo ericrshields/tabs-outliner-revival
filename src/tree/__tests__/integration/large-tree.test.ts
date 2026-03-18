@@ -42,7 +42,10 @@ describe('Large tree performance', () => {
       if (created % 3 === 0) {
         session.insertSubnode(-1, new GroupTreeNode());
       } else {
-        session.insertSubnode(-1, new TextNoteTreeNode({ note: `Note ${created}` }));
+        session.insertSubnode(
+          -1,
+          new TextNoteTreeNode({ note: `Note ${created}` }),
+        );
       }
       created++;
     }

@@ -25,7 +25,8 @@ const EXPORT_TOOLBAR_HEIGHT = 36;
 export function App() {
   const treeRef = useRef<TreeApi<NodeDTO>>(null);
   const treeContainerRef = useRef<HTMLDivElement>(null);
-  const { state, isLoading, handleMessage, clearExport, clearExportHtml } = useTreeData();
+  const { state, isLoading, handleMessage, clearExport, clearExportHtml } =
+    useTreeData();
   const { height: windowHeight } = useWindowSize();
   // postMessage is stable (useCallback with [] deps in usePort) — safe to omit from deps.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -39,15 +40,19 @@ export function App() {
     needsFullRefresh: state.needsFullRefresh,
     postMessage,
   });
-  const { hoverState, clearHover, handleAction, ctxValue } = useTreeInteractions({
-    postMessage,
-    treeContainerRef,
-    selectedId: state.selectedId,
-  });
+  const { hoverState, clearHover, handleAction, ctxValue } =
+    useTreeInteractions({
+      postMessage,
+      treeContainerRef,
+      selectedId: state.selectedId,
+    });
   const {
-    showFirstRun, dismissFirstRun,
+    showFirstRun,
+    dismissFirstRun,
     isExternalDragOver,
-    handleTreeDragOver, handleTreeDragLeave, handleTreeDrop,
+    handleTreeDragOver,
+    handleTreeDragLeave,
+    handleTreeDrop,
     handleImport,
   } = useTreeDrop({
     postMessage,

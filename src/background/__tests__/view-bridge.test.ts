@@ -34,7 +34,9 @@ function createMockPort(name = 'tree-view'): Browser.runtime.Port {
 }
 
 function simulateDisconnect(port: Browser.runtime.Port): void {
-  (port as unknown as { _simulateDisconnect: () => void })._simulateDisconnect();
+  (
+    port as unknown as { _simulateDisconnect: () => void }
+  )._simulateDisconnect();
 }
 
 describe('ViewBridge', () => {

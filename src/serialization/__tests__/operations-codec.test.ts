@@ -83,7 +83,10 @@ describe('operationsToHierarchy', () => {
   });
 
   it('converts a root-only operations log', () => {
-    const ops = makeOpsLog({ type: 'session', data: { treeId: 'test', nextDId: 0 } });
+    const ops = makeOpsLog({
+      type: 'session',
+      data: { treeId: 'test', nextDId: 0 },
+    });
     const hierarchy = operationsToHierarchy(ops);
     expect(hierarchy).not.toBeNull();
     expect(hierarchy!.n.type).toBe('session');
@@ -106,14 +109,11 @@ describe('operationsToHierarchy', () => {
   });
 
   it('handles nested insertions via paths', () => {
-    const ops = makeOpsLog(
-      { type: 'session', data: null },
-      [
-        [{ type: 'savedwin', data: null }, [0]],           // root → child[0]
-        [{ data: { url: 'https://tab1.com' } }, [0, 0]],   // child[0] → grandchild[0]
-        [{ data: { url: 'https://tab2.com' } }, [0, 1]],   // child[0] → grandchild[1]
-      ],
-    );
+    const ops = makeOpsLog({ type: 'session', data: null }, [
+      [{ type: 'savedwin', data: null }, [0]], // root → child[0]
+      [{ data: { url: 'https://tab1.com' } }, [0, 0]], // child[0] → grandchild[0]
+      [{ data: { url: 'https://tab2.com' } }, [0, 1]], // child[0] → grandchild[1]
+    ]);
     const hierarchy = operationsToHierarchy(ops);
     expect(hierarchy!.s).toHaveLength(1);
     expect(hierarchy!.s![0].n.type).toBe('savedwin');
@@ -124,7 +124,10 @@ describe('operationsToHierarchy', () => {
   it('handles mixed object/array operation formats', () => {
     // Root is object format, insert is array format
     const ops = [
-      { type: DbOperationEnum.NODE_NEWROOT, node: { type: 'session', data: null } },
+      {
+        type: DbOperationEnum.NODE_NEWROOT,
+        node: { type: 'session', data: null },
+      },
       [DbOperationEnum.NODE_INSERT, { data: { url: 'test' } }, [0]],
       { type: DbOperationEnum.EOF, time: 12345 },
     ];
@@ -135,15 +138,12 @@ describe('operationsToHierarchy', () => {
 
   it('skips silently when path references non-existent child', () => {
     // Insert at [0, 5] when child[0] only has 0 children — path is corrupt
-    const ops = makeOpsLog(
-      { type: 'session', data: null },
-      [
-        [{ type: 'savedwin', data: null }, [0]],
-        // child[0] has no children yet, so [0, 5] is invalid
-        [{ data: { url: 'orphan' } }, [0, 5]],
-        [{ data: { url: 'valid' } }, [1]],
-      ],
-    );
+    const ops = makeOpsLog({ type: 'session', data: null }, [
+      [{ type: 'savedwin', data: null }, [0]],
+      // child[0] has no children yet, so [0, 5] is invalid
+      [{ data: { url: 'orphan' } }, [0, 5]],
+      [{ data: { url: 'valid' } }, [1]],
+    ]);
     const hierarchy = operationsToHierarchy(ops);
     expect(hierarchy).not.toBeNull();
     // Root should have 2 direct children (savedwin + valid)
@@ -153,14 +153,14 @@ describe('operationsToHierarchy', () => {
   });
 
   it('normalizes mangled marks during conversion', () => {
-    const ops = makeOpsLog(
-      { type: 'session', data: null },
-      [
-        [{ data: { url: 'test' }, marks: { relicons: [], U: '#ff0000' } }, [0]],
-      ],
-    );
+    const ops = makeOpsLog({ type: 'session', data: null }, [
+      [{ data: { url: 'test' }, marks: { relicons: [], U: '#ff0000' } }, [0]],
+    ]);
     const hierarchy = operationsToHierarchy(ops);
-    const marks = hierarchy!.s![0].n.marks as unknown as Record<string, unknown>;
+    const marks = hierarchy!.s![0].n.marks as unknown as Record<
+      string,
+      unknown
+    >;
     expect(marks.customColorActive).toBe('#ff0000');
     expect(marks['U']).toBeUndefined();
   });
@@ -171,17 +171,18 @@ describe('hierarchyToOperations', () => {
     const hierarchy: HierarchyJSO = { n: { type: 'session', data: null } };
     const ops = hierarchyToOperations(hierarchy);
     expect(ops.length).toBe(2); // root + EOF
-    expect((ops[0] as { type: number }).type).toBe(DbOperationEnum.NODE_NEWROOT);
-    expect((ops[ops.length - 1] as { type: number }).type).toBe(DbOperationEnum.EOF);
+    expect((ops[0] as { type: number }).type).toBe(
+      DbOperationEnum.NODE_NEWROOT,
+    );
+    expect((ops[ops.length - 1] as { type: number }).type).toBe(
+      DbOperationEnum.EOF,
+    );
   });
 
   it('emits insert operations for children', () => {
     const hierarchy: HierarchyJSO = {
       n: { type: 'session', data: null },
-      s: [
-        { n: { data: { url: 'a' } } },
-        { n: { data: { url: 'b' } } },
-      ],
+      s: [{ n: { data: { url: 'a' } } }, { n: { data: { url: 'b' } } }],
     };
     const ops = hierarchyToOperations(hierarchy);
     // root + 2 inserts + EOF

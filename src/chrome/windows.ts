@@ -36,11 +36,7 @@ export async function queryWindows(
     const wins = await browser.windows.getAll(queryInfo ?? {});
     return wins.map(toChromeWindowData);
   } catch (err) {
-    throw new ChromeApiError(
-      'Failed to query windows',
-      'windows.getAll',
-      err,
-    );
+    throw new ChromeApiError('Failed to query windows', 'windows.getAll', err);
   }
 }
 
@@ -66,13 +62,13 @@ export async function createWindow(
   try {
     win = await browser.windows.create(props);
   } catch (err) {
-    throw new ChromeApiError(
-      'Failed to create window',
-      'windows.create',
-      err,
-    );
+    throw new ChromeApiError('Failed to create window', 'windows.create', err);
   }
-  if (!win) throw new ChromeApiError('Window not returned after create', 'windows.create');
+  if (!win)
+    throw new ChromeApiError(
+      'Window not returned after create',
+      'windows.create',
+    );
   return toChromeWindowData(win);
 }
 
@@ -80,11 +76,7 @@ export async function removeWindow(windowId: number): Promise<void> {
   try {
     await browser.windows.remove(windowId);
   } catch (err) {
-    throw new ChromeApiError(
-      'Failed to remove window',
-      'windows.remove',
-      err,
-    );
+    throw new ChromeApiError('Failed to remove window', 'windows.remove', err);
   }
 }
 
@@ -96,11 +88,7 @@ export async function updateWindow(
     const win = await browser.windows.update(windowId, props);
     return toChromeWindowData(win);
   } catch (err) {
-    throw new ChromeApiError(
-      'Failed to update window',
-      'windows.update',
-      err,
-    );
+    throw new ChromeApiError('Failed to update window', 'windows.update', err);
   }
 }
 
@@ -109,11 +97,7 @@ export async function focusWindow(windowId: number): Promise<void> {
   try {
     await browser.windows.update(windowId, { focused: true });
   } catch (err) {
-    throw new ChromeApiError(
-      'Failed to focus window',
-      'windows.update',
-      err,
-    );
+    throw new ChromeApiError('Failed to focus window', 'windows.update', err);
   }
 }
 
@@ -122,8 +106,7 @@ export async function focusWindow(windowId: number): Promise<void> {
 export function onWindowCreated(
   cb: (win: ChromeWindowData) => void,
 ): () => void {
-  const listener = (win: Browser.windows.Window) =>
-    cb(toChromeWindowData(win));
+  const listener = (win: Browser.windows.Window) => cb(toChromeWindowData(win));
   browser.windows.onCreated.addListener(listener);
   return () => browser.windows.onCreated.removeListener(listener);
 }

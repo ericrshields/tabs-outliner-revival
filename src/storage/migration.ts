@@ -9,7 +9,12 @@
  * 5. Legacy IndexedDB is NEVER deleted — remains as fallback
  */
 
-import { readLegacyDB, legacyDbExists, DB_V34, DB_V33 } from './indexeddb-reader';
+import {
+  readLegacyDB,
+  legacyDbExists,
+  DB_V34,
+  DB_V33,
+} from './indexeddb-reader';
 import { loadTree, saveTree, treeExists } from './tree-storage';
 import {
   validateOperationsLog,
@@ -105,7 +110,9 @@ async function tryMigrateFromDB(
     // Verify round-trip
     const reloaded = await loadTree();
     if (!reloaded) {
-      errors.push(`${source}: round-trip verification failed — could not reload saved tree`);
+      errors.push(
+        `${source}: round-trip verification failed — could not reload saved tree`,
+      );
       return {
         success: false,
         source,
@@ -115,7 +122,9 @@ async function tryMigrateFromDB(
     }
 
     if (!hierarchiesEqual(hierarchy, reloaded)) {
-      errors.push(`${source}: round-trip verification failed — trees differ after save/load`);
+      errors.push(
+        `${source}: round-trip verification failed — trees differ after save/load`,
+      );
       return {
         success: false,
         source,
@@ -131,7 +140,9 @@ async function tryMigrateFromDB(
       errors,
     };
   } catch (err) {
-    errors.push(`${source}: ${err instanceof Error ? err.message : String(err)}`);
+    errors.push(
+      `${source}: ${err instanceof Error ? err.message : String(err)}`,
+    );
     return null;
   }
 }

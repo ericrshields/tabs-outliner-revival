@@ -6,9 +6,13 @@
  * that can be sent via message passing to the view.
  */
 
-import type { NodeDTO, ParentUpdateData, ParentsUpdateData, StatsBlock } from '@/types/node-dto';
+import type {
+  NodeDTO,
+  ParentUpdateData,
+  ParentsUpdateData,
+  StatsBlock,
+} from '@/types/node-dto';
 import type { HoveringMenuActionId } from '@/types/node';
-import type { MvcId } from '@/types/brands';
 import { TreeNode } from './tree-node';
 
 /**
@@ -36,7 +40,8 @@ function sanitizeIconUrl(url: string | null): string {
   if (url.startsWith('img/')) return url;
   // Standard web protocols (exclude localhost — dev server artifacts)
   if (url.startsWith('https://')) return url;
-  if (url.startsWith('http://') && !url.startsWith('http://localhost')) return url;
+  if (url.startsWith('http://') && !url.startsWith('http://localhost'))
+    return url;
   // Data URIs for inline images
   if (url.startsWith('data:image/')) return url;
   // Everything else (chrome-extension://, legacy relative paths like
@@ -59,15 +64,20 @@ export function toNodeDTO(node: TreeNode): NodeDTO {
   }
 
   const hoveringMenuActions = node.getHoveringMenuActions();
-  const actionIds: Partial<Record<HoveringMenuActionId, { id: HoveringMenuActionId }>> = {};
-  for (const key of Object.keys(hoveringMenuActions) as HoveringMenuActionId[]) {
+  const actionIds: Partial<
+    Record<HoveringMenuActionId, { id: HoveringMenuActionId }>
+  > = {};
+  for (const key of Object.keys(
+    hoveringMenuActions,
+  ) as HoveringMenuActionId[]) {
     if (hoveringMenuActions[key]) {
       actionIds[key] = { id: key };
     }
   }
 
-  const statsBlock: StatsBlock | null =
-    node.colapsed ? node.countSubnodesStats() : null;
+  const statsBlock: StatsBlock | null = node.colapsed
+    ? node.countSubnodesStats()
+    : null;
 
   return {
     id: node.idMVC,

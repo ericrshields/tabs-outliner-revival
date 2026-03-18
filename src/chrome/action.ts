@@ -35,17 +35,11 @@ export async function setTooltip(title: string): Promise<void> {
   try {
     await browser.action.setTitle({ title });
   } catch (err) {
-    throw new ChromeApiError(
-      'Failed to set tooltip',
-      'action.setTitle',
-      err,
-    );
+    throw new ChromeApiError('Failed to set tooltip', 'action.setTitle', err);
   }
 }
 
-export function onActionClicked(
-  cb: (tab: ChromeTabData) => void,
-): () => void {
+export function onActionClicked(cb: (tab: ChromeTabData) => void): () => void {
   const listener = (tab: Browser.tabs.Tab) => cb(toChromeTabData(tab));
   browser.action.onClicked.addListener(listener);
   return () => browser.action.onClicked.removeListener(listener);

@@ -44,8 +44,7 @@ export class SavedTabTreeNode extends TreeNode {
     if (this._persistentData.status === 'loading') {
       return 'img/loading.gif';
     }
-    return this._persistentData.favIconUrl
-      ?? ('img/chromeFavicon.png');
+    return this._persistentData.favIconUrl ?? 'img/chromeFavicon.png';
   }
 
   getIconForHtmlExport(): string | null {

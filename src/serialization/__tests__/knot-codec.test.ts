@@ -6,7 +6,10 @@ import {
   getBaseSubnodesArray,
 } from '../knot-codec';
 import { i2s36 } from '../base36';
-import { CDID_SUBNODESLIST_SEPARATOR, SUBNODES_DIDS_SEPARATOR } from '../constants';
+import {
+  CDID_SUBNODESLIST_SEPARATOR,
+  SUBNODES_DIDS_SEPARATOR,
+} from '../constants';
 
 describe('isChangesToBase', () => {
   it('returns false for identical arrays', () => {
@@ -108,7 +111,7 @@ describe('serializeCurSubnodes / restoreSubnodesList', () => {
   it('bounds-checks oversized -N skip against base length', () => {
     const base = ['a', 'b'];
     // Skip 10, then use next — but base only has 2 elements
-    const result = restoreSubnodesList(base, '-a');  // 'a' in base-36 = 10
+    const result = restoreSubnodesList(base, '-a'); // 'a' in base-36 = 10
     expect(result).toEqual([]);
     expect(result.every((el) => typeof el === 'string')).toBe(true);
   });
@@ -166,7 +169,10 @@ describe('serializeCurSubnodes / restoreSubnodesList', () => {
     const baseArray = getBaseSubnodesArray(sdidKnot);
 
     const serializedDifference = serializeCurSubnodes(subnodesNew, baseArray);
-    const restoredSubnodes = restoreSubnodesList(subnodesOld, serializedDifference);
+    const restoredSubnodes = restoreSubnodesList(
+      subnodesOld,
+      serializedDifference,
+    );
 
     expect(restoredSubnodes).toEqual(subnodesNew);
   });

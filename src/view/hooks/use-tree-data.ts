@@ -63,7 +63,12 @@ type TreeAction =
   | { type: 'NODE_REMOVED'; idMVC: string }
   | { type: 'SET_CURSOR'; targetId: string }
   | { type: 'FULL_REFRESH_NEEDED' }
-  | { type: 'IMPORT_RESULT'; success: boolean; nodeCount: number; error?: string }
+  | {
+      type: 'IMPORT_RESULT';
+      success: boolean;
+      nodeCount: number;
+      error?: string;
+    }
   | { type: 'EXPORT_READY'; treeJson: string }
   | { type: 'EXPORT_HTML_READY'; treeHtml: string }
   | { type: 'EXPORT_ERROR'; error: string }
@@ -118,7 +123,7 @@ function clonePathToRoot(
   const path: string[] = [targetId];
   let currentId = targetId;
   while (parentIndex.has(currentId)) {
-    currentId = parentIndex.get(currentId)!;
+    currentId = parentIndex.get(currentId) as string;
     path.push(currentId);
   }
 
@@ -143,9 +148,10 @@ function clonePathToRoot(
       // Remove mode
       newSubnodes = parentNode.subnodes.filter((s) => s.idMVC !== childId);
     } else {
-      // Replace mode
+      // Replace mode (currentReplacement is non-null in this branch)
+      const replacement = currentReplacement;
       newSubnodes = parentNode.subnodes.map((s) =>
-        s.idMVC === childId ? currentReplacement! : s,
+        s.idMVC === childId ? replacement : s,
       );
     }
 
@@ -232,11 +238,7 @@ function createReducer(indexesRef: { current: Indexes }) {
           return state;
         }
 
-        const newRoot = clonePathToRoot(
-          action.idMVC,
-          null,
-          indexesRef.current,
-        );
+        const newRoot = clonePathToRoot(action.idMVC, null, indexesRef.current);
 
         if (!newRoot) return { ...state, needsFullRefresh: true };
 
@@ -299,7 +301,9 @@ export function useTreeData(): UseTreeDataReturn {
     parentIndex: new Map(),
   });
 
+  // eslint-disable-next-line react-hooks/refs
   const reducerRef = useRef(createReducer(indexesRef));
+  // eslint-disable-next-line react-hooks/refs
   const [state, dispatch] = useReducer(reducerRef.current, INITIAL_STATE);
 
   const handleMessage = useCallback((msg: BackgroundToViewMessage) => {

@@ -7,7 +7,10 @@
 
 import type { MvcId } from '@/types/brands';
 import type { NodeDTO, StatsBlock } from '@/types/node-dto';
-import type { HoveringMenuActionId, TitleBackgroundCssClass } from '@/types/node';
+import type {
+  HoveringMenuActionId,
+  TitleBackgroundCssClass,
+} from '@/types/node';
 import type { NodeMarks } from '@/types/marks';
 
 /**

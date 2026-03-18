@@ -109,9 +109,9 @@ describe('withRetry', () => {
 
   it('clamps negative maxAttempts to 1', async () => {
     const fn = vi.fn().mockRejectedValue(new Error('fail'));
-    await expect(withRetry(fn, { maxAttempts: -5, baseDelayMs: 1 })).rejects.toThrow(
-      'fail',
-    );
+    await expect(
+      withRetry(fn, { maxAttempts: -5, baseDelayMs: 1 }),
+    ).rejects.toThrow('fail');
     expect(fn).toHaveBeenCalledTimes(1);
   });
 });

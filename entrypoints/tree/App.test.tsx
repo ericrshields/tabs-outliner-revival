@@ -14,10 +14,7 @@ vi.mock('@/view/index', async () => {
   const actual = await vi.importActual('@/view/index');
   return {
     ...actual,
-    usePort: (
-      onMessage: (msg: unknown) => void,
-      onReconnect: () => void,
-    ) => {
+    usePort: (onMessage: (msg: unknown) => void, onReconnect: () => void) => {
       capturedOnMessage = onMessage;
       capturedOnReconnect = onReconnect;
       return {
@@ -30,8 +27,7 @@ vi.mock('@/view/index', async () => {
 });
 
 import { App } from './App';
-import { makeTree, makeNodeDTO } from '@/view/__tests__/fixtures';
-import type { MvcId } from '@/types/brands';
+import { makeTree } from '@/view/__tests__/fixtures';
 import type { Msg_InitTreeView } from '@/types/messages';
 import { act } from '@testing-library/preact';
 
@@ -89,9 +85,7 @@ describe('Tree App', () => {
   it('shows connection banner when disconnected', () => {
     mockConnectionState = 'connecting';
     render(<App />);
-    expect(
-      screen.getByText('Reconnecting to background...'),
-    ).toBeTruthy();
+    expect(screen.getByText('Reconnecting to background...')).toBeTruthy();
   });
 
   it('shows first-run import overlay on first visit', () => {

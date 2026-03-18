@@ -15,7 +15,8 @@ const BADGE_COLOR = '#4688F1';
 export async function updateBadge(model: TreeModel): Promise<void> {
   const stats = model.root.countSubnodesStats();
 
-  const badgeText = stats.activeTabsCount > 0 ? String(stats.activeTabsCount) : '';
+  const badgeText =
+    stats.activeTabsCount > 0 ? String(stats.activeTabsCount) : '';
 
   const tooltipParts = ['Tabs Outliner Revival'];
   if (stats.nodesCount > 0) {

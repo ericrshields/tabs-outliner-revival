@@ -8,7 +8,9 @@ describe('importContainsTabs', () => {
       s: [
         {
           n: { type: 'savedwin', data: {} },
-          s: [{ n: { data: { url: 'https://example.com', title: 'Example' } } }],
+          s: [
+            { n: { data: { url: 'https://example.com', title: 'Example' } } },
+          ],
         },
       ],
     });
@@ -47,9 +49,7 @@ describe('importContainsTabs', () => {
   });
 
   it('returns true for operations log format (array with entries)', () => {
-    const json = JSON.stringify([
-      [1, { type: 'tab', data: {} }, [0, 1]],
-    ]);
+    const json = JSON.stringify([[1, { type: 'tab', data: {} }, [0, 1]]]);
     expect(importContainsTabs(json)).toBe(true);
   });
 

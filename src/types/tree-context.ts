@@ -10,10 +10,6 @@ export interface TreeContextValue {
   cursorId: string | null;
   hoveredId: string | null;
   singleClickActivation: boolean;
-  onRowEnter: (
-    id: string,
-    actions: HoveringMenuActions,
-    rect: DOMRect,
-  ) => void;
+  onRowEnter: (id: string, actions: HoveringMenuActions, rect: DOMRect) => void;
   onAction: (idMVC: string, actionId: HoveringMenuActionId) => void;
 }

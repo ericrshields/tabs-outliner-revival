@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
-import { storageGet, storageSet, storageRemove, onStorageChanged } from '../storage';
-import { ChromeApiError } from '../errors';
+import {
+  storageGet,
+  storageSet,
+  storageRemove,
+  onStorageChanged,
+} from '../storage';
 
 describe('storage', () => {
   beforeEach(() => {

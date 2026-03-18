@@ -212,11 +212,7 @@ export class TreeModel {
     node.setMarks(marks);
     this.invalidateAncestors(node);
 
-    const result = this.buildResult(
-      'update',
-      node.idMVC,
-      node.parent ?? node,
-    );
+    const result = this.buildResult('update', node.idMVC, node.parent ?? node);
     this.emitMutation(result);
     return result;
   }
@@ -303,8 +299,7 @@ export class TreeModel {
     this.root.serializeForDiff(allocate, accumulator);
 
     // Set the root dId as the rootDid
-    (accumulator as { rootDid: string }).rootDid =
-      this.root.dId.toString(36);
+    (accumulator as { rootDid: string }).rootDid = this.root.dId.toString(36);
 
     return accumulator;
   }
@@ -420,8 +415,9 @@ export class TreeModel {
       parentUpdates[current.idMVC] = {
         isSubnodesPresent: current.subnodes.length > 0,
         isCollapsed: current.colapsed,
-        subnodesStatBlock:
-          current.colapsed ? current.countSubnodesStats() : null,
+        subnodesStatBlock: current.colapsed
+          ? current.countSubnodesStats()
+          : null,
         isProtectedFromGoneOnClose: current.isProtectedFromGoneOnClose(),
         titleCssClass: current.titleCssClass,
         titleBackgroundCssClass: current.titleBackgroundCssClass,

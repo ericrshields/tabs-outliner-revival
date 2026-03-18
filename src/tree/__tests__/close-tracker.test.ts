@@ -105,9 +105,9 @@ describe('CloseTracker', () => {
   });
 
   it('records correct sibling index', () => {
-    const tab0 = makeTrackedTab(10, 'https://a.com', win, 0);
+    const _tab0 = makeTrackedTab(10, 'https://a.com', win, 0);
     const tab1 = makeTrackedTab(11, 'https://b.com', win, 1);
-    const tab2 = makeTrackedTab(12, 'https://c.com', win, 2);
+    const _tab2 = makeTrackedTab(12, 'https://c.com', win, 2);
 
     tracker.track(tab1); // middle tab, index 1
 

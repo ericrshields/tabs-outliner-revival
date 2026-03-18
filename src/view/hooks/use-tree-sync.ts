@@ -73,8 +73,8 @@ export function useTreeSync({
     const currentMap = buildOpenMap(root);
     const prev = prevOpenMapRef.current;
 
-    const tree = treeRef.current!;
-    if (!tree.open || !tree.close) {
+    const tree = treeRef.current;
+    if (!tree || !tree.open || !tree.close) {
       // Tree API not fully initialized (e.g., test environment)
       prevOpenMapRef.current = currentMap;
       return;

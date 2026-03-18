@@ -60,6 +60,7 @@ export function useTreeDrop({
   // Auto-dismiss after successful import
   useEffect(() => {
     if (importResult?.success) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       dismissFirstRun();
     }
   }, [importResult, dismissFirstRun]);
@@ -70,8 +71,8 @@ export function useTreeDrop({
       if (!importContainsTabs(json)) {
         const proceed = window.confirm(
           'This import appears to contain no tab data (only empty window shells). ' +
-          'This can happen when dragging collapsed nodes from the legacy extension.\n\n' +
-          'Import anyway?',
+            'This can happen when dragging collapsed nodes from the legacy extension.\n\n' +
+            'Import anyway?',
         );
         if (!proceed) return;
       }
@@ -83,20 +84,23 @@ export function useTreeDrop({
   // External drop on tree container (legacy extension DnD)
   const [isExternalDragOver, setIsExternalDragOver] = useState(false);
 
-  const handleTreeDragOver = useCallback((e: ReactDragEvent<HTMLDivElement>) => {
-    // Only handle external drags (not react-arborist internal ones)
-    const dt = e.dataTransfer;
-    if (!dt) return;
-    const types = Array.from(dt.types);
-    const isExternal =
-      types.includes('application/x-tabsoutliner-items') ||
-      types.includes('text/html') ||
-      types.includes('Files');
-    if (isExternal) {
-      e.preventDefault();
-      setIsExternalDragOver(true);
-    }
-  }, []);
+  const handleTreeDragOver = useCallback(
+    (e: ReactDragEvent<HTMLDivElement>) => {
+      // Only handle external drags (not react-arborist internal ones)
+      const dt = e.dataTransfer;
+      if (!dt) return;
+      const types = Array.from(dt.types);
+      const isExternal =
+        types.includes('application/x-tabsoutliner-items') ||
+        types.includes('text/html') ||
+        types.includes('Files');
+      if (isExternal) {
+        e.preventDefault();
+        setIsExternalDragOver(true);
+      }
+    },
+    [],
+  );
 
   const handleTreeDragLeave = useCallback(() => {
     setIsExternalDragOver(false);

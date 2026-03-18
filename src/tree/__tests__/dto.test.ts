@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { toNodeDTO, computeParentUpdate, computeParentUpdatesToRoot } from '../dto';
+import {
+  toNodeDTO,
+  computeParentUpdate,
+  computeParentUpdatesToRoot,
+} from '../dto';
 import { SessionTreeNode } from '../nodes/session-node';
 import { TabTreeNode } from '../nodes/tab-node';
 import { SavedTabTreeNode } from '../nodes/saved-tab-node';
@@ -14,7 +18,10 @@ describe('toNodeDTO', () => {
   beforeEach(() => resetMvcIdCounter());
 
   it('creates DTO with correct identity fields', () => {
-    const node = new SavedTabTreeNode({ url: 'https://example.com', title: 'Ex' });
+    const node = new SavedTabTreeNode({
+      url: 'https://example.com',
+      title: 'Ex',
+    });
     const dto = toNodeDTO(node);
 
     expect(dto.id).toBe(node.idMVC);

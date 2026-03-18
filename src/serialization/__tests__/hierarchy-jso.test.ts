@@ -35,15 +35,21 @@ describe('isValidHierarchyJSO', () => {
   });
 
   it('rejects invalid type', () => {
-    expect(isValidHierarchyJSO({ n: { type: 'invalid', data: null } })).toBe(false);
+    expect(isValidHierarchyJSO({ n: { type: 'invalid', data: null } })).toBe(
+      false,
+    );
   });
 
   it('rejects ZERO type', () => {
-    expect(isValidHierarchyJSO({ n: { type: 'ZERO', data: null } })).toBe(false);
+    expect(isValidHierarchyJSO({ n: { type: 'ZERO', data: null } })).toBe(
+      false,
+    );
   });
 
   it('rejects non-array subnodes', () => {
-    expect(isValidHierarchyJSO({ n: { data: null }, s: 'invalid' })).toBe(false);
+    expect(isValidHierarchyJSO({ n: { data: null }, s: 'invalid' })).toBe(
+      false,
+    );
   });
 
   it('rejects invalid child in subnodes', () => {
@@ -101,7 +107,9 @@ describe('normalizeSerializedNode', () => {
       marks: { relicons: [], U: '#ff0000', J: 'Title' },
     };
     const first = normalizeSerializedNode(raw);
-    const second = normalizeSerializedNode(first as unknown as Record<string, unknown>);
+    const second = normalizeSerializedNode(
+      first as unknown as Record<string, unknown>,
+    );
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
   });
 
@@ -114,19 +122,25 @@ describe('normalizeSerializedNode', () => {
   it('ensures relicons array exists in marks', () => {
     const raw = { data: null, marks: {} };
     const result = normalizeSerializedNode(raw);
-    expect((result.marks as unknown as Record<string, unknown>).relicons).toEqual([]);
+    expect(
+      (result.marks as unknown as Record<string, unknown>).relicons,
+    ).toEqual([]);
   });
 
   it('converts non-array truthy relicons to empty array', () => {
     const raw = { data: null, marks: { relicons: 'not-an-array' } };
     const result = normalizeSerializedNode(raw);
-    expect((result.marks as unknown as Record<string, unknown>).relicons).toEqual([]);
+    expect(
+      (result.marks as unknown as Record<string, unknown>).relicons,
+    ).toEqual([]);
   });
 
   it('converts numeric relicons to empty array', () => {
     const raw = { data: null, marks: { relicons: 42 } };
     const result = normalizeSerializedNode(raw);
-    expect((result.marks as unknown as Record<string, unknown>).relicons).toEqual([]);
+    expect(
+      (result.marks as unknown as Record<string, unknown>).relicons,
+    ).toEqual([]);
   });
 
   it('copies relicons array (not same reference)', () => {
@@ -144,7 +158,7 @@ describe('normalizeSerializedNode', () => {
       data: null,
       marks: { relicons: [], U: '#ff0000', J: 'Title' },
     };
-    const originalMarks = { ...raw.marks };
+    const _originalMarks = { ...raw.marks };
     normalizeSerializedNode(raw);
     // Original marks should still have the mangled keys
     expect(raw.marks.U).toBe('#ff0000');

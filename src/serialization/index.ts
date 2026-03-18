@@ -32,7 +32,12 @@ export {
   operationsToHierarchy,
   hierarchyToOperations,
 } from './operations-codec';
-export type { WireRootOp, WireInsertOp, WireEofOp, WireOperation } from './operations-codec';
+export type {
+  WireRootOp,
+  WireInsertOp,
+  WireEofOp,
+  WireOperation,
+} from './operations-codec';
 
 export { resolveKnotsToHierarchy } from './knot-resolver';
 export type { DiffSnapshot } from './knot-resolver';

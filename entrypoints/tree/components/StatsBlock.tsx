@@ -1,7 +1,12 @@
 import type { StatsBlock } from '@/types/node-dto';
 
 export function StatsBlockView({ data }: { data: StatsBlock }) {
-  const parts: { key: string; className: string; iconClass?: string; value: number }[] = [];
+  const parts: {
+    key: string;
+    className: string;
+    iconClass?: string;
+    value: number;
+  }[] = [];
 
   if (data.activeTabsCount > 0) {
     parts.push({

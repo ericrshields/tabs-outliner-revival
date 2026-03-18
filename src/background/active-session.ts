@@ -92,7 +92,11 @@ export class ActiveSession {
 
     // Synchronize tree with current Chrome state (crash recovery)
     const recovery = await synchronizeTreeWithChrome(treeModel);
-    if (recovery.recoveredCount > 0 || recovery.newCount > 0 || recovery.cleanedCount > 0) {
+    if (
+      recovery.recoveredCount > 0 ||
+      recovery.newCount > 0 ||
+      recovery.cleanedCount > 0
+    ) {
       console.log(
         `[ActiveSession] Crash recovery: ${recovery.recoveredCount} recovered, ${recovery.newCount} new, ${recovery.cleanedCount} cleaned`,
       );
@@ -166,7 +170,8 @@ export class ActiveSession {
         return {
           success: false,
           nodeCount: 0,
-          error: 'Unrecognized format: expected HierarchyJSO or operations log array',
+          error:
+            'Unrecognized format: expected HierarchyJSO or operations log array',
         };
       }
 

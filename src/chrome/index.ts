@@ -61,11 +61,7 @@ export {
 
 export { onCommand } from './commands';
 
-export {
-  getAuthToken,
-  removeAuthToken,
-  getProfileEmail,
-} from './identity';
+export { getAuthToken, removeAuthToken, getProfileEmail } from './identity';
 
 export { PortManager, onPortConnect } from './runtime';
 export type { PortState, PortManagerOptions } from './runtime';

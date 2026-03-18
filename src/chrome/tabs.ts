@@ -85,15 +85,13 @@ export async function updateTab(
   } catch (err) {
     throw new ChromeApiError('Failed to update tab', 'tabs.update', err);
   }
-  if (!tab) throw new ChromeApiError('Tab not found after update', 'tabs.update');
+  if (!tab)
+    throw new ChromeApiError('Tab not found after update', 'tabs.update');
   return toChromeTabData(tab);
 }
 
 /** Activate a tab and focus its window. */
-export async function focusTab(
-  tabId: number,
-  windowId: number,
-): Promise<void> {
+export async function focusTab(tabId: number, windowId: number): Promise<void> {
   try {
     await browser.tabs.update(tabId, { active: true });
   } catch (err) {
@@ -108,9 +106,7 @@ export async function focusTab(
 
 // --- Event subscriptions (each returns a cleanup function) ---
 
-export function onTabCreated(
-  cb: (tab: ChromeTabData) => void,
-): () => void {
+export function onTabCreated(cb: (tab: ChromeTabData) => void): () => void {
   const listener = (tab: Browser.tabs.Tab) => cb(toChromeTabData(tab));
   browser.tabs.onCreated.addListener(listener);
   return () => browser.tabs.onCreated.removeListener(listener);

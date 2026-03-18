@@ -51,7 +51,11 @@ export function handleViewMessage(
       break;
 
     case 'request2bkg_activateNode':
-      void handleActivateNode((msg as Req_ActivateNode).targetNodeIdMVC, session, bridge);
+      void handleActivateNode(
+        (msg as Req_ActivateNode).targetNodeIdMVC,
+        session,
+        bridge,
+      );
       break;
 
     case 'request2bkg_invertCollapsedState':
@@ -128,7 +132,9 @@ export function handleViewMessage(
     case 'request2bkg_moveHierarchy':
     case 'request2bkg_deleteHierarchy':
     case 'request2bkg_communicateDragStartDataToOtherViews':
-      console.warn(`[message-handlers] Deferred handler: ${msg.request} (Epic 8)`);
+      console.warn(
+        `[message-handlers] Deferred handler: ${msg.request} (Epic 8)`,
+      );
       break;
 
     case 'request2bkg_onOkAfterSetNodeTabTextPrompt':
@@ -140,7 +146,9 @@ export function handleViewMessage(
     case 'request2bkg_addNoteAsFirstSubnodeOfCurrentNode':
     case 'request2bkg_addNoteAsPrevSiblingOfCurrentNode':
     case 'request2bkg_addNoteAtTheEndOfTree':
-      console.warn(`[message-handlers] Deferred handler: ${msg.request} (Epic 9)`);
+      console.warn(
+        `[message-handlers] Deferred handler: ${msg.request} (Epic 9)`,
+      );
       break;
 
     case 'request2bkg_closeAllWindowsExceptThis':
@@ -148,7 +156,9 @@ export function handleViewMessage(
       break;
 
     default:
-      console.warn(`[message-handlers] Unknown request: ${(msg as { request: string }).request}`);
+      console.warn(
+        `[message-handlers] Unknown request: ${(msg as { request: string }).request}`,
+      );
       break;
   }
 }
@@ -218,7 +228,9 @@ async function handleActivateNode(
 
         // Re-validate: the saved node may have been removed during the
         // async gap (e.g., user deleted it while createTab was pending).
-        const currentNode = session.treeModel.findByMvcId(targetNodeIdMVC as MvcId);
+        const currentNode = session.treeModel.findByMvcId(
+          targetNodeIdMVC as MvcId,
+        );
         if (!currentNode || currentNode.type !== NodeTypesEnum.SAVEDTAB) break;
 
         const activeTabNode = new TabTreeNode(chromeTabData as TabData);
@@ -350,7 +362,10 @@ function handleHoveringMenuAction(
     }
 
     case 'editTitleAction': {
-      if (node.type === NodeTypesEnum.TAB || node.type === NodeTypesEnum.SAVEDTAB) {
+      if (
+        node.type === NodeTypesEnum.TAB ||
+        node.type === NodeTypesEnum.SAVEDTAB
+      ) {
         bridge.broadcast({
           command: 'msg2view_activateNodeTabEditTextPrompt',
           targetNodeIdMVC: node.idMVC,

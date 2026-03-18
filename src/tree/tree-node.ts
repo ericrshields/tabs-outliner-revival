@@ -73,7 +73,10 @@ export abstract class TreeNode {
   abstract getCustomTitle(): string | null;
   abstract getNodeContentCssClass(): string | null;
   abstract get titleCssClass(): string;
-  abstract get titleBackgroundCssClass(): 'windowFrame' | 'tabFrame' | 'defaultFrame';
+  abstract get titleBackgroundCssClass():
+    | 'windowFrame'
+    | 'tabFrame'
+    | 'defaultFrame';
   abstract get isLink(): boolean;
   abstract get needFaviconAndTextHelperContainer(): boolean;
 
@@ -85,10 +88,7 @@ export abstract class TreeNode {
   // -- Computed display methods --
 
   getNodeTextCustomStyle(): string | null {
-    if (
-      this.type === NodeTypesEnum.TAB ||
-      this.type === NodeTypesEnum.WINDOW
-    ) {
+    if (this.type === NodeTypesEnum.TAB || this.type === NodeTypesEnum.WINDOW) {
       return this.marks.customColorActive
         ? 'color:' + this.marks.customColorActive
         : null;
@@ -203,6 +203,7 @@ export abstract class TreeNode {
   /** Get the index path from root to this node. */
   getPathToRoot(): number[] {
     const path: number[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     let current: TreeNode = this;
     while (current.parent) {
       path.push(current.parent.subnodes.indexOf(current));
@@ -358,9 +359,7 @@ export abstract class TreeNode {
     const subDids = this.subnodes.map((c) => i2s36(c.dId));
 
     // Check if subnodes changed from base
-    const baseArray = this.sdIdKnot
-      ? getBaseSubnodesArray(this.sdIdKnot)
-      : [];
+    const baseArray = this.sdIdKnot ? getBaseSubnodesArray(this.sdIdKnot) : [];
     const subnodesChanged =
       this.sdId === 0 || isChangesToBase(subDids, baseArray);
 
@@ -374,9 +373,7 @@ export abstract class TreeNode {
       this.sdIdKnot = knot;
 
       const knotWithChanges =
-        i2s36(this.cdId) +
-        CDID_SDID_SEPARATOR +
-        changesStr;
+        i2s36(this.cdId) + CDID_SDID_SEPARATOR + changesStr;
 
       (accumulator.allKnots as Map<string, string>).set(
         i2s36(this.sdId),
@@ -413,10 +410,7 @@ export abstract class TreeNode {
     }
 
     // Include marks when non-empty (has keys beyond relicons, or relicons is non-empty)
-    if (
-      Object.keys(this.marks).length > 1 ||
-      this.marks.relicons.length > 0
-    ) {
+    if (Object.keys(this.marks).length > 1 || this.marks.relicons.length > 0) {
       result.marks = this.marks;
     }
 
