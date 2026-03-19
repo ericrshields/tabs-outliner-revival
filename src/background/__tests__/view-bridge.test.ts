@@ -59,12 +59,6 @@ describe('ViewBridge', () => {
       expect(bridge.portCount).toBe(2);
     });
 
-    it('sets up onDisconnect handler for auto-removal', () => {
-      const port = createMockPort();
-      bridge.addPort(port);
-      expect(port.onDisconnect.addListener).toHaveBeenCalled();
-    });
-
     it('auto-removes port on disconnect', () => {
       const port = createMockPort();
       bridge.addPort(port);

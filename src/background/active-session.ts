@@ -45,6 +45,7 @@ export class ActiveSession {
   private _nextViewId = 0;
   private _cleanupChromeEvents: (() => void) | null = null;
   private _cleanupKeepAlive: (() => void) | null = null;
+  private _disposed = false;
 
   private constructor(treeModel: TreeModel) {
     this.treeModel = treeModel;
@@ -250,6 +251,9 @@ export class ActiveSession {
 
   /** Shut down: save tree, unregister events, close ports. */
   async dispose(): Promise<void> {
+    if (this._disposed) return;
+    this._disposed = true;
+
     // Save immediately
     await this.saveNow();
 

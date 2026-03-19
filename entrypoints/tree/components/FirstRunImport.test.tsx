@@ -155,6 +155,36 @@ describe('FirstRunImport', () => {
     );
   });
 
+  it('import button is initially enabled and shows correct label', () => {
+    const { container } = render(
+      <FirstRunImport
+        onImport={vi.fn()}
+        onDismiss={vi.fn()}
+        importResult={null}
+      />,
+    );
+
+    const btn = container.querySelector('.import-btn') as HTMLButtonElement;
+    expect(btn.disabled).toBe(false);
+    expect(btn.textContent).toBe('Choose .tree File');
+  });
+
+  it('file input is restricted to .tree and .json files', () => {
+    const { container } = render(
+      <FirstRunImport
+        onImport={vi.fn()}
+        onDismiss={vi.fn()}
+        importResult={null}
+      />,
+    );
+
+    const input = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    expect(input).toBeTruthy();
+    expect(input.getAttribute('accept')).toBe('.tree,.json');
+  });
+
   it('adds drag-over class during dragover', () => {
     const { container } = render(
       <FirstRunImport

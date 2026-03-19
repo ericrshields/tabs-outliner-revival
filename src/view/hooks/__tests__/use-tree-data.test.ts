@@ -413,6 +413,46 @@ describe('useTreeData', () => {
       expect(win1.subnodes[0].nodeText).toBe('Still Here');
     });
 
+    it('maintains a consistent index after rapid interleaved updates and removes', () => {
+      const { result } = renderHook(() => useTreeData());
+      act(() => result.current.handleMessage(makeInitMessage()));
+
+      // Update tab1, then update tab2, then remove tab1, then update win1
+      act(() => {
+        result.current.handleMessage(
+          makeNodeUpdatedMessage('tab1', { nodeText: 'Updated tab1' }),
+        );
+      });
+      act(() => {
+        result.current.handleMessage(
+          makeNodeUpdatedMessage('tab2', { nodeText: 'Updated tab2' }),
+        );
+      });
+      act(() => {
+        result.current.handleMessage(
+          makeNotifyMessage('tab1', 'onNodeRemoved'),
+        );
+      });
+      act(() => {
+        result.current.handleMessage(
+          // isSubnodesPresent:true tells the reducer to preserve existing children
+          // (production sends this flag for collapsed/parent nodes)
+          makeNodeUpdatedMessage('win1', {
+            nodeText: 'Updated win1',
+            isSubnodesPresent: true,
+          }),
+        );
+      });
+
+      const win1 = result.current.state.root!.subnodes[0];
+      expect(win1.nodeText).toBe('Updated win1');
+      // tab1 was removed; only tab2 remains
+      expect(win1.subnodes).toHaveLength(1);
+      expect(win1.subnodes[0].idMVC).toBe('tab2');
+      expect(win1.subnodes[0].nodeText).toBe('Updated tab2');
+      expect(result.current.state.needsFullRefresh).toBe(false);
+    });
+
     it('handles re-init after incremental updates', () => {
       const { result } = renderHook(() => useTreeData());
       act(() => result.current.handleMessage(makeInitMessage()));
@@ -544,6 +584,52 @@ describe('useTreeData', () => {
       });
 
       expect(result.current.state.exportHtml).toBe(html);
+      expect(result.current.state.exportError).toBeNull();
+    });
+
+    it('clears exportJson when an error follows a prior success', () => {
+      const { result } = renderHook(() => useTreeData());
+      act(() => result.current.handleMessage(makeInitMessage()));
+
+      const json = '{"n":{"data":{}},"s":[]}';
+      act(() => {
+        result.current.handleMessage({
+          command: 'msg2view_exportResult',
+          success: true,
+          treeJson: json,
+        } as Msg_ExportResult);
+      });
+      expect(result.current.state.exportJson).toBe(json);
+      expect(result.current.state.exportError).toBeNull();
+
+      act(() => {
+        result.current.handleMessage({
+          command: 'msg2view_exportResult',
+          success: false,
+          error: 'Serialization failed',
+        } as Msg_ExportResult);
+      });
+
+      expect(result.current.state.exportJson).toBeNull();
+      expect(result.current.state.exportError).toBe('Serialization failed');
+    });
+
+    it('clears exportJson and exportError via clearExport', () => {
+      const { result } = renderHook(() => useTreeData());
+      act(() => result.current.handleMessage(makeInitMessage()));
+
+      act(() => {
+        result.current.handleMessage({
+          command: 'msg2view_exportResult',
+          success: true,
+          treeJson: '{"n":{"data":{}},"s":[]}',
+        } as Msg_ExportResult);
+      });
+      expect(result.current.state.exportJson).not.toBeNull();
+
+      act(() => result.current.clearExport());
+
+      expect(result.current.state.exportJson).toBeNull();
       expect(result.current.state.exportError).toBeNull();
     });
 

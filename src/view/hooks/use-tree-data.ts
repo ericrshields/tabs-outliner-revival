@@ -271,7 +271,7 @@ function createReducer(indexesRef: { current: Indexes }) {
         return { ...state, exportHtml: action.treeHtml, exportError: null };
 
       case 'EXPORT_ERROR':
-        return { ...state, exportError: action.error };
+        return { ...state, exportJson: null, exportError: action.error };
 
       case 'EXPORT_CLEAR':
         return { ...state, exportJson: null, exportError: null };

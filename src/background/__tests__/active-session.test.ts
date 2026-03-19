@@ -69,7 +69,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockTreeExists.mockResolvedValue(false);
   mockLoadTree.mockResolvedValue(null);
+  mockSaveTree.mockResolvedValue(undefined);
   mockIsMigrationNeeded.mockResolvedValue(false);
+  mockMigrateFromLegacy.mockResolvedValue(null);
 });
 
 describe('ActiveSession', () => {
@@ -394,11 +396,15 @@ describe('ActiveSession', () => {
       expect(session.viewBridge.portCount).toBe(0);
     });
 
-    it('is safe to call multiple times', async () => {
+    it('second dispose() call is a no-op — does not re-save', async () => {
       const session = await ActiveSession.create();
+      mockSaveTree.mockClear();
 
       await session.dispose();
-      await session.dispose(); // Should not throw
+      expect(mockSaveTree).toHaveBeenCalledTimes(1);
+
+      await session.dispose(); // Should be a no-op
+      expect(mockSaveTree).toHaveBeenCalledTimes(1); // Not called again
     });
   });
 });

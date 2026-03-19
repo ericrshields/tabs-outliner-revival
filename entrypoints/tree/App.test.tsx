@@ -106,6 +106,32 @@ describe('Tree App', () => {
     expect(screen.queryByText('Loading tree...')).toBeNull();
   });
 
+  it('auto-dismisses first-run overlay after successful import', () => {
+    localStorage.removeItem('importDismissed');
+    render(<App />);
+
+    const initMsg: Msg_InitTreeView = {
+      command: 'msg2view_initTreeView',
+      rootNode_currentSession: makeTree(),
+      globalViewId: 1,
+      instanceId: 'test',
+    };
+    act(() => capturedOnMessage!(initMsg));
+    expect(screen.getByText('Welcome to Tabs Outliner Revival')).toBeTruthy();
+
+    // Background reports a successful import
+    act(() =>
+      capturedOnMessage!({
+        command: 'msg2view_importResult',
+        success: true,
+        nodeCount: 5,
+      }),
+    );
+
+    // Overlay should have auto-dismissed
+    expect(screen.queryByText('Welcome to Tabs Outliner Revival')).toBeNull();
+  });
+
   it('does not show first-run overlay after dismissal', () => {
     localStorage.setItem('importDismissed', 'true');
     render(<App />);
