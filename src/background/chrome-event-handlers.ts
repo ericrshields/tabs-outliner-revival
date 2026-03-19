@@ -406,6 +406,10 @@ function handleWindowCreated(
 ): void {
   if (win.id == null) return;
 
+  // Skip DevTools and panel windows — they only contain extension-owned
+  // content and would appear as permanently empty nodes in the tree.
+  if (win.type === 'devtools' || win.type === 'panel') return;
+
   const existing = session.treeModel.findActiveWindow(win.id);
   if (existing) return; // Already tracked
 

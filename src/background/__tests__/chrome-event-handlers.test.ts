@@ -714,6 +714,35 @@ describe('onWindowCreated handler', () => {
     expect(session.scheduleSave).toHaveBeenCalled();
   });
 
+  it('ignores devtools windows', () => {
+    const { model } = buildTreeWithWindow();
+    const session = createMockSession(model);
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
+      id: 99,
+      type: 'devtools',
+      focused: false,
+    });
+
+    expect(model.findActiveWindow(99)).toBeNull();
+    expect(session.scheduleSave).not.toHaveBeenCalled();
+  });
+
+  it('ignores panel windows', () => {
+    const { model } = buildTreeWithWindow();
+    const session = createMockSession(model);
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
+      id: 99,
+      type: 'panel',
+      focused: false,
+    });
+
+    expect(model.findActiveWindow(99)).toBeNull();
+  });
+
   it('does not duplicate existing windows', () => {
     const { model } = buildTreeWithWindow();
     const session = createMockSession(model);

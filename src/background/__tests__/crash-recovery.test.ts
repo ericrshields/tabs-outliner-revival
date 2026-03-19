@@ -257,6 +257,21 @@ describe('synchronizeTreeWithChrome()', () => {
     expect(result.newCount).toBe(2); // window 5 + tab 50
   });
 
+  it('does not create a window node when all tabs are extension URLs', async () => {
+    // Simulates DevTools, extension popup windows, etc. that contain only
+    // extension-owned tabs — these should not create empty WINDOW shells.
+    const model = buildTree([]);
+    const extUrl = fakeBrowser.runtime.getURL('/tree.html');
+
+    mockQueryWindows.mockResolvedValue([{ id: 1, type: 'devtools' }]);
+    mockQueryTabs.mockResolvedValue([{ id: 10, windowId: 1, url: extUrl }]);
+
+    const result = await synchronizeTreeWithChrome(model);
+
+    expect(result.newCount).toBe(0);
+    expect(model.findActiveWindow(1)).toBeNull();
+  });
+
   it('does not create nodes for extension tabs', async () => {
     const model = buildTree([]);
     const extUrl = fakeBrowser.runtime.getURL('/tree.html');

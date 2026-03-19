@@ -126,19 +126,24 @@ export async function synchronizeTreeWithChrome(
   for (const win of chromeWindows) {
     if (win.id == null) continue;
     if (!treeWindowIds.has(win.id)) {
+      const tabs = tabsByWindow.get(win.id) ?? [];
+      tabsByWindow.delete(win.id);
+
+      // Skip windows with no user-facing tabs (DevTools, extension popups,
+      // etc. whose tabs are all filtered by isExtensionUrl). Creating a
+      // node for them produces empty WINDOW shells in the tree.
+      if (tabs.length === 0) continue;
+
       // New window — create window node + its tab nodes
       const winNode = new WindowTreeNode(win as WindowData);
       model.insertAsLastChild(model.root, winNode);
       newCount++;
 
-      const tabs = tabsByWindow.get(win.id) ?? [];
       for (const tab of tabs) {
         const tabNode = new TabTreeNode(tab as TabData);
         model.insertAsLastChild(winNode, tabNode);
         newCount++;
       }
-      // Remove tabs from map since they're handled
-      tabsByWindow.delete(win.id);
     } else {
       // Existing window — add any new tabs
       const winNode = model.findActiveWindow(win.id);
