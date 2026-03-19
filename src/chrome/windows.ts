@@ -6,7 +6,11 @@
  */
 
 import { browser } from 'wxt/browser';
-import type { ChromeWindowData, ChromeWindowType } from '@/types/chrome';
+import type {
+  ChromeTabData,
+  ChromeWindowData,
+  ChromeWindowType,
+} from '@/types/chrome';
 import { ChromeApiError } from './errors';
 
 /** Extract the fields we persist from a native Chrome window. */
@@ -70,6 +74,42 @@ export async function createWindow(
       'windows.create',
     );
   return toChromeWindowData(win);
+}
+
+/**
+ * Create a new Chrome window containing the given URL as its first tab.
+ * Returns the tab data for that first tab.
+ *
+ * Use this when there is no existing window to target — e.g., when
+ * restoring a saved tab whose parent window no longer exists.
+ */
+export async function createWindowWithUrl(url: string): Promise<ChromeTabData> {
+  let win: Browser.windows.Window | undefined;
+  try {
+    win = await browser.windows.create({ url });
+  } catch (err) {
+    throw new ChromeApiError('Failed to create window', 'windows.create', err);
+  }
+  if (!win)
+    throw new ChromeApiError(
+      'Window not returned after create',
+      'windows.create',
+    );
+  const tab = win.tabs?.[0];
+  if (!tab)
+    throw new ChromeApiError('No tab returned in new window', 'windows.create');
+  return {
+    id: tab.id,
+    windowId: tab.windowId,
+    url: tab.url,
+    title: tab.title,
+    favIconUrl: tab.favIconUrl,
+    status: tab.status,
+    pinned: tab.pinned,
+    incognito: tab.incognito,
+    active: tab.active,
+    highlighted: tab.highlighted,
+  };
 }
 
 export async function removeWindow(windowId: number): Promise<void> {

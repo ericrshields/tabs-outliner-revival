@@ -22,7 +22,13 @@ import type { ActiveSession } from './active-session';
 import type { ViewBridge } from './view-bridge';
 import { toNodeDTO, computeParentUpdatesToRoot } from '@/tree/dto';
 import { focusTab, createTab, removeTab } from '@/chrome/tabs';
-import { focusWindow, removeWindow } from '@/chrome/windows';
+import {
+  focusWindow,
+  getWindow,
+  removeWindow,
+  createWindowWithUrl,
+} from '@/chrome/windows';
+import { TreeNode } from '@/tree/tree-node';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
 import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
 import { SavedWindowTreeNode } from '@/tree/nodes/saved-window-node';
@@ -219,8 +225,62 @@ async function handleActivateNode(
         break; // Invalid URL
       }
 
+      // Walk up the ancestor chain to find the Chrome window this saved tab
+      // belongs to. This handles any nesting depth: SAVEDTABs directly under
+      // a WINDOW or SAVEDWINDOW, but also nested under TABs (sub-tree
+      // hierarchies) or GROUP nodes. Rules per ancestor type:
+      //   WINDOW     → use its Chrome window ID directly
+      //   TAB        → use its windowId (live tab = live window)
+      //   SAVEDWINDOW → verify window still exists via getWindow; if not,
+      //                 check for a sibling TAB that was already restored
+      //                 (prior click opened a new window — reuse it)
+      //   Other      → keep walking up
+      let targetWindowId: number | undefined;
+      let ancestor: TreeNode | null = node.parent;
+      outer: while (ancestor != null && targetWindowId == null) {
+        switch (ancestor.type) {
+          case NodeTypesEnum.WINDOW: {
+            const wid = (ancestor.data as WindowData).id;
+            if (wid != null) targetWindowId = wid;
+            break outer;
+          }
+          case NodeTypesEnum.TAB: {
+            // Live tab acting as parent — its windowId is the target window.
+            const wid = (ancestor.data as TabData).windowId;
+            if (wid != null) targetWindowId = wid;
+            break outer;
+          }
+          case NodeTypesEnum.SAVEDWINDOW: {
+            const wid = (ancestor.data as WindowData).id;
+            if (wid != null) {
+              const existingWin = await getWindow(wid);
+              if (existingWin) targetWindowId = wid;
+            }
+            // If the saved window's Chrome ID no longer exists, check whether
+            // a sibling TAB was already restored into a new window (a prior
+            // SAVEDTAB click) so subsequent restores land in the same window.
+            if (targetWindowId == null) {
+              const activeSibling = ancestor.subnodes.find(
+                (sib) =>
+                  sib.type === NodeTypesEnum.TAB &&
+                  (sib.data as TabData).windowId != null,
+              );
+              if (activeSibling) {
+                targetWindowId = (activeSibling.data as TabData).windowId;
+              }
+            }
+            break outer; // SESSION is above; nothing useful further up
+          }
+          default:
+            ancestor = ancestor.parent;
+        }
+      }
+
       try {
-        const chromeTabData = await createTab({ url });
+        const chromeTabData =
+          targetWindowId != null
+            ? await createTab({ url, windowId: targetWindowId })
+            : await createWindowWithUrl(url);
 
         // Chrome fires onTabCreated before this await resolves, so
         // handleTabCreated may have already inserted a node for this
@@ -236,6 +296,10 @@ async function handleActivateNode(
               parameters: ['onNodeRemoved'],
               parentsUpdateData: computeParentUpdatesToRoot(dupParent),
             });
+            // If createWindowWithUrl opened a new window, handleWindowCreated
+            // added an empty WINDOW shell. Clean it up now that its only
+            // child (the duplicate) has been removed.
+            removeEmptyWindowParent(session, bridge, dupParent);
           }
         }
 

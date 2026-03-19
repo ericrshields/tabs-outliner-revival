@@ -32,10 +32,23 @@ vi.mock('@/chrome/tabs', () => ({
 vi.mock('@/chrome/windows', () => ({
   focusWindow: vi.fn().mockResolvedValue(undefined),
   removeWindow: vi.fn().mockResolvedValue(undefined),
+  getWindow: vi.fn().mockResolvedValue(null),
+  createWindowWithUrl: vi.fn().mockResolvedValue({
+    id: 100,
+    windowId: 999,
+    url: 'https://saved.com',
+    title: 'Saved Page',
+    active: true,
+  }),
 }));
 
 import { focusTab, createTab, removeTab } from '@/chrome/tabs';
-import { focusWindow, removeWindow } from '@/chrome/windows';
+import {
+  focusWindow,
+  removeWindow,
+  getWindow,
+  createWindowWithUrl,
+} from '@/chrome/windows';
 
 function createMockPort(): Browser.runtime.Port {
   return {
@@ -214,7 +227,11 @@ describe('handleViewMessage()', () => {
       );
 
       await vi.waitFor(() => {
-        expect(createTab).toHaveBeenCalledWith({ url: 'https://saved.com' });
+        // Parent is a live WINDOW (id: 1) so tab opens in that window
+        expect(createTab).toHaveBeenCalledWith({
+          url: 'https://saved.com',
+          windowId: 1,
+        });
       });
 
       // Saved node should be replaced with an active tab
@@ -344,6 +361,235 @@ describe('handleViewMessage()', () => {
           (m.parameters as string[]).includes('onNodeRemoved'),
       );
       expect(removeBroadcast).toBeDefined();
+    });
+
+    it('opens saved tab in its live parent window', async () => {
+      (createTab as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 100,
+        windowId: 42,
+        url: 'https://saved.com',
+        title: 'Saved Page',
+        active: true,
+      });
+      const root = new SessionTreeNode();
+      const win = new WindowTreeNode({ id: 42, type: 'normal', focused: true });
+      const savedTab = new SavedTabTreeNode({
+        url: 'https://saved.com',
+        title: 'Saved Page',
+      });
+      root.insertSubnode(0, win);
+      win.insertSubnode(0, savedTab);
+      const model = new TreeModel(root);
+      const session = createMockSession(model);
+      const port = createMockPort();
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateNode',
+          targetNodeIdMVC: savedTab.idMVC,
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      await vi.waitFor(() => {
+        expect(createTab).toHaveBeenCalledWith({
+          url: 'https://saved.com',
+          windowId: 42,
+        });
+      });
+      expect(createWindowWithUrl).not.toHaveBeenCalled();
+    });
+
+    it('creates a new window when saved tab parent window no longer exists', async () => {
+      (getWindow as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (createWindowWithUrl as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 100,
+        windowId: 999,
+        url: 'https://saved.com',
+        title: 'Saved Page',
+        active: true,
+      });
+
+      const root = new SessionTreeNode();
+      const savedWin = new SavedWindowTreeNode({ id: 7, type: 'normal' });
+      const savedTab = new SavedTabTreeNode({
+        url: 'https://saved.com',
+        title: 'Saved Page',
+      });
+      root.insertSubnode(0, savedWin);
+      savedWin.insertSubnode(0, savedTab);
+      const model = new TreeModel(root);
+      const session = createMockSession(model);
+      const port = createMockPort();
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateNode',
+          targetNodeIdMVC: savedTab.idMVC,
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      await vi.waitFor(() => {
+        expect(createWindowWithUrl).toHaveBeenCalledWith('https://saved.com');
+        // SAVEDTAB replaced with active TAB under its original SAVEDWINDOW
+        expect(savedWin.subnodes[0].type).toBe(NodeTypesEnum.TAB);
+      });
+      expect(createTab).not.toHaveBeenCalled();
+    });
+
+    it('reuses the window from a prior SAVEDTAB restore when siblings are active', async () => {
+      // Simulates clicking the second SAVEDTAB from the same SAVEDWINDOW after
+      // the first one already opened a new Chrome window (window 999).
+      (getWindow as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (createTab as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 101,
+        windowId: 999,
+        url: 'https://second.com',
+        title: 'Second',
+        active: true,
+      });
+
+      const root = new SessionTreeNode();
+      const savedWin = new SavedWindowTreeNode({ id: 7, type: 'normal' });
+      // First SAVEDTAB was already restored — now an active TAB in window 999
+      const restoredTab = new TabTreeNode({
+        id: 50,
+        windowId: 999,
+        url: 'https://first.com',
+        title: 'First',
+        active: false,
+      });
+      const savedTab2 = new SavedTabTreeNode({
+        url: 'https://second.com',
+        title: 'Second',
+      });
+      root.insertSubnode(0, savedWin);
+      savedWin.insertSubnode(0, restoredTab);
+      savedWin.insertSubnode(1, savedTab2);
+      const model = new TreeModel(root);
+      const session = createMockSession(model);
+      const port = createMockPort();
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateNode',
+          targetNodeIdMVC: savedTab2.idMVC,
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      await vi.waitFor(() => {
+        // Should reuse window 999 (the sibling TAB's windowId), not create a new one
+        expect(createTab).toHaveBeenCalledWith({
+          url: 'https://second.com',
+          windowId: 999,
+        });
+      });
+      expect(createWindowWithUrl).not.toHaveBeenCalled();
+    });
+
+    it('opens saved tab in saved window when that window still exists in Chrome', async () => {
+      (getWindow as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 7,
+        type: 'normal',
+        incognito: false,
+      });
+      (createTab as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 100,
+        windowId: 7,
+        url: 'https://saved.com',
+        title: 'Saved Page',
+        active: true,
+      });
+
+      const root = new SessionTreeNode();
+      const savedWin = new SavedWindowTreeNode({ id: 7, type: 'normal' });
+      const savedTab = new SavedTabTreeNode({
+        url: 'https://saved.com',
+        title: 'Saved Page',
+      });
+      root.insertSubnode(0, savedWin);
+      savedWin.insertSubnode(0, savedTab);
+      const model = new TreeModel(root);
+      const session = createMockSession(model);
+      const port = createMockPort();
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateNode',
+          targetNodeIdMVC: savedTab.idMVC,
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      await vi.waitFor(() => {
+        expect(createTab).toHaveBeenCalledWith({
+          url: 'https://saved.com',
+          windowId: 7,
+        });
+      });
+      expect(createWindowWithUrl).not.toHaveBeenCalled();
+    });
+
+    it('opens saved tab nested under a live TAB (sub-tree) in the same window', async () => {
+      // Simulates a SAVEDTAB that is a child of a live TAB node (sub-tree
+      // hierarchy). The immediate parent is a TAB with windowId=55, not a
+      // WINDOW node. The ancestor walk should reach the TAB and use its
+      // windowId.
+      (createTab as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 101,
+        windowId: 55,
+        url: 'https://child.com',
+        title: 'Child Page',
+        active: true,
+      });
+
+      const root = new SessionTreeNode();
+      const win = new WindowTreeNode({ id: 55, type: 'normal', focused: true });
+      const parentTab = new TabTreeNode({
+        id: 90,
+        windowId: 55,
+        url: 'https://parent.com',
+        title: 'Parent',
+        active: false,
+      });
+      const savedTab = new SavedTabTreeNode({
+        url: 'https://child.com',
+        title: 'Child Page',
+      });
+      root.insertSubnode(0, win);
+      win.insertSubnode(0, parentTab);
+      parentTab.insertSubnode(0, savedTab);
+      const model = new TreeModel(root);
+      const session = createMockSession(model);
+      const port = createMockPort();
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateNode',
+          targetNodeIdMVC: savedTab.idMVC,
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      await vi.waitFor(() => {
+        expect(createTab).toHaveBeenCalledWith({
+          url: 'https://child.com',
+          windowId: 55,
+        });
+      });
+      expect(createWindowWithUrl).not.toHaveBeenCalled();
     });
 
     it('does not open saved tab without URL', async () => {
