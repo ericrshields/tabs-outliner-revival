@@ -19,9 +19,12 @@ export function HoveringMenu({
 
   if (!hasClose && !hasDelete) return null;
 
+  // Anchor the right edge of the menu to the row's right edge so buttons
+  // stay in a consistent position regardless of how many are rendered.
+  // position:fixed uses viewport coordinates; DOMRect.right is also viewport.
   const style: Record<string, string | number> = {
     top: `${anchorRect.top}px`,
-    left: `${anchorRect.right - 60}px`,
+    right: `${window.innerWidth - anchorRect.right}px`,
   };
 
   return (

@@ -63,13 +63,34 @@ describe('HoveringMenu', () => {
     expect(onAction).toHaveBeenCalledWith('node1', 'deleteAction');
   });
 
-  it('positions based on anchorRect', () => {
+  it('positions right edge at anchorRect.right', () => {
+    // window.innerWidth is 1024 in happy-dom by default
     const { container } = renderMenu({
       anchorRect: makeRect({ top: 200, right: 500 }),
     });
     const menu = container.querySelector('.hovering-menu') as HTMLElement;
     expect(menu.style.top).toBe('200px');
-    expect(menu.style.left).toBe('440px');
+    // right = window.innerWidth - anchorRect.right = 1024 - 500 = 524
+    expect(menu.style.right).toBe(`${window.innerWidth - 500}px`);
+    expect(menu.style.left).toBe('');
+  });
+
+  it('uses the same right position regardless of button count', () => {
+    const rect = makeRect({ right: 500 });
+    const expectedRight = `${window.innerWidth - 500}px`;
+
+    const { container: both } = renderMenu({ anchorRect: rect });
+    const { container: deleteOnly } = renderMenu({
+      anchorRect: rect,
+      actions: { deleteAction: { id: 'deleteAction' } },
+    });
+
+    const menuBoth = both.querySelector('.hovering-menu') as HTMLElement;
+    const menuDelete = deleteOnly.querySelector(
+      '.hovering-menu',
+    ) as HTMLElement;
+    expect(menuBoth.style.right).toBe(expectedRight);
+    expect(menuDelete.style.right).toBe(expectedRight);
   });
 
   it('only shows close when deleteAction is absent', () => {
