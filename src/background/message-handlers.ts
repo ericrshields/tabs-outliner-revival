@@ -3,8 +3,8 @@
  *
  * Uses a switch on `msg.request` for type-safe, exhaustive handling.
  * Phase 1 implements the 5 essential handlers for tree view to work;
- * remaining messages are stubbed with console.warn and will be
- * implemented in later epics (DnD in Epic 8, notes in Epic 9).
+ * Epic 8 stubs (DnD) remain deferred.
+ * Epic 9 handlers (edit, copy/paste, context menu) implemented here.
  */
 
 import type {
@@ -16,6 +16,10 @@ import type {
   Req_ImportTree,
   Req_ExportTree,
   Req_MoveHierarchy,
+  Req_OnOkAfterSetNodeTabText,
+  Req_OnOkAfterSetNodeNoteText,
+  Req_OnOkAfterSetNodeWindowText,
+  Req_CopyHierarchy,
 } from '@/types/messages';
 import type { MvcId } from '@/types/brands';
 import type { ActiveSession } from './active-session';
@@ -32,6 +36,8 @@ import { TreeNode } from '@/tree/tree-node';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
 import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
 import { SavedWindowTreeNode } from '@/tree/nodes/saved-window-node';
+import { SeparatorTreeNode } from '@/tree/nodes/separator-node';
+import { TextNoteTreeNode } from '@/tree/nodes/text-note-node';
 import type { TabData, WindowData } from '@/types/node-data';
 import { NodeTypesEnum } from '@/types/enums';
 import { removeEmptyWindowParent } from './chrome-event-handlers';
@@ -146,6 +152,43 @@ export function handleViewMessage(
       break;
     }
 
+    case 'request2bkg_onOkAfterSetNodeTabTextPrompt':
+      handleApplyNodeTabText(
+        (msg as Req_OnOkAfterSetNodeTabText).targetNodeIdMVC,
+        (msg as Req_OnOkAfterSetNodeTabText).newText,
+        session,
+        bridge,
+      );
+      break;
+
+    case 'request2bkg_onOkAfterSetNodeNoteTextPrompt':
+      handleApplyNodeNoteText(
+        (msg as Req_OnOkAfterSetNodeNoteText).targetNodeIdMVC,
+        (msg as Req_OnOkAfterSetNodeNoteText).newText,
+        session,
+        bridge,
+      );
+      break;
+
+    case 'request2bkg_onOkAfterSetNodeWindowTextPrompt':
+      handleApplyNodeWindowText(
+        (msg as Req_OnOkAfterSetNodeWindowText).targetNodeIdMVC,
+        (msg as Req_OnOkAfterSetNodeWindowText).newText,
+        session,
+        bridge,
+      );
+      break;
+
+    case 'request2bkg_copyHierarchy':
+      handleCopyHierarchy(
+        (msg as Req_CopyHierarchy).sourceIdMVC,
+        (msg as Req_CopyHierarchy).targetParentIdMVC,
+        (msg as Req_CopyHierarchy).targetPosition,
+        session,
+        bridge,
+      );
+      break;
+
     // -- Deferred handlers (stubbed for later epics) --
 
     case 'request2bkg_performDrop':
@@ -156,9 +199,6 @@ export function handleViewMessage(
       );
       break;
 
-    case 'request2bkg_onOkAfterSetNodeTabTextPrompt':
-    case 'request2bkg_onOkAfterSetNodeNoteTextPrompt':
-    case 'request2bkg_onOkAfterSetNodeWindowTextPrompt':
     case 'request2bkg_addNoteAsNextSiblingOfCurrentNode':
     case 'request2bkg_addNoteAsLastSubnodeOfCurrentNode':
     case 'request2bkg_addNoteAsParentOfCurrentNode':
@@ -166,7 +206,7 @@ export function handleViewMessage(
     case 'request2bkg_addNoteAsPrevSiblingOfCurrentNode':
     case 'request2bkg_addNoteAtTheEndOfTree':
       console.warn(
-        `[message-handlers] Deferred handler: ${msg.request} (Epic 9)`,
+        `[message-handlers] Deferred handler: ${msg.request} (future epic)`,
       );
       break;
 
@@ -441,22 +481,44 @@ function handleHoveringMenuAction(
     case 'editTitleAction': {
       if (
         node.type === NodeTypesEnum.TAB ||
-        node.type === NodeTypesEnum.SAVEDTAB
+        node.type === NodeTypesEnum.SAVEDTAB ||
+        node.type === NodeTypesEnum.WAITINGTAB ||
+        node.type === NodeTypesEnum.ATTACHWAITINGTAB
       ) {
         bridge.broadcast({
           command: 'msg2view_activateNodeTabEditTextPrompt',
           targetNodeIdMVC: node.idMVC,
-          defaultText: node.getCustomTitle() ?? node.getNodeText(),
+          // Tab edit is the custom note/label field — start empty if none set,
+          // so the user types their note without the Chrome title in the way.
+          defaultText: node.getCustomTitle() ?? '',
         });
       } else if (
         node.type === NodeTypesEnum.WINDOW ||
-        node.type === NodeTypesEnum.SAVEDWINDOW
+        node.type === NodeTypesEnum.SAVEDWINDOW ||
+        node.type === NodeTypesEnum.WAITINGWINDOW ||
+        node.type === NodeTypesEnum.GROUP
       ) {
         bridge.broadcast({
           command: 'msg2view_activateNodeWindowEditTextPrompt',
           targetNodeIdMVC: node.idMVC,
           defaultText: node.getCustomTitle() ?? node.getNodeText(),
         });
+      } else if (node.type === NodeTypesEnum.TEXTNOTE) {
+        bridge.broadcast({
+          command: 'msg2view_activateNodeNoteEditTextPrompt',
+          targetNodeIdMVC: node.idMVC,
+          defaultText: (node as unknown as TextNoteTreeNode).persistentData
+            .note,
+        });
+      } else if (node.type === NodeTypesEnum.SEPARATORLINE) {
+        // Separator edit cycles styles rather than showing a text prompt.
+        (node as unknown as SeparatorTreeNode).cycleStyle();
+        bridge.broadcast({
+          command: 'msg2view_notifyObserver_onNodeUpdated',
+          idMVC: node.idMVC,
+          modelDataCopy: toNodeDTO(node),
+        });
+        session.scheduleSave();
       }
       break;
     }
@@ -477,6 +539,9 @@ function handleMoveHierarchy(
   if (!source || !source.parent) return;
 
   // Tab nodes cannot live at root — auto-wrap in a new saved window.
+  // `position` is the root-level insertion index for the wrapper;
+  // the tab goes as position 0 inside the (empty) wrapper.
+  let movePosition = position;
   if (
     containerIdMVC === null &&
     source.titleBackgroundCssClass === 'tabFrame'
@@ -486,14 +551,30 @@ function handleMoveHierarchy(
     if (!root) return;
     session.treeModel.insertSubnode(root, position, wrapper);
     containerIdMVC = wrapper.idMVC;
+    movePosition = 0;
   }
 
   const oldParent = source.parent;
   try {
-    session.treeModel.moveNode(source, { containerIdMVC, position: 0 });
+    session.treeModel.moveNode(source, {
+      containerIdMVC,
+      position: movePosition,
+    });
   } catch (err) {
     console.error('[message-handlers] moveNode failed:', err);
     return;
+  }
+
+  // If the target container was collapsed, expand it so the moved node
+  // is visible (otherwise it appears to disappear).
+  const targetParent = source.parent;
+  if (targetParent && targetParent.colapsed) {
+    session.treeModel.setCollapsed(targetParent, false);
+    bridge.broadcast({
+      command: 'msg2view_notifyObserver_onNodeUpdated',
+      idMVC: targetParent.idMVC,
+      modelDataCopy: toNodeDTO(targetParent),
+    });
   }
 
   bridge.broadcast({
@@ -505,6 +586,139 @@ function handleMoveHierarchy(
 
   // Remove the old parent if it's now an empty window (no custom marks).
   removeEmptyWindowParent(session, bridge, oldParent);
+
+  session.scheduleSave();
+}
+
+function handleApplyNodeTabText(
+  targetNodeIdMVC: string,
+  newText: string,
+  session: ActiveSession,
+  bridge: ViewBridge,
+): void {
+  const node = session.treeModel.findByMvcId(targetNodeIdMVC as MvcId);
+  if (!node) return;
+
+  session.treeModel.setMarks(node, {
+    ...node.marks,
+    customTitle: newText.trim() || undefined,
+  });
+
+  bridge.broadcast({
+    command: 'msg2view_notifyObserver_onNodeUpdated',
+    idMVC: node.idMVC,
+    modelDataCopy: toNodeDTO(node),
+  });
+
+  session.scheduleSave();
+}
+
+function handleApplyNodeNoteText(
+  targetNodeIdMVC: string,
+  newText: string,
+  session: ActiveSession,
+  bridge: ViewBridge,
+): void {
+  const node = session.treeModel.findByMvcId(targetNodeIdMVC as MvcId);
+  if (!node || node.type !== NodeTypesEnum.TEXTNOTE) return;
+
+  (node as unknown as TextNoteTreeNode).setNote(newText);
+
+  bridge.broadcast({
+    command: 'msg2view_notifyObserver_onNodeUpdated',
+    idMVC: node.idMVC,
+    modelDataCopy: toNodeDTO(node),
+  });
+
+  session.scheduleSave();
+}
+
+function handleApplyNodeWindowText(
+  targetNodeIdMVC: string,
+  newText: string,
+  session: ActiveSession,
+  bridge: ViewBridge,
+): void {
+  const node = session.treeModel.findByMvcId(targetNodeIdMVC as MvcId);
+  if (!node) return;
+
+  session.treeModel.setMarks(node, {
+    ...node.marks,
+    customTitle: newText.trim() || undefined,
+  });
+
+  bridge.broadcast({
+    command: 'msg2view_notifyObserver_onNodeUpdated',
+    idMVC: node.idMVC,
+    modelDataCopy: toNodeDTO(node),
+  });
+
+  session.scheduleSave();
+}
+
+/**
+ * Deep-clone a node subtree, converting active nodes to their saved
+ * equivalents. Each cloned node gets a fresh idMVC via cloneAsSaved().
+ */
+function cloneSubtree(node: TreeNode): TreeNode {
+  const clone = node.cloneAsSaved();
+  for (const child of node.subnodes) {
+    const childClone = cloneSubtree(child as TreeNode);
+    childClone.parent = clone;
+    clone.subnodes.push(childClone);
+  }
+  return clone;
+}
+
+function handleCopyHierarchy(
+  sourceIdMVC: string,
+  targetParentIdMVC: string | null,
+  targetPosition: number,
+  session: ActiveSession,
+  bridge: ViewBridge,
+): void {
+  const source = session.treeModel.findByMvcId(sourceIdMVC as MvcId);
+  if (!source || !source.parent) return;
+
+  const clone = cloneSubtree(source as TreeNode);
+
+  // Tab nodes cannot live at root — auto-wrap in a new saved window,
+  // mirroring the same logic in handleMoveHierarchy.
+  let containerIdMVC = targetParentIdMVC;
+  let insertPosition = targetPosition;
+
+  if (
+    containerIdMVC === null &&
+    source.titleBackgroundCssClass === 'tabFrame'
+  ) {
+    const wrapper = new SavedWindowTreeNode();
+    const root = session.treeModel.root;
+    if (!root) return;
+    const wrapperPos =
+      insertPosition === -1 ? root.subnodes.length : insertPosition;
+    session.treeModel.insertSubnode(root, wrapperPos, wrapper);
+    containerIdMVC = wrapper.idMVC;
+    insertPosition = 0; // clone goes as first (and only) child of new wrapper
+  }
+
+  const targetParent =
+    containerIdMVC != null
+      ? session.treeModel.findByMvcId(containerIdMVC as MvcId)
+      : session.treeModel.root;
+  if (!targetParent) return;
+
+  const finalPosition =
+    insertPosition === -1 ? targetParent.subnodes.length : insertPosition;
+
+  session.treeModel.insertSubnode(
+    targetParent as TreeNode,
+    finalPosition,
+    clone,
+  );
+
+  // Full broadcast: clone adds a new node with a new idMVC;
+  // incremental diff not worth the complexity for a rare operation.
+  bridge.broadcast(session.getInitMessage());
 
   session.scheduleSave();
 }

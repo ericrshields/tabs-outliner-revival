@@ -1,17 +1,25 @@
 /**
  * Hook managing hover menu state, action dispatch, scroll-clear,
- * activation mode preference, and TreeContextValue construction.
+ * activation mode preference, inline edit, and TreeContextValue construction.
  */
 
-import { useEffect, useCallback, useState, useMemo } from 'react';
+import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import type { MutableRef } from 'preact/hooks';
 import type { ViewToBackgroundMessage } from '@/types/messages';
 import type { HoveringMenuActionId } from '@/types/node';
+import type { NodeDTO } from '@/types/node-dto';
 import type {
   HoveringMenuActions,
   TreeContextValue,
+  EditKind,
 } from '@/types/tree-context';
-import { executeAction } from '../tree-actions';
+import type { EditingNodeState } from './use-tree-data';
+import {
+  executeAction,
+  applyNodeTabText,
+  applyNodeNoteText,
+  applyNodeWindowText,
+} from '../tree-actions';
 
 const SINGLE_CLICK_KEY = 'singleClickActivation';
 
@@ -25,6 +33,15 @@ export interface UseTreeInteractionsOptions {
   postMessage: (msg: ViewToBackgroundMessage) => void;
   treeContainerRef: MutableRef<HTMLDivElement | null>;
   selectedId: string | null;
+  editingNode: EditingNodeState | null;
+  clearEditing: () => void;
+  onOpenContextMenu: (
+    idMVC: string,
+    nodeDTO: NodeDTO,
+    x: number,
+    y: number,
+  ) => void;
+  hasClipboard: boolean;
 }
 
 export interface UseTreeInteractionsReturn {
@@ -32,18 +49,31 @@ export interface UseTreeInteractionsReturn {
   clearHover: () => void;
   handleAction: (idMVC: string, actionId: HoveringMenuActionId) => void;
   ctxValue: TreeContextValue;
+  /** The last node the user deliberately interacted with (click, action, context menu). Used as the keyboard shortcut target so shortcuts operate on the intended node regardless of where the mouse currently is. */
+  lastKeyboardTargetId: { current: string | null };
 }
 
 export function useTreeInteractions({
   postMessage,
   treeContainerRef,
   selectedId,
+  editingNode,
+  clearEditing,
+  onOpenContextMenu,
+  hasClipboard,
 }: UseTreeInteractionsOptions): UseTreeInteractionsReturn {
   const [hoverState, setHoverState] = useState<HoverState | null>(null);
+
+  // Tracks the last deliberately interacted-with node. Used as the keyboard
+  // shortcut target so keys operate on the intended node, not wherever the
+  // mouse currently happens to be.
+  const lastKeyboardTargetId = useRef<string | null>(null);
 
   const handleRowEnter = useCallback(
     (id: string, actions: HoveringMenuActions, rect: DOMRect) => {
       setHoverState({ idMVC: id, actions, rect });
+      // Note: lastKeyboardTargetId is NOT updated here — keyboard shortcuts
+      // require an explicit click/action/context-menu to set the target.
     },
     [],
   );
@@ -52,12 +82,47 @@ export function useTreeInteractions({
     setHoverState(null);
   }, []);
 
+  const handleNodeClick = useCallback((idMVC: string) => {
+    lastKeyboardTargetId.current = idMVC;
+  }, []);
+
   const handleAction = useCallback(
     (idMVC: string, actionId: HoveringMenuActionId) => {
+      lastKeyboardTargetId.current = idMVC;
       postMessage(executeAction(idMVC, actionId));
       setHoverState(null);
     },
     [postMessage],
+  );
+
+  const handleEditComplete = useCallback(
+    (idMVC: string, newText: string, kind: EditKind) => {
+      switch (kind) {
+        case 'tab':
+          postMessage(applyNodeTabText(idMVC, newText));
+          break;
+        case 'note':
+          postMessage(applyNodeNoteText(idMVC, newText));
+          break;
+        case 'window':
+          postMessage(applyNodeWindowText(idMVC, newText));
+          break;
+      }
+      clearEditing();
+    },
+    [postMessage, clearEditing],
+  );
+
+  const handleEditCancel = useCallback(() => {
+    clearEditing();
+  }, [clearEditing]);
+
+  const handleContextMenu = useCallback(
+    (idMVC: string, nodeDTO: NodeDTO, x: number, y: number) => {
+      lastKeyboardTargetId.current = idMVC;
+      onOpenContextMenu(idMVC, nodeDTO, x, y);
+    },
+    [onOpenContextMenu],
   );
 
   // Clear hover menu on scroll (position becomes stale)
@@ -82,6 +147,13 @@ export function useTreeInteractions({
       singleClickActivation,
       onRowEnter: handleRowEnter,
       onAction: handleAction,
+      editingId: editingNode?.idMVC ?? null,
+      editDefaultText: editingNode?.defaultText ?? '',
+      onEditComplete: handleEditComplete,
+      onEditCancel: handleEditCancel,
+      onContextMenu: handleContextMenu,
+      onNodeClick: handleNodeClick,
+      hasClipboard,
     }),
     [
       selectedId,
@@ -89,8 +161,21 @@ export function useTreeInteractions({
       singleClickActivation,
       handleRowEnter,
       handleAction,
+      editingNode?.idMVC,
+      editingNode?.defaultText,
+      handleEditComplete,
+      handleEditCancel,
+      handleContextMenu,
+      handleNodeClick,
+      hasClipboard,
     ],
   );
 
-  return { hoverState, clearHover, handleAction, ctxValue };
+  return {
+    hoverState,
+    clearHover,
+    handleAction,
+    ctxValue,
+    lastKeyboardTargetId,
+  };
 }

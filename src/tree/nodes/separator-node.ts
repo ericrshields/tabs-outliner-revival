@@ -73,6 +73,16 @@ export class SeparatorTreeNode extends TreeNode {
     return null;
   }
 
+  /** Cycle to the next separator style (0 → 1 → 2 → 0). */
+  cycleStyle(): void {
+    this._persistentData = {
+      separatorIndx: ((this._persistentData.separatorIndx + 1) % 3) as
+        | 0
+        | 1
+        | 2,
+    };
+  }
+
   getNodeContentCssClass(): string {
     return SEPARATORS[this._persistentData.separatorIndx].css;
   }

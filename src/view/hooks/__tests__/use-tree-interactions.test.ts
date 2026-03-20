@@ -9,6 +9,21 @@ vi.mock('../../tree-actions', () => ({
     idMVC: id,
     actionId,
   })),
+  applyNodeTabText: vi.fn((id: string, text: string) => ({
+    request: 'request2bkg_onOkAfterSetNodeTabTextPrompt',
+    targetNodeIdMVC: id,
+    newText: text,
+  })),
+  applyNodeNoteText: vi.fn((id: string, text: string) => ({
+    request: 'request2bkg_onOkAfterSetNodeNoteTextPrompt',
+    targetNodeIdMVC: id,
+    newText: text,
+  })),
+  applyNodeWindowText: vi.fn((id: string, text: string) => ({
+    request: 'request2bkg_onOkAfterSetNodeWindowTextPrompt',
+    targetNodeIdMVC: id,
+    newText: text,
+  })),
 }));
 
 import { useTreeInteractions } from '../use-tree-interactions';
@@ -27,6 +42,10 @@ function makeOptions(
     postMessage: vi.fn(),
     treeContainerRef: { current: null } as MutableRef<HTMLDivElement | null>,
     selectedId: null,
+    editingNode: null,
+    clearEditing: vi.fn(),
+    onOpenContextMenu: vi.fn(),
+    hasClipboard: false,
     ...overrides,
   };
 }
@@ -177,6 +196,10 @@ describe('useTreeInteractions', () => {
         postMessage,
         treeContainerRef: ref,
         selectedId: 'tab1',
+        editingNode: null,
+        clearEditing: vi.fn(),
+        onOpenContextMenu: vi.fn(),
+        hasClipboard: false,
       };
       const { result, rerender } = renderHook(
         (props: UseTreeInteractionsOptions) => useTreeInteractions(props),

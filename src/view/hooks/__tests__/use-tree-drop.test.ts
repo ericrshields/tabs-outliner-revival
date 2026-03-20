@@ -138,12 +138,12 @@ describe('useTreeDrop', () => {
   });
 
   describe('external drag-drop', () => {
-    it('sets isExternalDragOver for external drag types', () => {
+    it('sets isExternalDragOver for Files drag type', () => {
       const { result } = renderHook(() => useTreeDrop(makeOptions()));
       expect(result.current.isExternalDragOver).toBe(false);
 
       const event = {
-        dataTransfer: { types: ['text/html'] },
+        dataTransfer: { types: ['Files'] },
         preventDefault: vi.fn(),
       };
 
@@ -153,12 +153,28 @@ describe('useTreeDrop', () => {
       expect(event.preventDefault).toHaveBeenCalled();
     });
 
+    it('calls preventDefault for text/html but does not show overlay (legacy import drop gate)', () => {
+      // text/html: we must preventDefault so the browser fires the drop event
+      // (legacy extension DnD uses this format), but we don't show the overlay
+      // to avoid false positives from any browser text/link drag.
+      const { result } = renderHook(() => useTreeDrop(makeOptions()));
+
+      const event = {
+        dataTransfer: { types: ['text/html'] },
+        preventDefault: vi.fn(),
+      };
+      act(() => result.current.handleTreeDragOver(event as any));
+
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(result.current.isExternalDragOver).toBe(false);
+    });
+
     it('resets on drag leave', () => {
       const { result } = renderHook(() => useTreeDrop(makeOptions()));
 
-      // Trigger drag over first
+      // Trigger drag over first with a real external type
       const event = {
-        dataTransfer: { types: ['text/html'] },
+        dataTransfer: { types: ['Files'] },
         preventDefault: vi.fn(),
       };
       act(() => result.current.handleTreeDragOver(event as any));

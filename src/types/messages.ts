@@ -244,6 +244,16 @@ export interface Req_ExportTree {
   readonly format?: 'json' | 'html';
 }
 
+export interface Req_CopyHierarchy {
+  readonly request: 'request2bkg_copyHierarchy';
+  /** Source node to deep-clone (active nodes cloned as saved variants). */
+  readonly sourceIdMVC: string;
+  /** Target parent node (null = root). */
+  readonly targetParentIdMVC: string | null;
+  /** Index within target parent (-1 = last child). */
+  readonly targetPosition: number;
+}
+
 /** Catch-all for remaining view->background messages not yet fully typed */
 export interface Req_ViewToBackgroundGeneric {
   readonly request: string;
@@ -268,4 +278,5 @@ export type ViewToBackgroundMessage =
   | Req_OnViewWindowBeforeUnload
   | Req_ImportTree
   | Req_ExportTree
+  | Req_CopyHierarchy
   | Req_ViewToBackgroundGeneric;

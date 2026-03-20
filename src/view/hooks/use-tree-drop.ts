@@ -90,13 +90,22 @@ export function useTreeDrop({
       const dt = e.dataTransfer;
       if (!dt) return;
       const types = Array.from(dt.types);
-      const isExternal =
+      // Legacy extension DnD uses text/html (Chrome blocks custom MIME types
+      // cross-extension). We must call e.preventDefault() for text/html so the
+      // browser fires the drop event — but we don't show the overlay for it
+      // alone, since any browser text/link drag also sets text/html.
+      // react-arborist internal DnD uses react-dnd (sets text/plain only),
+      // so text/html alone means a legacy import or external browser drag.
+      const needsPreventDefault =
         types.includes('application/x-tabsoutliner-items') ||
         types.includes('text/html') ||
         types.includes('Files');
-      if (isExternal) {
+      const showOverlay =
+        types.includes('application/x-tabsoutliner-items') ||
+        types.includes('Files');
+      if (needsPreventDefault) {
         e.preventDefault();
-        setIsExternalDragOver(true);
+        setIsExternalDragOver(showOverlay);
       }
     },
     [],

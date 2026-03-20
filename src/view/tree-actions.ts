@@ -14,6 +14,10 @@ import type {
   Req_ImportTree,
   Req_ExportTree,
   Req_MoveHierarchy,
+  Req_CopyHierarchy,
+  Req_OnOkAfterSetNodeTabText,
+  Req_OnOkAfterSetNodeNoteText,
+  Req_OnOkAfterSetNodeWindowText,
 } from '@/types/messages';
 
 /** Request the full tree structure from the background. */
@@ -80,5 +84,55 @@ export function moveHierarchy(
     targetNodeIdMVC: sourceIdMVC,
     containerIdMVC,
     position,
+  };
+}
+
+/** Deep-clone a node subtree and insert it at the target position. */
+export function copyHierarchy(
+  sourceIdMVC: string,
+  targetParentIdMVC: string | null,
+  targetPosition: number,
+): Req_CopyHierarchy {
+  return {
+    request: 'request2bkg_copyHierarchy',
+    sourceIdMVC,
+    targetParentIdMVC,
+    targetPosition,
+  };
+}
+
+/** Commit an edited title for a tab node. */
+export function applyNodeTabText(
+  idMVC: string,
+  newText: string,
+): Req_OnOkAfterSetNodeTabText {
+  return {
+    request: 'request2bkg_onOkAfterSetNodeTabTextPrompt',
+    targetNodeIdMVC: idMVC,
+    newText,
+  };
+}
+
+/** Commit edited text content for a text note node. */
+export function applyNodeNoteText(
+  idMVC: string,
+  newText: string,
+): Req_OnOkAfterSetNodeNoteText {
+  return {
+    request: 'request2bkg_onOkAfterSetNodeNoteTextPrompt',
+    targetNodeIdMVC: idMVC,
+    newText,
+  };
+}
+
+/** Commit an edited title for a window or group node. */
+export function applyNodeWindowText(
+  idMVC: string,
+  newText: string,
+): Req_OnOkAfterSetNodeWindowText {
+  return {
+    request: 'request2bkg_onOkAfterSetNodeWindowTextPrompt',
+    targetNodeIdMVC: idMVC,
+    newText,
   };
 }

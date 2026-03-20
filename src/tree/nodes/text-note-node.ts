@@ -57,6 +57,11 @@ export class TextNoteTreeNode extends TreeNode {
     return null;
   }
 
+  /** Replace the note text content. */
+  setNote(text: string): void {
+    this._persistentData = { note: text };
+  }
+
   getNodeContentCssClass(): string | null {
     return null;
   }

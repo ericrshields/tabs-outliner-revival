@@ -44,6 +44,14 @@
   --menu-fg: #ccc;
   --menu-hover: rgba(255, 255, 255, 0.12);
 
+  /* Context menu */
+  --ctx-menu-bg: #252525;
+  --ctx-menu-border: #444;
+  --ctx-menu-hover: rgba(255, 255, 255, 0.08);
+  --ctx-menu-disabled: #555;
+  --ctx-menu-shortcut: #666;
+  --ctx-menu-separator: #333;
+
   /* Stats block */
   --stats-fg: #888;
 }
@@ -265,6 +273,86 @@ body {
 
 .hovering-menu-btn:hover {
   background: var(--menu-hover);
+}
+
+/* ---- Context menu ---- */
+
+.ctx-menu {
+  position: fixed;
+  z-index: 200;
+  background: var(--ctx-menu-bg);
+  border: 1px solid var(--ctx-menu-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  padding: 4px 0;
+  min-width: 200px;
+  font-size: 12px;
+  color: var(--fg-default);
+  user-select: none;
+}
+
+.ctx-menu-section {
+  padding: 2px 0;
+}
+
+.ctx-menu-separator {
+  height: 1px;
+  background: var(--ctx-menu-separator);
+  margin: 3px 0;
+}
+
+.ctx-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 4px 12px;
+  background: none;
+  border: none;
+  color: var(--fg-default);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ctx-menu-item:hover:not(.ctx-menu-item--disabled) {
+  background: var(--ctx-menu-hover);
+}
+
+.ctx-menu-item--disabled {
+  color: var(--ctx-menu-disabled);
+  cursor: default;
+}
+
+.ctx-menu-label {
+  flex: 1;
+}
+
+.ctx-menu-shortcut {
+  color: var(--ctx-menu-shortcut);
+  margin-left: 16px;
+  font-size: 11px;
+}
+
+/* ---- Inline node edit input ---- */
+
+.node-edit-input {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid #5a7a9a;
+  border-radius: 3px;
+  color: var(--fg-bright);
+  font-size: 12px;
+  font-family: inherit;
+  padding: 1px 4px;
+  outline: none;
+  width: calc(100% - 8px);
+  min-width: 80px;
+}
+
+.node-edit-input:focus {
+  border-color: #7aaaca;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* ---- Stats block ---- */

@@ -12,4 +12,11 @@ export const TreeContext = createContext<TreeContextValue>({
   singleClickActivation: false,
   onRowEnter: () => {},
   onAction: () => {},
+  editingId: null,
+  editDefaultText: '',
+  onEditComplete: () => {},
+  onEditCancel: () => {},
+  onContextMenu: () => {},
+  onNodeClick: () => {},
+  hasClipboard: false,
 });

@@ -9,6 +9,7 @@ import { ClickRow } from './ClickRow';
 function makeNodeApi(overrides: { isSelected?: boolean } = {}) {
   return {
     isSelected: overrides.isSelected ?? false,
+    data: { idMVC: 'test-node-1' } as NodeDTO,
     select: vi.fn(),
     activate: vi.fn(),
     deselect: vi.fn(),
@@ -24,6 +25,13 @@ function makeCtx(overrides: Partial<TreeContextValue> = {}): TreeContextValue {
     singleClickActivation: false,
     onRowEnter: vi.fn(),
     onAction: vi.fn(),
+    editingId: null,
+    editDefaultText: '',
+    onEditComplete: vi.fn(),
+    onEditCancel: vi.fn(),
+    onContextMenu: vi.fn(),
+    onNodeClick: vi.fn(),
+    hasClipboard: false,
     ...overrides,
   };
 }

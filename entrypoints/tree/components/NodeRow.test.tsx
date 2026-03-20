@@ -39,6 +39,13 @@ function makeCtx(overrides: Partial<TreeContextValue> = {}): TreeContextValue {
     singleClickActivation: false,
     onRowEnter: vi.fn(),
     onAction: vi.fn(),
+    editingId: null,
+    editDefaultText: '',
+    onEditComplete: vi.fn(),
+    onEditCancel: vi.fn(),
+    onContextMenu: vi.fn(),
+    onNodeClick: vi.fn(),
+    hasClipboard: false,
     ...overrides,
   };
 }

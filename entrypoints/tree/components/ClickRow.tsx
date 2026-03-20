@@ -16,7 +16,8 @@ export function ClickRow({
   innerRef,
   children,
 }: RowRendererProps<NodeDTO>) {
-  const { singleClickActivation } = useContext(TreeContext);
+  const { singleClickActivation, editingId, onNodeClick } =
+    useContext(TreeContext);
 
   return (
     <div
@@ -24,6 +25,9 @@ export function ClickRow({
       ref={innerRef}
       onFocus={(e) => e.stopPropagation()}
       onClick={(e) => {
+        // Suppress tree selection while any node is being inline-edited.
+        // Without this, node.select() steals focus from the edit input.
+        if (editingId) return;
         if (e.metaKey) {
           if (node.isSelected) {
             node.deselect();
@@ -33,6 +37,7 @@ export function ClickRow({
         } else if (e.shiftKey) {
           node.selectContiguous();
         } else {
+          onNodeClick(node.data.idMVC);
           node.select();
           // e.detail === 1 filters out the second click of a double-click,
           // preventing duplicate activate() calls (and duplicate tab opens).
@@ -40,6 +45,7 @@ export function ClickRow({
         }
       }}
       onDoubleClick={() => {
+        if (editingId) return;
         if (!singleClickActivation) node.activate();
       }}
     >

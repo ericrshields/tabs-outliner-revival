@@ -33,6 +33,22 @@ export type {
   UseTreeDropReturn,
 } from './hooks/use-tree-drop';
 
+export { useClipboard } from './hooks/use-clipboard';
+export type {
+  UseClipboardOptions,
+  UseClipboardReturn,
+  ClipboardKind,
+} from './hooks/use-clipboard';
+
+export { useContextMenu } from './hooks/use-context-menu';
+export type {
+  ContextMenuState,
+  UseContextMenuReturn,
+} from './hooks/use-context-menu';
+
+export { useKeyboardShortcuts } from './hooks/use-keyboard-shortcuts';
+export type { UseKeyboardShortcutsOptions } from './hooks/use-keyboard-shortcuts';
+
 export { nodeId, nodeChildren, buildOpenMap } from './tree-adapter';
 export {
   requestTree,
@@ -44,4 +60,8 @@ export {
   exportTree,
   exportTreeHtml,
   moveHierarchy,
+  copyHierarchy,
+  applyNodeTabText,
+  applyNodeNoteText,
+  applyNodeWindowText,
 } from './tree-actions';

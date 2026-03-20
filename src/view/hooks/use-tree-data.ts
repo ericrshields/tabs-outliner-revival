@@ -18,6 +18,9 @@ import type {
   Msg_SetCursorHere,
   Msg_ImportResult,
   Msg_ExportResult,
+  Msg_ActivateNodeTabEditTextPrompt,
+  Msg_ActivateNodeNoteEditTextPrompt,
+  Msg_ActivateNodeWindowEditTextPrompt,
 } from '@/types/messages';
 import { buildOpenMap } from '../tree-adapter';
 
@@ -27,6 +30,14 @@ export interface ImportResultState {
   success: boolean;
   nodeCount: number;
   error?: string;
+}
+
+export type EditKind = 'tab' | 'note' | 'window';
+
+export interface EditingNodeState {
+  idMVC: string;
+  defaultText: string;
+  kind: EditKind;
 }
 
 export interface TreeState {
@@ -40,6 +51,7 @@ export interface TreeState {
   exportJson: string | null;
   exportHtml: string | null;
   exportError: string | null;
+  editingNode: EditingNodeState | null;
 }
 
 const INITIAL_STATE: TreeState = {
@@ -53,6 +65,7 @@ const INITIAL_STATE: TreeState = {
   exportJson: null,
   exportHtml: null,
   exportError: null,
+  editingNode: null,
 };
 
 // -- Reducer actions --
@@ -73,7 +86,14 @@ type TreeAction =
   | { type: 'EXPORT_HTML_READY'; treeHtml: string }
   | { type: 'EXPORT_ERROR'; error: string }
   | { type: 'EXPORT_CLEAR' }
-  | { type: 'EXPORT_HTML_CLEAR' };
+  | { type: 'EXPORT_HTML_CLEAR' }
+  | {
+      type: 'START_EDITING';
+      idMVC: string;
+      defaultText: string;
+      kind: EditKind;
+    }
+  | { type: 'CLEAR_EDITING' };
 
 // -- Index types --
 
@@ -155,7 +175,13 @@ function clonePathToRoot(
       );
     }
 
-    currentReplacement = { ...parentNode, subnodes: newSubnodes };
+    currentReplacement = {
+      ...parentNode,
+      subnodes: newSubnodes,
+      // Recompute isSubnodesPresent so expand/collapse arrow updates correctly
+      // after the last child is removed.
+      isSubnodesPresent: newSubnodes.length > 0,
+    };
   }
 
   return currentReplacement;
@@ -182,6 +208,7 @@ function createReducer(indexesRef: { current: Indexes }) {
           exportJson: null,
           exportHtml: null,
           exportError: null,
+          editingNode: null,
         };
       }
 
@@ -220,7 +247,18 @@ function createReducer(indexesRef: { current: Indexes }) {
         const newIndexes = buildIndexes(newRoot);
         indexesRef.current = newIndexes;
 
-        return { ...state, root: newRoot, needsFullRefresh: false };
+        // If this update is for the node currently being edited, clear the
+        // editing state in the same render so the committed text is visible
+        // immediately (avoids a flash of the old text on Enter).
+        const clearEdit =
+          state.editingNode?.idMVC === action.idMVC ? null : state.editingNode;
+
+        return {
+          ...state,
+          root: newRoot,
+          needsFullRefresh: false,
+          editingNode: clearEdit,
+        };
       }
 
       case 'NODE_REMOVED': {
@@ -279,6 +317,19 @@ function createReducer(indexesRef: { current: Indexes }) {
       case 'EXPORT_HTML_CLEAR':
         return { ...state, exportHtml: null, exportError: null };
 
+      case 'START_EDITING':
+        return {
+          ...state,
+          editingNode: {
+            idMVC: action.idMVC,
+            defaultText: action.defaultText,
+            kind: action.kind,
+          },
+        };
+
+      case 'CLEAR_EDITING':
+        return { ...state, editingNode: null };
+
       default:
         return state;
     }
@@ -293,6 +344,7 @@ export interface UseTreeDataReturn {
   handleMessage: (msg: BackgroundToViewMessage) => void;
   clearExport: () => void;
   clearExportHtml: () => void;
+  clearEditing: () => void;
 }
 
 export function useTreeData(): UseTreeDataReturn {
@@ -375,9 +427,41 @@ export function useTreeData(): UseTreeDataReturn {
         break;
       }
 
+      case 'msg2view_activateNodeTabEditTextPrompt': {
+        const editMsg = msg as Msg_ActivateNodeTabEditTextPrompt;
+        dispatch({
+          type: 'START_EDITING',
+          idMVC: editMsg.targetNodeIdMVC,
+          defaultText: editMsg.defaultText,
+          kind: 'tab',
+        });
+        break;
+      }
+
+      case 'msg2view_activateNodeNoteEditTextPrompt': {
+        const editMsg = msg as Msg_ActivateNodeNoteEditTextPrompt;
+        dispatch({
+          type: 'START_EDITING',
+          idMVC: editMsg.targetNodeIdMVC,
+          defaultText: editMsg.defaultText,
+          kind: 'note',
+        });
+        break;
+      }
+
+      case 'msg2view_activateNodeWindowEditTextPrompt': {
+        const editMsg = msg as Msg_ActivateNodeWindowEditTextPrompt;
+        dispatch({
+          type: 'START_EDITING',
+          idMVC: editMsg.targetNodeIdMVC,
+          defaultText: editMsg.defaultText,
+          kind: 'window',
+        });
+        break;
+      }
+
       default:
-        // Messages not handled by tree data (scroll, drag, edit prompts, etc.)
-        // are silently ignored — they'll be handled by other hooks in later epics.
+        // Messages not handled by tree data (scroll, drag, etc.) are silently ignored.
         break;
     }
   }, []);
@@ -390,11 +474,16 @@ export function useTreeData(): UseTreeDataReturn {
     dispatch({ type: 'EXPORT_HTML_CLEAR' });
   }, []);
 
+  const clearEditing = useCallback(() => {
+    dispatch({ type: 'CLEAR_EDITING' });
+  }, []);
+
   return {
     state,
     isLoading: state.root === null,
     handleMessage,
     clearExport,
     clearExportHtml,
+    clearEditing,
   };
 }
