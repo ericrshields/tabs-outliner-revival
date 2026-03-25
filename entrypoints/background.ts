@@ -15,8 +15,14 @@ import {
   onExtensionStartup,
   onServiceWorkerSuspend,
 } from '@/chrome/lifecycle';
+import { onStorageChanged } from '@/chrome/storage';
 import { createTab, queryTabs, removeTab, focusTab } from '@/chrome/tabs';
 import { queryWindows, removeWindow } from '@/chrome/windows';
+import {
+  getDedicationSeenFlag,
+  setDedicationSeenFlag,
+} from '@/storage/settings-storage';
+import { SETTINGS_KEY } from '@/types/settings';
 
 export default defineBackground(() => {
   console.log('Tabs Outliner Revival: background service worker started', {
@@ -27,19 +33,32 @@ export default defineBackground(() => {
   let initPromise: Promise<void> | null = null;
 
   async function initSession(): Promise<void> {
-    if (session || initPromise) return;
-    initPromise = (async () => {
-      try {
-        session = await ActiveSession.create();
-        console.log('[background] ActiveSession created', {
-          instanceId: session.instanceId,
-        });
-      } catch (err) {
-        console.error('[background] Failed to create ActiveSession:', err);
-      } finally {
-        initPromise = null;
-      }
-    })();
+    if (session) return;
+    if (!initPromise) {
+      initPromise = (async () => {
+        try {
+          session = await ActiveSession.create();
+          console.log('[background] ActiveSession created', {
+            instanceId: session.instanceId,
+          });
+
+          // Broadcast settings changes to all connected views.
+          // Cleanup intentionally discarded — SW has no unmount lifecycle.
+          onStorageChanged('local', SETTINGS_KEY, () => {
+            if (session) {
+              session.viewBridge.broadcast({
+                command: 'msg2view_optionsChanged_message',
+                changedOption: SETTINGS_KEY,
+              });
+            }
+          });
+        } catch (err) {
+          console.error('[background] Failed to create ActiveSession:', err);
+          // Clear initPromise only on failure so callers can retry.
+          initPromise = null;
+        }
+      })();
+    }
     await initPromise;
   }
 
@@ -48,8 +67,19 @@ export default defineBackground(() => {
     void initSession();
   });
 
-  onExtensionInstalled(() => {
-    void initSession();
+  onExtensionInstalled(async (details) => {
+    await initSession();
+    // Open the dedication page only on first install (not on updates).
+    if (details.reason !== 'install') return;
+    const seen = await getDedicationSeenFlag();
+    if (!seen) {
+      await createTab({
+        url: browser.runtime.getURL(
+          '/dedication.html' as Parameters<typeof browser.runtime.getURL>[0],
+        ),
+      });
+      await setDedicationSeenFlag();
+    }
   });
 
   // Immediate init for when the SW first loads
