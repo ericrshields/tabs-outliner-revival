@@ -53,7 +53,7 @@ describe('SavedTabTreeNode', () => {
     // Construct with a tab that bypasses the constructor cleaning
     const node = new SavedTabTreeNode();
     // Manually test the getIcon path for loading
-    expect(node.getIcon()).toContain('chromeFavicon');
+    expect(node.getIcon()).toBe('img/globe.svg');
   });
 
   it('returns customTitle from marks', () => {

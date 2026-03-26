@@ -38,7 +38,7 @@ export class WaitingTabTreeNode extends TreeNode {
     if (this._persistentData.status === 'loading') {
       return 'img/loading.gif';
     }
-    return this._persistentData.favIconUrl ?? 'img/chromeFavicon.png';
+    return this._persistentData.favIconUrl ?? 'img/globe.svg';
   }
 
   getIconForHtmlExport(): string | null {

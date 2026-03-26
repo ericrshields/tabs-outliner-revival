@@ -87,7 +87,17 @@ export function NodeRow({
   );
 
   const icon = data.icon ? (
-    <img className="node-icon" src={data.icon} alt="" />
+    <img
+      className="node-icon"
+      src={data.icon}
+      alt=""
+      onError={(e) => {
+        const img = e.currentTarget as HTMLImageElement;
+        if (!img.src.endsWith('globe.svg')) {
+          img.src = 'img/globe.svg';
+        }
+      }}
+    />
   ) : null;
 
   const kind = editKindFromFrame(data.titleBackgroundCssClass);
