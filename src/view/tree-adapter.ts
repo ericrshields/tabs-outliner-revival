@@ -22,10 +22,18 @@ export function nodeId(dto: NodeDTO): string {
  * `isSubnodesPresent: true`. Return `[]` (not `null`) so
  * react-arborist shows the expand arrow. Return `null` only for
  * true leaf nodes where `isSubnodesPresent` is false.
+ *
+ * Container frames (windowFrame) are always treated as non-leaf even
+ * when empty, so toolbar-created windows/groups accept DnD drops.
  */
 export function nodeChildren(dto: NodeDTO): readonly NodeDTO[] | null {
   if (dto.isSubnodesPresent || dto.subnodes.length > 0) {
     return dto.subnodes;
+  }
+  // Window/group nodes use windowFrame and should always be droppable
+  // containers, even when empty (e.g. freshly created from the toolbar).
+  if (dto.titleBackgroundCssClass === 'windowFrame') {
+    return dto.subnodes; // returns []
   }
   return null;
 }

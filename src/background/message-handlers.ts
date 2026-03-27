@@ -20,6 +20,9 @@ import type {
   Req_OnOkAfterSetNodeNoteText,
   Req_OnOkAfterSetNodeWindowText,
   Req_CopyHierarchy,
+  Req_CreateWindow,
+  Req_CreateGroup,
+  Req_CreateSeparator,
 } from '@/types/messages';
 import type { MvcId } from '@/types/brands';
 import type { ActiveSession } from './active-session';
@@ -36,6 +39,7 @@ import { TreeNode } from '@/tree/tree-node';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
 import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
 import { SavedWindowTreeNode } from '@/tree/nodes/saved-window-node';
+import { GroupTreeNode } from '@/tree/nodes/group-node';
 import { SeparatorTreeNode } from '@/tree/nodes/separator-node';
 import { TextNoteTreeNode } from '@/tree/nodes/text-note-node';
 import type { TabData, WindowData } from '@/types/node-data';
@@ -186,6 +190,33 @@ export function handleViewMessage(
         (msg as Req_CopyHierarchy).targetPosition,
         session,
         bridge,
+      );
+      break;
+
+    case 'request2bkg_createWindow':
+      handleCreateNode(
+        session,
+        bridge,
+        'window',
+        (msg as Req_CreateWindow).afterIdMVC,
+      );
+      break;
+
+    case 'request2bkg_createGroup':
+      handleCreateNode(
+        session,
+        bridge,
+        'group',
+        (msg as Req_CreateGroup).afterIdMVC,
+      );
+      break;
+
+    case 'request2bkg_createSeparator':
+      handleCreateNode(
+        session,
+        bridge,
+        'separator',
+        (msg as Req_CreateSeparator).afterIdMVC,
       );
       break;
 
@@ -454,6 +485,20 @@ function handleHoveringMenuAction(
 
     case 'deleteAction': {
       const oldParent = node.parent;
+
+      // Find the next cursor target before deletion (siblings shift after removal).
+      let nextCursorId: string | null = null;
+      if (oldParent) {
+        const siblings = oldParent.subnodes;
+        const idx = siblings.indexOf(node as TreeNode);
+        if (idx >= 0) {
+          const next = (siblings[idx + 1] ?? siblings[idx - 1]) as
+            | TreeNode
+            | undefined;
+          if (next) nextCursorId = next.idMVC;
+        }
+      }
+
       session.treeModel.removeSubtree(node);
       bridge.broadcast({
         command: 'msg2view_notifyObserver',
@@ -464,6 +509,15 @@ function handleHoveringMenuAction(
           : undefined,
       });
       removeEmptyWindowParent(session, bridge, oldParent);
+
+      if (nextCursorId) {
+        bridge.broadcast({
+          command: 'msg2view_setCursorHere',
+          targetNodeIdMVC: nextCursorId,
+          doNotScrollView: false,
+        });
+      }
+
       session.scheduleSave();
       break;
     }
@@ -584,9 +638,6 @@ function handleMoveHierarchy(
     parentsUpdateData: computeParentUpdatesToRoot(oldParent),
   });
 
-  // Remove the old parent if it's now an empty window (no custom marks).
-  removeEmptyWindowParent(session, bridge, oldParent);
-
   session.scheduleSave();
 }
 
@@ -651,6 +702,64 @@ function handleApplyNodeWindowText(
     command: 'msg2view_notifyObserver_onNodeUpdated',
     idMVC: node.idMVC,
     modelDataCopy: toNodeDTO(node),
+  });
+
+  session.scheduleSave();
+}
+
+/**
+ * Create a new node of the given type and insert it after `afterIdMVC`
+ * (as a sibling). Falls back to appending at root if the cursor node is
+ * not found or is the root itself.
+ */
+function handleCreateNode(
+  session: ActiveSession,
+  bridge: ViewBridge,
+  nodeType: 'window' | 'group' | 'separator',
+  afterIdMVC: string | null,
+): void {
+  const root = session.treeModel.root;
+  if (!root) return;
+
+  const newNode =
+    nodeType === 'window'
+      ? new SavedWindowTreeNode()
+      : nodeType === 'group'
+        ? new GroupTreeNode()
+        : new SeparatorTreeNode();
+
+  const afterNode = afterIdMVC
+    ? session.treeModel.findByMvcId(afterIdMVC as MvcId)
+    : null;
+
+  if (afterNode && afterNode.parent !== null) {
+    session.treeModel.insertAfter(afterNode, newNode);
+  } else {
+    session.treeModel.insertAsLastChild(root, newNode);
+  }
+
+  // Notify view of the new node
+  bridge.broadcast({
+    command: 'msg2view_notifyObserver_onNodeUpdated',
+    idMVC: newNode.idMVC,
+    modelDataCopy: toNodeDTO(newNode),
+  });
+
+  // Notify parent so its subnodes list updates (skip root — it has no DTO row)
+  const parent = newNode.parent;
+  if (parent && parent.parent !== null) {
+    bridge.broadcast({
+      command: 'msg2view_notifyObserver_onNodeUpdated',
+      idMVC: parent.idMVC,
+      modelDataCopy: toNodeDTO(parent),
+    });
+  }
+
+  // Move cursor to the new node and scroll it into view
+  bridge.broadcast({
+    command: 'msg2view_setCursorHere',
+    targetNodeIdMVC: newNode.idMVC,
+    doNotScrollView: false,
   });
 
   session.scheduleSave();

@@ -31,6 +31,18 @@ export function App() {
             All original copyright notices are preserved throughout the
             codebase.
           </p>
+          <p>
+            The original extension is still listed on the Chrome Web Store:{' '}
+            <a
+              href="https://chromewebstore.google.com/detail/tabs-outliner/eggkanocgddhmamlbiijnphhppkpkmkl"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#3b4a8c' }}
+            >
+              Tabs Outliner by Vladyslav Volovyk
+            </a>
+            .
+          </p>
         </section>
 
         <div style={styles.note}>

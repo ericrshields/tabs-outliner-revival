@@ -51,6 +51,8 @@ export interface UseTreeInteractionsReturn {
   ctxValue: TreeContextValue;
   /** The last node the user deliberately interacted with (click, action, context menu). Used as the keyboard shortcut target so shortcuts operate on the intended node regardless of where the mouse currently is. */
   lastKeyboardTargetId: { current: string | null };
+  /** Local cursor ID for visual selection — updated on click and synced from backend setCursorHere messages. */
+  localCursorId: string | null;
 }
 
 export function useTreeInteractions({
@@ -69,6 +71,30 @@ export function useTreeInteractions({
   // mouse currently happens to be.
   const lastKeyboardTargetId = useRef<string | null>(null);
 
+  // Visual cursor: updated by local clicks AND synced from backend setCursorHere.
+  // Drives both the cursor-node highlight class and react-arborist selection prop.
+  const [localCursorId, setLocalCursorId] = useState<string | null>(selectedId);
+  // Track the last selectedId we synced from so we detect changes during render.
+  const [prevSelectedId, setPrevSelectedId] = useState<string | null>(
+    selectedId,
+  );
+
+  // Sync localCursorId when the backend sends a new setCursorHere (selectedId changes).
+  // Using the "update during render" pattern (React docs) instead of useEffect to
+  // avoid cascading renders for the state update.
+  if (selectedId !== prevSelectedId && selectedId !== null) {
+    setPrevSelectedId(selectedId);
+    setLocalCursorId(selectedId);
+  }
+
+  // Sync the keyboard-shortcut ref to the backend cursor via effect (ref writes
+  // are side effects — this is the correct pattern, unlike setState-in-effect).
+  useEffect(() => {
+    if (selectedId !== null) {
+      lastKeyboardTargetId.current = selectedId;
+    }
+  }, [selectedId]);
+
   const handleRowEnter = useCallback(
     (id: string, actions: HoveringMenuActions, rect: DOMRect) => {
       setHoverState({ idMVC: id, actions, rect });
@@ -84,6 +110,7 @@ export function useTreeInteractions({
 
   const handleNodeClick = useCallback((idMVC: string) => {
     lastKeyboardTargetId.current = idMVC;
+    setLocalCursorId(idMVC);
   }, []);
 
   const handleAction = useCallback(
@@ -142,7 +169,7 @@ export function useTreeInteractions({
   // Stable context value
   const ctxValue: TreeContextValue = useMemo(
     () => ({
-      cursorId: selectedId ?? null,
+      cursorId: localCursorId ?? null,
       hoveredId: hoverState?.idMVC ?? null,
       singleClickActivation,
       onRowEnter: handleRowEnter,
@@ -156,7 +183,7 @@ export function useTreeInteractions({
       hasClipboard,
     }),
     [
-      selectedId,
+      localCursorId,
       hoverState?.idMVC,
       singleClickActivation,
       handleRowEnter,
@@ -177,5 +204,6 @@ export function useTreeInteractions({
     handleAction,
     ctxValue,
     lastKeyboardTargetId,
+    localCursorId,
   };
 }

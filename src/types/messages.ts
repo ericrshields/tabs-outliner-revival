@@ -254,6 +254,22 @@ export interface Req_CopyHierarchy {
   readonly targetPosition: number;
 }
 
+export interface Req_CreateWindow {
+  readonly request: 'request2bkg_createWindow';
+  /** idMVC of the node to insert after (sibling); null = append to root. */
+  readonly afterIdMVC: string | null;
+}
+
+export interface Req_CreateGroup {
+  readonly request: 'request2bkg_createGroup';
+  readonly afterIdMVC: string | null;
+}
+
+export interface Req_CreateSeparator {
+  readonly request: 'request2bkg_createSeparator';
+  readonly afterIdMVC: string | null;
+}
+
 /** Catch-all for remaining view->background messages not yet fully typed */
 export interface Req_ViewToBackgroundGeneric {
   readonly request: string;
@@ -279,4 +295,7 @@ export type ViewToBackgroundMessage =
   | Req_ImportTree
   | Req_ExportTree
   | Req_CopyHierarchy
+  | Req_CreateWindow
+  | Req_CreateGroup
+  | Req_CreateSeparator
   | Req_ViewToBackgroundGeneric;

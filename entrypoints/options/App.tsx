@@ -158,7 +158,7 @@ export function App() {
 const styles: Record<string, CSSProperties> = {
   page: {
     minHeight: '100vh',
-    background: '#f5f5f5',
+    background: '#202020',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     padding: '32px 16px',
   },
@@ -169,25 +169,25 @@ const styles: Record<string, CSSProperties> = {
   heading: {
     fontSize: '22px',
     fontWeight: 700,
-    color: '#1a1a2e',
+    color: '#cce0f5',
     marginBottom: '24px',
   },
   section: {
-    background: '#ffffff',
+    background: '#2a2a2a',
     borderRadius: '8px',
     padding: '20px 24px',
     marginBottom: '16px',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
   },
   disabled: {
-    opacity: 0.6,
+    opacity: 0.45,
   },
   sectionTitle: {
     fontSize: '14px',
     fontWeight: 600,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.06em',
-    color: '#555',
+    color: '#7a9ab8',
     margin: '0 0 14px',
   },
   row: {
@@ -201,27 +201,27 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     flexDirection: 'column' as const,
     fontSize: '14px',
-    color: '#222',
+    color: '#c8d8e8',
     lineHeight: '1.4',
   },
   labelDesc: {
     fontSize: '12px',
-    color: '#888',
+    color: '#6a8a9a',
     marginTop: '2px',
     fontWeight: 400,
   },
   comingSoon: {
     fontSize: '13px',
-    color: '#888',
+    color: '#6a8a9a',
     margin: 0,
   },
   aboutText: {
     fontSize: '13px',
-    color: '#555',
+    color: '#9cb7d3',
     margin: '0 0 6px',
     lineHeight: '1.5',
   },
   link: {
-    color: '#3b4a8c',
+    color: '#6aa3d5',
   },
 };

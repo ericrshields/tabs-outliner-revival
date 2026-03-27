@@ -96,6 +96,56 @@ body {
   flex-direction: column;
 }
 
+/* ---- Main toolbar (bottom, combined create + export + settings) ---- */
+
+.main-toolbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 8px;
+  background: var(--wf-savedwin);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.main-toolbar-left,
+.main-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.main-toolbar-divider {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 4px;
+}
+
+.main-toolbar button {
+  background: none;
+  border: none;
+  color: #9cb7d3;
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.main-toolbar button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cce0f5;
+}
+
 .connection-banner {
   background: var(--banner-bg);
   color: var(--banner-fg);
@@ -543,19 +593,3 @@ body {
   border-color: rgba(255, 255, 255, 0.15);
 }
 
-/* ---- Export toolbar ---- */
-
-.export-toolbar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: var(--wf-savedwin);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  z-index: 10;
-}

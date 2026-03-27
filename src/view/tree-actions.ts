@@ -18,6 +18,9 @@ import type {
   Req_OnOkAfterSetNodeTabText,
   Req_OnOkAfterSetNodeNoteText,
   Req_OnOkAfterSetNodeWindowText,
+  Req_CreateWindow,
+  Req_CreateGroup,
+  Req_CreateSeparator,
 } from '@/types/messages';
 
 /** Request the full tree structure from the background. */
@@ -123,6 +126,23 @@ export function applyNodeNoteText(
     targetNodeIdMVC: idMVC,
     newText,
   };
+}
+
+/** Create a new saved-window node after the given node (or at root end if null). */
+export function createWindow(afterIdMVC: string | null): Req_CreateWindow {
+  return { request: 'request2bkg_createWindow', afterIdMVC };
+}
+
+/** Create a new group node after the given node (or at root end if null). */
+export function createGroup(afterIdMVC: string | null): Req_CreateGroup {
+  return { request: 'request2bkg_createGroup', afterIdMVC };
+}
+
+/** Create a new separator node after the given node (or at root end if null). */
+export function createSeparator(
+  afterIdMVC: string | null,
+): Req_CreateSeparator {
+  return { request: 'request2bkg_createSeparator', afterIdMVC };
 }
 
 /** Commit an edited title for a window or group node. */

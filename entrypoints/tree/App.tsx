@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { Tree, type TreeApi } from 'react-arborist';
 import type { NodeDTO } from '@/types/node-dto';
 import type { HoveringMenuActionId } from '@/types/node';
@@ -25,10 +25,12 @@ import { ClickRow } from './components/ClickRow';
 import { HoveringMenu } from './components/HoveringMenu';
 import { ContextMenu } from './components/ContextMenu';
 import { FirstRunImport } from './components/FirstRunImport';
-import { ExportToolbar } from './components/ExportToolbar';
+import { MainToolbar } from './components/MainToolbar';
 
-/** Height of the fixed export toolbar (padding + button + border). */
-const EXPORT_TOOLBAR_HEIGHT = 36;
+/** Height of the fixed combined toolbar at the bottom. */
+const TOOLBAR_HEIGHT = 32;
+/** Row height as configured on the Tree component. */
+const ROW_HEIGHT = 24;
 
 export function App() {
   const treeRef = useRef<TreeApi<NodeDTO>>(null);
@@ -64,6 +66,7 @@ export function App() {
     handleAction,
     ctxValue,
     lastKeyboardTargetId,
+    localCursorId,
   } = useTreeInteractions({
     postMessage,
     treeContainerRef,
@@ -77,7 +80,7 @@ export function App() {
   useKeyboardShortcuts({
     treeRef,
     postMessage,
-    selectedId: state.selectedId,
+    selectedId: localCursorId,
     lastKeyboardTargetId,
     editingId: state.editingNode?.idMVC ?? null,
     clipboard,
@@ -104,6 +107,19 @@ export function App() {
     },
     [postMessage],
   );
+
+  // Scroll compensator: pad the bottom of the tree so the last node can
+  // be scrolled all the way to the top of the viewport.
+  const [scrollPadding, setScrollPadding] = useState(0);
+  useEffect(() => {
+    const el = treeContainerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(([entry]) => {
+      setScrollPadding(Math.max(0, entry.contentRect.height - ROW_HEIGHT));
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   const {
     showFirstRun,
@@ -188,10 +204,11 @@ export function App() {
                   />
                 </div>
               )}
-              selection={state.selectedId ?? undefined}
+              selection={localCursorId ?? undefined}
               width="100%"
-              height={windowHeight - EXPORT_TOOLBAR_HEIGHT - 10}
-              rowHeight={24}
+              height={windowHeight - TOOLBAR_HEIGHT - 10}
+              rowHeight={ROW_HEIGHT}
+              paddingBottom={scrollPadding}
               indent={20}
             >
               {NodeRow}
@@ -252,7 +269,12 @@ export function App() {
           importResult={state.importResult}
         />
       )}
-      {!isLoading && <ExportToolbar postMessage={postMessage} />}
+      {!isLoading && (
+        <MainToolbar
+          cursorIdRef={lastKeyboardTargetId}
+          postMessage={postMessage}
+        />
+      )}
     </div>
   );
 }
