@@ -1,0 +1,115 @@
+direction: down
+
+title: {
+  label: "Service Worker Reconnection Flow"
+  near: top-center
+  shape: text
+  style.font-size: 24
+}
+
+# Timeline flows top to bottom
+
+terminate: "Service Worker\nTerminated\n(idle timeout / crash)" {
+  shape: hexagon
+  style.fill: "#ffcdd2"
+}
+
+view-detect: {
+  label: "View-Side Detection"
+  style.fill: "#fff3e0"
+
+  port-disconnect: "port.onDisconnect fires"
+  state-change-1: "PortManager state:\nconnected -> connecting"
+  stop-heartbeat: "stopHeartbeat()\n(clear 25s interval)"
+  null-port: "_port = null"
+  notify-listeners: "fire stateListeners\n('connecting')"
+}
+
+backoff: {
+  label: "Exponential Backoff Reconnection"
+  style.fill: "#fff9c4"
+
+  schedule: "scheduleReconnect()"
+  delays: "Attempt 0: 1000ms\nAttempt 1: 2000ms\nAttempt 2: 4000ms\nAttempt 3: 8000ms\n...\nCapped at 30000ms"
+  do-connect: "_doConnect()\nbrowser.runtime.connect(\n  { name: 'tree-view' })"
+}
+
+sw-restart: {
+  label: "Service Worker Restart (on connect)"
+  style.fill: "#e3f2fd"
+
+  create: "ActiveSession.create()"
+  load: "loadTree() from\nchrome.storage.local"
+  rebuild: "TreeModel.fromHierarchyJSO()\nrebuild indexes"
+  crash-recovery: "synchronizeTreeWithChrome()\n- orphaned active -> saved\n- new Chrome entities -> nodes\n- extension tabs -> removed"
+  register: "registerChromeEventHandlers()"
+  alarm: "createAlarm(\n  'keep-alive', 0.4167)"
+  badge: "updateBadge()"
+  port-accept: "onPortConnect fires\nviewBridge.addPort(port)"
+}
+
+reconnected: {
+  label: "Reconnection Complete"
+  style.fill: "#e8f5e9"
+
+  state-change-2: "PortManager state:\nconnecting -> connected"
+  reset-attempts: "_reconnectAttempt = 0"
+  start-heartbeat: "startHeartbeat()\n(25s interval)"
+  flush-queue: "flushQueue()\n(send queued msgs FIFO)"
+}
+
+view-sync: {
+  label: "View Tree Re-Sync"
+  style.fill: "#fff3e0"
+
+  use-port-detect: "usePort onStateChange:\nhasConnectedRef = true\n-> calls onReconnect()"
+  request-tree: "postMessage(\n  request2bkg_get_tree_structure)"
+  bg-responds: "Background:\nsession.getInitMessage()\n-> msg2view_initTreeView"
+  init-action: "useTreeData:\nINIT action\n- replace full tree\n- rebuild indexes\n- compute initialOpenMap"
+  tree-sync: "useTreeSync:\nglobalViewId changed\n-> full open/close sync\n-> tree.open()/close()\nfor every node"
+  render: "react-arborist:\nre-renders complete tree\n(all MvcIds are new)"
+}
+
+# Flow
+terminate -> view-detect.port-disconnect
+view-detect.port-disconnect -> view-detect.state-change-1
+view-detect.state-change-1 -> view-detect.stop-heartbeat
+view-detect.stop-heartbeat -> view-detect.null-port
+view-detect.null-port -> view-detect.notify-listeners
+view-detect.notify-listeners -> backoff.schedule
+
+backoff.schedule -> backoff.delays
+backoff.delays -> backoff.do-connect
+
+backoff.do-connect -> sw-restart.create: "connect() wakes SW" {
+  style.stroke: "#1565c0"
+  style.stroke-width: 2
+}
+sw-restart.create -> sw-restart.load
+sw-restart.load -> sw-restart.rebuild
+sw-restart.rebuild -> sw-restart.crash-recovery
+sw-restart.crash-recovery -> sw-restart.register
+sw-restart.register -> sw-restart.alarm
+sw-restart.alarm -> sw-restart.badge
+sw-restart.badge -> sw-restart.port-accept
+
+sw-restart.port-accept -> reconnected.state-change-2: "port established" {
+  style.stroke: "#2e7d32"
+  style.stroke-width: 2
+}
+reconnected.state-change-2 -> reconnected.reset-attempts
+reconnected.reset-attempts -> reconnected.start-heartbeat
+reconnected.start-heartbeat -> reconnected.flush-queue
+
+reconnected.flush-queue -> view-sync.use-port-detect: "state listeners fire"
+view-sync.use-port-detect -> view-sync.request-tree
+view-sync.request-tree -> view-sync.bg-responds: "via port"
+view-sync.bg-responds -> view-sync.init-action
+view-sync.init-action -> view-sync.tree-sync
+view-sync.tree-sync -> view-sync.render
+
+# Failure path
+backoff.do-connect -> backoff.schedule: "connect() throws\n(SW not ready yet)" {
+  style.stroke: "#c62828"
+  style.stroke-dash: 3
+}

@@ -1,0 +1,108 @@
+# PortManager State Machine
+# Source: src/chrome/runtime.ts
+
+direction: right
+
+disconnected: DISCONNECTED {
+  shape: rectangle
+  style.fill: "#f5f5f5"
+  style.stroke: "#999"
+}
+
+connecting: CONNECTING {
+  shape: rectangle
+  style.fill: "#fff3e0"
+  style.stroke: "#ff9800"
+}
+
+connected: CONNECTED {
+  shape: rectangle
+  style.fill: "#e8f5e9"
+  style.stroke: "#4caf50"
+  note: |md
+    **Heartbeat active**
+    Sends `{ __heartbeat: true }`
+    every 25s (default)
+  |
+}
+
+initial: {
+  shape: circle
+  style.fill: "#000"
+  width: 20
+  height: 20
+}
+
+# --- Transitions ---
+
+initial -> disconnected: "constructor()"
+
+disconnected -> connecting: "connect()" {
+  style.stroke: "#2196f3"
+}
+
+connecting -> connected: "port connected successfully" {
+  style.stroke: "#4caf50"
+  style.font-color: "#4caf50"
+}
+
+connecting -> connecting: "connect() throws\n(schedule backoff)" {
+  style.stroke: "#ff9800"
+  style.font-color: "#ff9800"
+}
+
+connected -> connecting: "port.onDisconnect fires\n(schedule backoff)" {
+  style.stroke: "#f44336"
+  style.font-color: "#f44336"
+}
+
+connecting -> disconnected: "reconnectAttempt >= maxReconnectAttempts" {
+  style.stroke: "#f44336"
+  style.font-color: "#f44336"
+}
+
+connected -> disconnected: "disconnect() or dispose()" {
+  style.stroke: "#999"
+}
+
+connecting -> disconnected: "dispose()" {
+  style.stroke: "#999"
+}
+
+# --- Side Effects Legend ---
+
+legend: {
+  shape: rectangle
+  style.fill: "#fafafa"
+  style.stroke: "#ddd"
+  label: |md
+    **Side Effects**
+
+    **connect()**: resets reconnectAttempt to 0
+    **connected**: starts heartbeat, flushes message queue, resets reconnectAttempt
+    **backoff**: delay = min(base * 2^attempt, max), increments reconnectAttempt
+    **disconnect()**: clears all timers, disconnects port
+    **dispose()**: disconnect + clear queue + clear all listeners, sets _disposed=true
+  |
+}
+
+# --- Backoff Detail ---
+
+backoff: {
+  shape: rectangle
+  style.fill: "#fafafa"
+  style.stroke: "#ddd"
+  label: |md
+    **Exponential Backoff**
+
+    attempt 0: 1000ms
+    attempt 1: 2000ms
+    attempt 2: 4000ms
+    attempt 3: 8000ms
+    attempt 4: 16000ms
+    attempt 5+: 30000ms (capped)
+
+    Formula: min(baseDelay * 2^attempt, maxDelay)
+    Defaults: base=1000ms, max=30000ms
+  |
+}

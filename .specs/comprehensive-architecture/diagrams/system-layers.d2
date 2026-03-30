@@ -1,0 +1,146 @@
+direction: down
+
+title: {
+  label: "System Architecture Layers"
+  near: top-center
+  shape: text
+  style.font-size: 24
+}
+
+entrypoints: {
+  label: "entrypoints/"
+  style.fill: "#e8f5e9"
+
+  background: "background.ts\n(service worker)"
+  tree: "tree/\n(main UI)"
+  options: "options/\n(settings)"
+  dedication: "dedication/\n(attribution)"
+}
+
+src: {
+  label: "src/"
+
+  background: {
+    label: "background/"
+    style.fill: "#e3f2fd"
+
+    ActiveSession
+    chrome-event-handlers
+    message-handlers
+    view-bridge: "ViewBridge"
+    save-scheduler: "SaveScheduler"
+    crash-recovery
+    badge-manager
+  }
+
+  view: {
+    label: "view/"
+    style.fill: "#fff3e0"
+
+    components: "Components\n(NodeRow, HoveringMenu,\nContextMenu, Toolbar)"
+    hooks: {
+      label: "hooks/"
+      use-port: "usePort"
+      use-tree-data: "useTreeData"
+      use-tree-sync: "useTreeSync"
+      use-interactions: "useTreeInteractions"
+      use-keyboard: "useKeyboardShortcuts"
+      use-clipboard: "useClipboard"
+      use-chrome-storage: "useChromeStorage"
+      use-tree-drop: "useTreeDrop"
+    }
+  }
+
+  tree: {
+    label: "tree/ (pure, no Chrome)"
+    style.fill: "#f3e5f5"
+
+    TreeModel
+    TreeNode: "TreeNode (abstract)"
+    nodes: "11 node types"
+    dto: "NodeDTO builder"
+    deserialize
+    close-tracker: "CloseTracker"
+    mvc-id: "MvcId generator"
+  }
+
+  serialization: {
+    label: "serialization/ (pure, no Chrome)"
+    style.fill: "#fce4ec"
+
+    hierarchy-jso: "HierarchyJSO"
+    entry-codec: "EntryCodec"
+    operations-codec: "OperationsCodec"
+    knot-resolver: "KnotResolver"
+    html-export: "HTML export"
+  }
+
+  storage: {
+    label: "storage/"
+    style.fill: "#e0f7fa"
+
+    tree-storage: "tree-storage"
+    settings-storage: "settings-storage"
+    migration: "migration"
+  }
+
+  chrome: {
+    label: "chrome/"
+    style.fill: "#f9fbe7"
+
+    tabs
+    windows
+    storage-wrapper: "storage"
+    runtime: "PortManager +\nonPortConnect"
+    lifecycle
+    alarms
+    action
+    identity
+    commands
+  }
+
+  types: {
+    label: "types/ (shared)"
+    style.fill: "#eeeeee"
+
+    messages: "messages"
+    node-dto: "NodeDTO"
+    enums: "NodeTypesEnum"
+    brands: "MvcId, brands"
+    settings: "AppSettings"
+  }
+}
+
+# Entrypoint delegation
+entrypoints.background -> src.background: "delegates to"
+entrypoints.tree -> src.view: "mounts"
+entrypoints.options -> src.view.hooks.use-chrome-storage: "uses"
+
+# Background dependencies
+src.background -> src.tree: "owns TreeModel"
+src.background -> src.serialization: "serializes for save"
+src.background -> src.storage: "persists tree"
+src.background -> src.chrome: "Chrome API calls"
+
+# View dependencies
+src.view -> src.chrome.runtime: "PortManager"
+src.view -> src.types: "NodeDTO types"
+
+# Storage dependencies
+src.storage -> src.chrome.storage-wrapper: "storageGet/Set"
+src.storage -> src.serialization: "HierarchyJSO validation"
+
+# Pure layers have no Chrome dependency
+src.tree -> src.types: "types only"
+src.serialization -> src.types: "types only"
+src.chrome -> src.types: "types only"
+
+# Communication (not import, message-based)
+src.background.view-bridge -> src.view: "Chrome ports\n(msg2view_*)" {
+  style.stroke-dash: 3
+  style.stroke: "#1565c0"
+}
+src.view.hooks.use-port -> src.background.message-handlers: "Chrome ports\n(request2bkg_*)" {
+  style.stroke-dash: 3
+  style.stroke: "#e65100"
+}

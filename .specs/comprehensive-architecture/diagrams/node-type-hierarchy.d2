@@ -1,0 +1,187 @@
+direction: down
+
+title: {
+  label: "Node Type Hierarchy — 11 Types in 5 Categories"
+  near: top-center
+  shape: text
+  style.font-size: 20
+  style.bold: true
+}
+
+# -- Categories --
+
+active: "Active (live Chrome entities)" {
+  style.fill: "#e3f2fd"
+  style.stroke: "#1565c0"
+
+  tab: "TabTreeNode" {
+    shape: class
+    type: "'tab'"
+    titleCssClass: "'tab'"
+    bgCss: "'tabFrame'"
+    isLink: "true"
+    data: "TabData"
+    restoredFromSaved: "boolean"
+    updateChromeData: "(TabData): void"
+    isAnOpenTab: "true"
+    isSelectedTab: "data.active"
+    countSelf: "+activeTabsCount"
+  }
+
+  window: "WindowTreeNode" {
+    shape: class
+    type: "'win'"
+    titleCssClass: "'win'"
+    bgCss: "'windowFrame'"
+    isLink: "false"
+    data: "WindowData"
+    updateChromeData: "(WindowData): void"
+    isAnOpenWindow: "true"
+    isFocusedWindow: "data.focused"
+    countSelf: "+activeWinsCount"
+  }
+
+  attachwait: "AttachWaitTabTreeNode" {
+    shape: class
+    type: "'attachwaitingtab'"
+    titleCssClass: "'attachwaitingtab'"
+    bgCss: "'tabFrame'"
+    isLink: "true"
+    data: "TabData"
+    updateChromeData: "(TabData): void"
+    isAnOpenTab: "true"
+    countSelf: "+activeTabsCount"
+  }
+}
+
+saved: "Saved (persisted, inactive)" {
+  style.fill: "#f3e5f5"
+  style.stroke: "#7b1fa2"
+
+  savedtab: "SavedTabTreeNode" {
+    shape: class
+    type: "'savedtab' (default)"
+    titleCssClass: "'savedtab'"
+    bgCss: "'tabFrame'"
+    isLink: "true"
+    data: "TabData"
+    note: "type omitted in serialization"
+  }
+
+  savedwin: "SavedWindowTreeNode" {
+    shape: class
+    type: "'savedwin'"
+    titleCssClass: "'savedwin'"
+    bgCss: "'windowFrame'"
+    isLink: "false"
+    data: "WindowData"
+    nodeText: "includes closeDate/crashDate"
+  }
+}
+
+waiting: "Waiting (legacy, deserialization only)" {
+  style.fill: "#fff3e0"
+  style.stroke: "#e65100"
+
+  waitingtab: "WaitingTabTreeNode" {
+    shape: class
+    type: "'waitingtab'"
+    titleCssClass: "'waitingtab'"
+    bgCss: "'tabFrame'"
+    isLink: "true"
+    data: "TabData"
+  }
+
+  waitingwin: "WaitingWindowTreeNode" {
+    shape: class
+    type: "'waitingwin'"
+    titleCssClass: "'waitingwin'"
+    bgCss: "'windowFrame'"
+    isLink: "false"
+    data: "WindowData"
+  }
+}
+
+container: "Container (organizational)" {
+  style.fill: "#e8f5e9"
+  style.stroke: "#2e7d32"
+
+  session: "SessionTreeNode" {
+    shape: class
+    type: "'session'"
+    titleCssClass: "'session'"
+    bgCss: "'windowFrame'"
+    data: "SessionData"
+    note: "Root node. Manages nextDId."
+    allocateDId: "(): number"
+  }
+
+  group: "GroupTreeNode" {
+    shape: class
+    type: "'group'"
+    titleCssClass: "'group'"
+    bgCss: "'windowFrame'"
+    data: "null"
+    note: "Folder container"
+  }
+}
+
+utility: "Utility (display-only)" {
+  style.fill: "#fce4ec"
+  style.stroke: "#c62828"
+
+  textnote: "TextNoteTreeNode" {
+    shape: class
+    type: "'textnote'"
+    titleCssClass: "'textnote'"
+    bgCss: "'defaultFrame'"
+    data: "TextNoteData {note}"
+    setNote: "(text): void"
+  }
+
+  separator: "SeparatorTreeNode" {
+    shape: class
+    type: "'separatorline'"
+    titleCssClass: "'separatorline'"
+    bgCss: "'defaultFrame'"
+    data: "SeparatorData {separatorIndx}"
+    cycleStyle: "(): void"
+  }
+}
+
+# -- cloneAsSaved() conversion arrows --
+
+active.tab -> saved.savedtab: "cloneAsSaved()" {
+  style.stroke: "#d32f2f"
+  style.stroke-dash: 3
+}
+active.window -> saved.savedwin: "cloneAsSaved()" {
+  style.stroke: "#d32f2f"
+  style.stroke-dash: 3
+}
+active.attachwait -> saved.savedtab: "cloneAsSaved()" {
+  style.stroke: "#d32f2f"
+  style.stroke-dash: 3
+}
+waiting.waitingtab -> saved.savedtab: "cloneAsSaved()" {
+  style.stroke: "#d32f2f"
+  style.stroke-dash: 3
+}
+waiting.waitingwin -> saved.savedwin: "cloneAsSaved()" {
+  style.stroke: "#d32f2f"
+  style.stroke-dash: 3
+}
+container.session -> container.group: "cloneAsSaved()" {
+  style.stroke: "#d32f2f"
+  style.stroke-dash: 3
+}
+
+# Self-clones (identity)
+saved.savedtab -> saved.savedtab: "cloneAsSaved()" {
+  style.stroke: "#9e9e9e"
+  style.stroke-dash: 3
+}
+saved.savedwin -> saved.savedwin: "cloneAsSaved()" {
+  style.stroke: "#9e9e9e"
+  style.stroke-dash: 3
+}

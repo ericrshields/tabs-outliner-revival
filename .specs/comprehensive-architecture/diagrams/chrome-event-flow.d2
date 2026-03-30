@@ -1,0 +1,80 @@
+direction: right
+
+title: {
+  label: "Chrome Event Flow"
+  near: top-center
+  shape: text
+  style.font-size: 24
+}
+
+chrome: "Chrome Browser\nAPI Events" {
+  shape: cloud
+  style.fill: "#e8eaf6"
+}
+
+wrappers: {
+  label: "Chrome Wrappers (src/chrome/)"
+  style.fill: "#f9fbe7"
+
+  tabs-events: "onTabCreated\nonTabRemoved\nonTabUpdated\nonTabMoved\nonTabAttached\nonTabActivated\nonTabReplaced"
+  window-events: "onWindowCreated\nonWindowRemoved\nonWindowFocusChanged"
+  domain-convert: "toChromeTabData()\ntoChromeWindowData()\n(strip Chrome-only fields)"
+}
+
+handlers: {
+  label: "Event Handlers (src/background/)"
+  style.fill: "#e3f2fd"
+
+  tab-handlers: "handleTabCreated\nhandleTabRemoved\nhandleTabUpdated\nhandleTabMoved\nhandleTabAttached\nhandleTabActivated\nhandleTabReplaced"
+  window-handlers: "handleWindowCreated\nhandleWindowRemoved\nhandleWindowFocusChanged"
+  helpers: "removeEmptyWindowParent()"
+}
+
+tree: "TreeModel\n(mutation API)" {
+  style.fill: "#f3e5f5"
+}
+
+result: "TreeMutationResult" {
+  shape: document
+  style.fill: "#e0e0e0"
+}
+
+broadcast: "ViewBridge\n.broadcast()" {
+  style.fill: "#e3f2fd"
+}
+
+views: "All Connected Views\n(useTreeData reducer)" {
+  style.fill: "#fff3e0"
+}
+
+save: {
+  label: "Persistence (parallel)"
+  style.fill: "#e0f7fa"
+
+  scheduler: "SaveScheduler\nschedule()"
+  storage: "chrome.storage.local"
+}
+
+# Main flow
+chrome -> wrappers.tabs-events: "chrome.tabs.*"
+chrome -> wrappers.window-events: "chrome.windows.*"
+wrappers.tabs-events -> wrappers.domain-convert: "convert"
+wrappers.window-events -> wrappers.domain-convert: "convert"
+wrappers.domain-convert -> handlers.tab-handlers: "ChromeTabData"
+wrappers.domain-convert -> handlers.window-handlers: "ChromeWindowData"
+handlers.tab-handlers -> tree: "insert/remove/\nupdate/move/\nreplace node"
+handlers.window-handlers -> tree: "insert/remove/\nupdate/replace"
+handlers.tab-handlers -> handlers.helpers: "cleanup empty parents"
+tree -> result
+result -> broadcast: "msg2view_*"
+broadcast -> views: "port.postMessage\nto each view"
+
+# Parallel save path
+result -> save.scheduler: "scheduleSave()" {
+  style.stroke: "#2e7d32"
+  style.stroke-dash: 3
+}
+save.scheduler -> save.storage: "debounced write" {
+  style.stroke: "#2e7d32"
+  style.stroke-dash: 3
+}

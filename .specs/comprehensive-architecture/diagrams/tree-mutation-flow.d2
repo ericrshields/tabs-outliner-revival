@@ -1,0 +1,74 @@
+direction: right
+
+title: {
+  label: "Tree Mutation Flow (User Action)"
+  near: top-center
+  shape: text
+  style.font-size: 24
+}
+
+user: "User Action\n(click, drag,\nedit, keyboard)" {
+  shape: person
+}
+
+view: {
+  label: "View Layer"
+  style.fill: "#fff3e0"
+
+  tree-actions: "tree-actions /\nhook handler"
+  use-port: "usePort\n.postMessage()"
+  use-tree-data: "useTreeData\nreducer"
+  react-arborist: "react-arborist\nre-renders affected\nnodes only"
+}
+
+port: "Chrome Port\n(runtime.connect)" {
+  shape: diamond
+  style.fill: "#e0e0e0"
+}
+
+background: {
+  label: "Background"
+  style.fill: "#e3f2fd"
+
+  message-handler: "message-handlers\nswitch(msg.request)"
+  tree-model: "TreeModel\nmutation API"
+  result: "TreeMutationResult\n{ type, affectedNodeId,\nparentUpdates,\ndeletedNodeIds,\ncursorSuggestion }"
+  view-bridge: "ViewBridge\n.broadcast()"
+}
+
+save: {
+  label: "Persistence"
+  style.fill: "#e0f7fa"
+
+  scheduler: "SaveScheduler\n3s debounce\n8s max-wait"
+  storage: "chrome.storage.local\n(HierarchyJSO)"
+}
+
+badge: "Badge Manager\nupdateBadge()" {
+  style.fill: "#f9fbe7"
+}
+
+# Main flow
+user -> view.tree-actions: "interaction"
+view.tree-actions -> view.use-port: "request2bkg_*\nmessage"
+view.use-port -> port: "postMessage"
+port -> background.message-handler: "onMessage"
+background.message-handler -> background.tree-model: "mutation call\n(insert/remove/move/\nsetMarks/replaceNode)"
+background.tree-model -> background.result: "returns"
+background.result -> background.view-bridge: "broadcast\nmsg2view_*"
+background.view-bridge -> port: "postMessage\nto all ports" {style.stroke-dash: 3}
+port -> view.use-tree-data: "onMessage" {style.stroke-dash: 3}
+view.use-tree-data -> view.react-arborist: "state update\n(clonePathToRoot)"
+
+# Save branch (parallel)
+background.result -> save.scheduler: "scheduleSave()" {
+  style.stroke: "#2e7d32"
+}
+save.scheduler -> save.storage: "saveTree()\n(debounced)" {
+  style.stroke: "#2e7d32"
+}
+
+# Badge branch (parallel)
+background.result -> badge: "updateBadge()" {
+  style.stroke: "#f57f17"
+}

@@ -1,0 +1,157 @@
+# Serialization Pipeline — Tabs Outliner Revival
+# Shows transformation chains between all serialization formats.
+
+direction: right
+
+# === Format Nodes ===
+
+TreeNode: "TreeNode\n(in-memory)" {
+  shape: rectangle
+  style.fill: "#e8f4e8"
+}
+
+HierarchyJSO: "HierarchyJSO\n{ n: SerializedNode, s?: [...] }" {
+  shape: rectangle
+  style.fill: "#e8e8f4"
+}
+
+OperationsLog: "Operations Log\n[WireRootOp, ...WireInsertOp, WireEofOp]" {
+  shape: rectangle
+  style.fill: "#f4e8e8"
+}
+
+TreeFile: ".tree File\nJSON string" {
+  shape: page
+  style.fill: "#f4f4e8"
+}
+
+HtmlExport: "HTML Export\n<li>/<ul> format" {
+  shape: page
+  style.fill: "#f4eee8"
+}
+
+DiffSnapshot: "DiffSnapshot\n{ rootDid, allKnots, entries }" {
+  shape: rectangle
+  style.fill: "#eee8f4"
+}
+
+EntryWireFormat: "EntryWireFormat\n[typeCode, data, marks?]" {
+  shape: rectangle
+  style.fill: "#f4e8f0"
+}
+
+LegacyIndexedDB: "Legacy IndexedDB\nV33 / V34" {
+  shape: cylinder
+  style.fill: "#e8e8e8"
+}
+
+ChromeStorage: "chrome.storage.local\nkey: tabs_outliner_tree" {
+  shape: cylinder
+  style.fill: "#d8e8f4"
+}
+
+# === Primary Pipeline: TreeNode <-> HierarchyJSO <-> OperationsLog <-> .tree ===
+
+TreeNode -> HierarchyJSO: "serialize()\n(background)" {
+  style.stroke: "#2b7a2b"
+}
+HierarchyJSO -> TreeNode: "deserialize()\n(background)" {
+  style.stroke: "#2b7a2b"
+}
+
+HierarchyJSO -> OperationsLog: "hierarchyToOperations()\nEmit ROOT + INSERT per node + EOF" {
+  style.stroke: "#4a4a9a"
+}
+OperationsLog -> HierarchyJSO: "operationsToHierarchy()\nReplay ROOT/INSERT via insertByPath()" {
+  style.stroke: "#4a4a9a"
+}
+
+HierarchyJSO -> TreeFile: "exportTreeFile()\nJSON.stringify" {
+  style.stroke: "#9a7a2a"
+}
+TreeFile -> HierarchyJSO: "importTreeFile()\nJSON.parse + validate" {
+  style.stroke: "#9a7a2a"
+}
+
+# === HTML Export (one-way) ===
+
+TreeNode -> HtmlExport: "treeToHtml()\nOne-way export" {
+  style.stroke: "#9a5a2a"
+}
+
+# === Diff/Knot Path ===
+
+DiffSnapshot -> HierarchyJSO: "resolveKnotsToHierarchy()\nResolve knot variants 1-4\n+ cycle detection" {
+  style.stroke: "#7a2a9a"
+}
+
+EntryWireFormat -> DiffSnapshot: "entries map\ncdId -> JSON(EntryWireFormat)" {
+  style.stroke: "#9a2a7a"
+  style.stroke-dash: 3
+}
+
+# === Entry Codec ===
+
+EntryWireFormat -> HierarchyJSO: "decodeEntry()\nSign bit -> collapsed\nabs(typeCode) -> type string\nUsed during knot resolution\nand operations decode" {
+  style.stroke: "#9a2a5a"
+  style.stroke-dash: 3
+}
+
+# === Storage Paths ===
+
+LegacyIndexedDB -> OperationsLog: "readLegacyDB()\nRead 'currentSessionSnapshot'" {
+  style.stroke: "#666666"
+}
+
+HierarchyJSO -> ChromeStorage: "saveTree()\nchrome.storage.local.set" {
+  style.stroke: "#2a6a9a"
+}
+ChromeStorage -> HierarchyJSO: "loadTree()\nchrome.storage.local.get\n+ isValidHierarchyJSO()" {
+  style.stroke: "#2a6a9a"
+}
+
+# === Migration Flow ===
+
+migration: "Migration Flow" {
+  shape: sequence_diagram
+  style.fill: "#fafafa"
+
+  step1: "1. legacyDbExists(V34/V33)"
+  step2: "2. readLegacyDB() -> operations"
+  step3: "3. validateOperationsLog()"
+  step4: "4. operationsToHierarchy()"
+  step5: "5. saveTree(hierarchy)"
+  step6: "6. loadTree() -> round-trip verify"
+  step7: "7. hierarchiesEqual(original, reloaded)"
+}
+
+# === Normalization ===
+
+normalization: "normalizeSerializedNode()\nApplied during decode" {
+  shape: diamond
+  style.fill: "#fff8e8"
+}
+
+normalization -> HierarchyJSO: "Fixes Closure Compiler\nmangled marks:\nU->customColorActive\nV->customColorSaved\nJ/W->customTitle\nu/I->customFavicon" {
+  style.stroke: "#aa8800"
+  style.stroke-dash: 3
+}
+
+# === Type Code Mapping ===
+
+type_map: "NODE_TYPE_NUM2STR" {
+  shape: sql_table
+
+  zero: "0 = ZERO (reserved)" {constraint: "sign bit"}
+  session: "1 = session"
+  textnote: "2 = textnote"
+  separatorline: "3 = separatorline"
+  tab: "4 = tab"
+  savedtab: "5 = savedtab (default)"
+  group: "6 = group"
+  win: "7 = win"
+  savedwin: "8 = savedwin"
+  attachwaitingtab: "9 = attachwaitingtab"
+  waitingwin: "10 = waitingwin"
+  waitingtab: "11 = waitingtab"
+}
