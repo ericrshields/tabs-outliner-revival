@@ -58,7 +58,7 @@ describe('useClipboard', () => {
   });
 
   describe('paste() after cut', () => {
-    it('posts moveHierarchy and clears clipboard', () => {
+    it('posts moveHierarchy and keeps clipboard for retry', () => {
       const opts = makeOptions();
       const { result } = renderHook(() => useClipboard(opts));
 
@@ -71,18 +71,19 @@ describe('useClipboard', () => {
         containerIdMVC: 'parent1',
         position: 2,
       });
-      expect(result.current.hasClipboard).toBe(false);
+      // Clipboard stays active so the user can retry if the move fails.
+      expect(result.current.hasClipboard).toBe(true);
     });
 
-    it('cannot paste twice after cut (clipboard consumed)', () => {
+    it('allows paste again after cut (node moves from new location)', () => {
       const opts = makeOptions();
       const { result } = renderHook(() => useClipboard(opts));
 
       act(() => result.current.cut('node1', 'x'));
       act(() => result.current.paste('p', 0));
-      act(() => result.current.paste('p', 0));
+      act(() => result.current.paste('q', 1));
 
-      expect(opts.postMessage).toHaveBeenCalledTimes(1);
+      expect(opts.postMessage).toHaveBeenCalledTimes(2);
     });
   });
 

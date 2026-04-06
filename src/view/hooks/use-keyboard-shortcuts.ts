@@ -70,8 +70,12 @@ export function useKeyboardShortcuts({
       if (!arboristNode) return;
 
       const idMVC = targetId;
-      // react-arborist: parent.id is null for top-level nodes (root is virtual).
-      const parentId: string | null = arboristNode.parent?.id ?? null;
+      // react-arborist's virtual root has id "__REACT_ARBORIST_INTERNAL_ROOT__"
+      // (non-null string), so `?.id ?? null` doesn't produce null for top-level
+      // nodes. Use isRoot to map to null for the background handler.
+      const parentId: string | null = arboristNode.parent?.isRoot
+        ? null
+        : (arboristNode.parent?.id ?? null);
       const idx = arboristNode.childIndex;
 
       let handled = true;
@@ -121,7 +125,11 @@ export function useKeyboardShortcuts({
               const grandparent = arboristNode.parent.parent;
               const parentIdx = arboristNode.parent.childIndex ?? 0;
               postMessage(
-                moveHierarchy(idMVC, grandparent?.id ?? null, parentIdx + 1),
+                moveHierarchy(
+                  idMVC,
+                  grandparent?.isRoot ? null : (grandparent?.id ?? null),
+                  parentIdx + 1,
+                ),
               );
               moveCooldownUntil = Date.now() + 120;
             }

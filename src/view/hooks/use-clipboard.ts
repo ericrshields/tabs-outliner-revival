@@ -60,9 +60,10 @@ export function useClipboard({
         postMessage(
           moveHierarchy(entry.sourceIdMVC, targetParentIdMVC, targetPosition),
         );
-        // Cut consumes the clipboard entry.
-        entryRef.current = null;
-        setHasClipboard(false);
+        // Don't consume the clipboard — if the background move fails (e.g.
+        // invalid target), the user can retry without re-cutting. The source
+        // node keeps its idMVC after a successful move, so a second paste
+        // moves it again from its new location (standard editor behavior).
       } else {
         postMessage(
           copyHierarchy(entry.sourceIdMVC, targetParentIdMVC, targetPosition),

@@ -140,7 +140,9 @@ export function ContextMenu({
     const arboristNode = treeRef.current?.get(idMVC);
     if (!arboristNode) return { parentId: null, position: -1 };
     return {
-      parentId: arboristNode.parent?.id ?? null,
+      parentId: arboristNode.parent?.isRoot
+        ? null
+        : (arboristNode.parent?.id ?? null),
       position: arboristNode.childIndex + 1,
     };
   }, [idMVC, treeRef]);
@@ -149,7 +151,9 @@ export function ContextMenu({
     (direction: 'up' | 'down' | 'indent' | 'outdent' | 'first' | 'last') => {
       const node = treeRef.current?.get(idMVC);
       if (!node) return;
-      const parentId: string | null = node.parent?.id ?? null;
+      const parentId: string | null = node.parent?.isRoot
+        ? null
+        : (node.parent?.id ?? null);
       const idx = node.childIndex;
 
       let target: {
