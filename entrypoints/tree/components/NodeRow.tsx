@@ -67,7 +67,8 @@ export function NodeRow({
 
   const textStyle = parseCustomStyle(data.nodeTextCustomStyle);
 
-  const arrow = node.isInternal ? (node.isOpen ? '\u25BC' : '\u25B6') : ' ';
+  const hasChildren = data.isSubnodesPresent || data.subnodes.length > 0;
+  const arrow = hasChildren ? (node.isOpen ? '\u25BC' : '\u25B6') : ' ';
 
   const textContent = data.href ? (
     <a
@@ -181,7 +182,7 @@ export function NodeRow({
       <span
         className="node-arrow"
         onClick={(e) => {
-          if (node.isInternal) {
+          if (hasChildren) {
             e.stopPropagation();
             node.toggle();
           }

@@ -167,17 +167,32 @@ export class TreeModel {
     const oldParent = source.parent;
     if (!oldParent) throw new Error('Cannot move root');
 
-    // Clone a new identity for the moved node
-    source.removeFromParent();
-    this.unindexNode(source);
-
+    // Resolve container before any mutation so we can bail out early.
     const container = target.containerIdMVC
       ? this.findByMvcId(target.containerIdMVC as MvcId)
       : this.root;
     if (!container) throw new Error('Drop target container not found');
 
+    // Save source's current index before any mutation.
+    const oldIndex = oldParent.subnodes.indexOf(source);
+
+    // Insert-then-remove: react-arborist provides indices with the source
+    // still in the tree, so inserting first uses the index directly.
+    // If insert succeeds but remove fails, the node exists in two places
+    // (recoverable) rather than zero (data loss).
+    this.unindexNode(source);
     source.resetStructureDidsRecursive();
     container.insertSubnode(target.position, source);
+
+    // Remove from old position. For same-parent moves, the insert may have
+    // shifted the old position by 1.
+    if (oldParent === container) {
+      const removeIndex = target.position <= oldIndex ? oldIndex + 1 : oldIndex;
+      oldParent.subnodes.splice(removeIndex, 1);
+    } else {
+      oldParent.subnodes.splice(oldIndex, 1);
+    }
+
     this.indexSubtree(source);
 
     oldParent.calculateIsProtectedFromGoneOnClose();

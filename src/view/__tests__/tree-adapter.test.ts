@@ -15,12 +15,12 @@ describe('nodeId', () => {
 });
 
 describe('nodeChildren', () => {
-  it('returns null for a true leaf node', () => {
+  it('returns empty array for a childless node', () => {
     const leaf = makeNodeDTO({
       subnodes: [],
       isSubnodesPresent: false,
     });
-    expect(nodeChildren(leaf)).toBeNull();
+    expect(nodeChildren(leaf)).toEqual([]);
   });
 
   it('returns empty array for a collapsed node with hidden children', () => {
@@ -29,9 +29,7 @@ describe('nodeChildren', () => {
       subnodes: [],
       isSubnodesPresent: true,
     });
-    const result = nodeChildren(collapsed);
-    expect(result).toEqual([]);
-    expect(result).not.toBeNull();
+    expect(nodeChildren(collapsed)).toEqual([]);
   });
 
   it('returns subnodes for an expanded node with children', () => {

@@ -259,6 +259,159 @@ describe('TreeModel', () => {
       });
       expect(result.type).toBe('move');
     });
+
+    it('same-parent move forward places node at correct position', () => {
+      // [tab1, tab2] → move tab1 to after tab2 (react-arborist index=2)
+      const model = createTestTree();
+      const win = model.root.subnodes[0];
+      const tab1 = win.subnodes[0];
+      const tab2 = win.subnodes[1];
+
+      model.moveNode(tab1, {
+        containerIdMVC: win.idMVC,
+        position: 2,
+      });
+
+      expect(win.subnodes[0]).toBe(tab2);
+      expect(win.subnodes[1]).toBe(tab1);
+      expect(win.subnodes).toHaveLength(2);
+    });
+
+    it('same-parent move backward places node at correct position', () => {
+      // [tab1, tab2] → move tab2 to before tab1 (react-arborist index=0)
+      const model = createTestTree();
+      const win = model.root.subnodes[0];
+      const tab1 = win.subnodes[0];
+      const tab2 = win.subnodes[1];
+
+      model.moveNode(tab2, {
+        containerIdMVC: win.idMVC,
+        position: 0,
+      });
+
+      expect(win.subnodes[0]).toBe(tab2);
+      expect(win.subnodes[1]).toBe(tab1);
+      expect(win.subnodes).toHaveLength(2);
+    });
+
+    it('same-parent move to same position is identity', () => {
+      // [tab1, tab2] → move tab1 to index 1 (its current "after" position)
+      const model = createTestTree();
+      const win = model.root.subnodes[0];
+      const tab1 = win.subnodes[0];
+      const tab2 = win.subnodes[1];
+
+      model.moveNode(tab1, {
+        containerIdMVC: win.idMVC,
+        position: 1,
+      });
+
+      expect(win.subnodes[0]).toBe(tab1);
+      expect(win.subnodes[1]).toBe(tab2);
+      expect(win.subnodes).toHaveLength(2);
+    });
+
+    it('same-parent move to adjacent-after position is identity', () => {
+      // [tab1, tab2] → move tab2 to index 2 (drop after itself)
+      const model = createTestTree();
+      const win = model.root.subnodes[0];
+      const tab1 = win.subnodes[0];
+      const tab2 = win.subnodes[1];
+
+      model.moveNode(tab2, {
+        containerIdMVC: win.idMVC,
+        position: 2,
+      });
+
+      expect(win.subnodes[0]).toBe(tab1);
+      expect(win.subnodes[1]).toBe(tab2);
+      expect(win.subnodes).toHaveLength(2);
+    });
+
+    it('same-parent move middle of 3 siblings forward', () => {
+      // [tab1, tab2, tab3] → move tab2 to after tab3 (index 3)
+      const model = createTestTree();
+      const win = model.root.subnodes[0];
+      const tab1 = win.subnodes[0];
+      const tab2 = win.subnodes[1];
+      // Add a third tab via insertSubnode on the model to index it
+      const tab3 = new TabTreeNode({
+        id: 103,
+        windowId: 1,
+        url: 'https://c.com',
+        title: 'C',
+      });
+      model.insertSubnode(win, 2, tab3);
+
+      model.moveNode(tab2, {
+        containerIdMVC: win.idMVC,
+        position: 3,
+      });
+
+      expect(win.subnodes[0]).toBe(tab1);
+      expect(win.subnodes[1]).toBe(tab3);
+      expect(win.subnodes[2]).toBe(tab2);
+      expect(win.subnodes).toHaveLength(3);
+    });
+
+    it('same-parent move middle of 3 siblings backward', () => {
+      // [tab1, tab2, tab3] → move tab2 to before tab1 (index 0)
+      const model = createTestTree();
+      const win = model.root.subnodes[0];
+      const tab1 = win.subnodes[0];
+      const tab2 = win.subnodes[1];
+      const tab3 = new TabTreeNode({
+        id: 103,
+        windowId: 1,
+        url: 'https://c.com',
+        title: 'C',
+      });
+      model.insertSubnode(win, 2, tab3);
+
+      model.moveNode(tab2, {
+        containerIdMVC: win.idMVC,
+        position: 0,
+      });
+
+      expect(win.subnodes[0]).toBe(tab2);
+      expect(win.subnodes[1]).toBe(tab1);
+      expect(win.subnodes[2]).toBe(tab3);
+      expect(win.subnodes).toHaveLength(3);
+    });
+
+    it('cross-parent move does not adjust index', () => {
+      const model = createTestTree();
+      const win = model.root.subnodes[0];
+      const savedWin = model.root.subnodes[1];
+      const tab1 = win.subnodes[0];
+      const savedTab = savedWin.subnodes[0];
+
+      model.moveNode(tab1, {
+        containerIdMVC: savedWin.idMVC,
+        position: 0,
+      });
+
+      expect(savedWin.subnodes[0]).toBe(tab1);
+      expect(savedWin.subnodes[1]).toBe(savedTab);
+      expect(win.subnodes).toHaveLength(1);
+    });
+
+    it('cross-parent move to end of destination', () => {
+      const model = createTestTree();
+      const win = model.root.subnodes[0];
+      const savedWin = model.root.subnodes[1];
+      const tab1 = win.subnodes[0];
+      const savedTab = savedWin.subnodes[0];
+
+      model.moveNode(tab1, {
+        containerIdMVC: savedWin.idMVC,
+        position: 1,
+      });
+
+      expect(savedWin.subnodes[0]).toBe(savedTab);
+      expect(savedWin.subnodes[1]).toBe(tab1);
+      expect(win.subnodes).toHaveLength(1);
+    });
   });
 
   describe('setCollapsed', () => {

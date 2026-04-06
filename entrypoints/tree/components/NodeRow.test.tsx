@@ -148,33 +148,41 @@ describe('NodeRow', () => {
     expect(container.querySelector('.ncc-separator')).toBeTruthy();
   });
 
-  it('renders arrow for internal nodes', () => {
-    const data = makeNodeDTO();
+  it('renders open arrow for nodes with children', () => {
+    const data = makeNodeDTO({ isSubnodesPresent: true });
     const nodeApi = makeNodeApi(data, { isInternal: true, isOpen: true });
     const { container } = renderNodeRow(nodeApi);
     expect(container.querySelector('.node-arrow')!.textContent).toBe('\u25BC');
   });
 
-  it('renders collapsed arrow for closed internal nodes', () => {
-    const data = makeNodeDTO();
+  it('renders collapsed arrow for closed nodes with children', () => {
+    const data = makeNodeDTO({ isSubnodesPresent: true });
     const nodeApi = makeNodeApi(data, { isInternal: true, isOpen: false });
     const { container } = renderNodeRow(nodeApi);
     expect(container.querySelector('.node-arrow')!.textContent).toBe('\u25B6');
   });
 
-  it('renders space for leaf nodes', () => {
-    const data = makeNodeDTO();
-    const nodeApi = makeNodeApi(data, { isInternal: false });
+  it('renders space for childless nodes', () => {
+    const data = makeNodeDTO({ isSubnodesPresent: false, subnodes: [] });
+    const nodeApi = makeNodeApi(data, { isInternal: true });
     const { container } = renderNodeRow(nodeApi);
     expect(container.querySelector('.node-arrow')!.textContent).toBe(' ');
   });
 
-  it('calls node.toggle on arrow click for internal nodes', () => {
-    const data = makeNodeDTO();
+  it('calls node.toggle on arrow click when node has children', () => {
+    const data = makeNodeDTO({ isSubnodesPresent: true });
     const nodeApi = makeNodeApi(data, { isInternal: true });
     const { container } = renderNodeRow(nodeApi);
     fireEvent.click(container.querySelector('.node-arrow')!);
     expect(nodeApi.toggle).toHaveBeenCalled();
+  });
+
+  it('does not toggle on arrow click when node has no children', () => {
+    const data = makeNodeDTO({ isSubnodesPresent: false, subnodes: [] });
+    const nodeApi = makeNodeApi(data, { isInternal: true });
+    const { container } = renderNodeRow(nodeApi);
+    fireEvent.click(container.querySelector('.node-arrow')!);
+    expect(nodeApi.toggle).not.toHaveBeenCalled();
   });
 
   it('wraps window frame nodes in WindowFrame', () => {

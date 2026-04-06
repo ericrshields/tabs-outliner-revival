@@ -172,14 +172,14 @@ export function App() {
               onMove={handleTreeMove}
               renderRow={ClickRow}
               renderCursor={({ top, left, indent }) => (
-                // Offset left by node-arrow width (~20px) so the drop indicator
-                // aligns with the node text start rather than the row container edge.
+                // Offset left by arrow width (14px) + flex gap (4px) so the
+                // drop indicator aligns with node text start.
                 <div
                   style={{
                     position: 'absolute',
                     pointerEvents: 'none',
                     top: `${top - 2}px`,
-                    left: `${left + 20}px`,
+                    left: `${left + 18}px`,
                     right: `${indent}px`,
                     display: 'flex',
                     alignItems: 'center',
