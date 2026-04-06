@@ -112,7 +112,10 @@ export function useKeyboardShortcuts({
             }
             break;
           case 'ArrowDown':
-            postMessage(moveHierarchy(idMVC, parentId, idx + 1));
+            // moveNode uses insert-then-remove: the source still occupies
+            // `idx` during insert, so idx+1 is a no-op. Use idx+2 to land
+            // one position below the next sibling.
+            postMessage(moveHierarchy(idMVC, parentId, idx + 2));
             moveCooldownUntil = Date.now() + 120;
             break;
           case 'ArrowLeft': {
@@ -156,7 +159,8 @@ export function useKeyboardShortcuts({
             break;
           case 'End': {
             const siblingCount = arboristNode.parent?.children?.length ?? 1;
-            postMessage(moveHierarchy(idMVC, parentId, siblingCount - 1));
+            // insert-then-remove: siblingCount (not -1) to land past last sibling.
+            postMessage(moveHierarchy(idMVC, parentId, siblingCount));
             moveCooldownUntil = Date.now() + 120;
             break;
           }

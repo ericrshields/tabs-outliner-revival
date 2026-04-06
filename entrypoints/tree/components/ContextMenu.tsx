@@ -170,7 +170,9 @@ export function ContextMenu({
         case 'down': {
           const sibCount = node.parent?.children?.length ?? 1;
           if (idx < sibCount - 1)
-            target = { sourceId: idMVC, parentId, position: idx + 1 };
+            // moveNode insert-then-remove: source at idx shifts indices,
+            // so idx+2 lands one position below the next sibling.
+            target = { sourceId: idMVC, parentId, position: idx + 2 };
           break;
         }
         case 'indent': {
@@ -202,7 +204,8 @@ export function ContextMenu({
         case 'last': {
           const sibCount = node.parent?.children?.length ?? 1;
           if (idx < sibCount - 1)
-            target = { sourceId: idMVC, parentId, position: sibCount - 1 };
+            // insert-then-remove: sibCount (not -1) to land past last sibling.
+            target = { sourceId: idMVC, parentId, position: sibCount };
           break;
         }
       }
