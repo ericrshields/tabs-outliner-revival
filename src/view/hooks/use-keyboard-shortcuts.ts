@@ -140,14 +140,17 @@ export function useKeyboardShortcuts({
           }
           case 'ArrowRight': {
             // Indent: make last direct child of the previous sibling.
-            // Use isRoot to check same-level (ROOT_ID string would match falsely).
-            const prev = arboristNode.prev;
-            const sameParent =
-              prev?.parent?.isRoot === arboristNode.parent?.isRoot &&
-              prev?.parent?.id === arboristNode.parent?.id;
-            if (prev && !prev.isRoot && sameParent) {
+            // Use parent.children[idx-1] for actual sibling — node.prev
+            // walks display order and returns the last visible descendant
+            // of the prior subtree, not the subtree root itself.
+            const prevSibling = arboristNode.parent?.children?.[idx - 1];
+            if (idx > 0 && prevSibling) {
               postMessage(
-                moveHierarchy(idMVC, prev.id, prev.children?.length ?? 0),
+                moveHierarchy(
+                  idMVC,
+                  prevSibling.id,
+                  prevSibling.children?.length ?? 0,
+                ),
               );
               moveCooldownUntil = Date.now() + 120;
             }

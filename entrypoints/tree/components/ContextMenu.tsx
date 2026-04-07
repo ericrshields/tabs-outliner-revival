@@ -116,11 +116,7 @@ export function ContextMenu({
   const canMoveDown = menuIdx < menuSibCount - 1;
   // Use isRoot for same-parent check — ROOT_ID is a non-empty string so
   // id comparison alone can't distinguish root siblings from real siblings.
-  const canIndent =
-    menuNode != null &&
-    menuNode.prev != null &&
-    !menuNode.prev.isRoot &&
-    menuNode.prev.parent?.id === menuNode.parent?.id;
+  const canIndent = menuNode != null && menuIdx > 0;
   // canOutdent: disable when parent OR grandparent is the virtual root.
   // - parent.isRoot → node is already at top level
   // - parent.parent.isRoot → outdenting would place node at root, triggering
@@ -176,13 +172,14 @@ export function ContextMenu({
           break;
         }
         case 'indent': {
-          const prev = node.prev;
-          // Guard: prev must be a real sibling (not arborist root, same parent).
-          if (prev && !prev.isRoot && prev.parent?.id === node.parent?.id)
+          // Use parent.children[idx-1] for actual sibling — node.prev
+          // walks display order, not the sibling list.
+          const prevSibling = node.parent?.children?.[idx - 1];
+          if (idx > 0 && prevSibling)
             target = {
               sourceId: idMVC,
-              parentId: prev.id,
-              position: prev.children?.length ?? 0,
+              parentId: prevSibling.id,
+              position: prevSibling.children?.length ?? 0,
             };
           break;
         }
