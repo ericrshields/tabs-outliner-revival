@@ -233,6 +233,12 @@ body {
   font-weight: bold;
 }
 
+/* Inline note annotation on tabs (note ~ tab title) */
+.node-note {
+  color: #DAD2B4;
+  font-size: 1.15em;
+}
+
 /* Tab links */
 .node-text a {
   color: inherit;

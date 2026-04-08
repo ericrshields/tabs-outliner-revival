@@ -14,10 +14,11 @@ export function HoveringMenu({
   anchorRect,
   onAction,
 }: HoveringMenuProps) {
+  const hasNote = !!actions.addNoteAction;
   const hasClose = !!actions.closeAction;
   const hasDelete = !!actions.deleteAction;
 
-  if (!hasClose && !hasDelete) return null;
+  if (!hasNote && !hasClose && !hasDelete) return null;
 
   // Anchor the right edge of the menu to the row's right edge so buttons
   // stay in a consistent position regardless of how many are rendered.
@@ -29,6 +30,18 @@ export function HoveringMenu({
 
   return (
     <div className="hovering-menu" style={style}>
+      {hasNote && (
+        <button
+          className="hovering-menu-btn"
+          title="Note"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAction(idMVC, 'addNoteAction');
+          }}
+        >
+          ✎
+        </button>
+      )}
       {hasClose && (
         <button
           className="hovering-menu-btn"

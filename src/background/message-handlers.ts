@@ -47,6 +47,7 @@ import { NodeTypesEnum } from '@/types/enums';
 import { removeEmptyWindowParent } from './chrome-event-handlers';
 
 const ALLOWED_ACTIONS = new Set([
+  'addNoteAction',
   'closeAction',
   'deleteAction',
   'setCursorAction',
@@ -532,7 +533,11 @@ function handleHoveringMenuAction(
       break;
     }
 
+    case 'addNoteAction':
     case 'editTitleAction': {
+      // For tab nodes, both actions open the same inline edit for customTitle.
+      // addNoteAction is the hover menu entry point; editTitleAction is used
+      // by context menu, keyboard shortcuts (F2), and double-click.
       if (
         node.type === NodeTypesEnum.TAB ||
         node.type === NodeTypesEnum.SAVEDTAB ||
@@ -542,29 +547,34 @@ function handleHoveringMenuAction(
         bridge.broadcast({
           command: 'msg2view_activateNodeTabEditTextPrompt',
           targetNodeIdMVC: node.idMVC,
-          // Tab edit is the custom note/label field — start empty if none set,
-          // so the user types their note without the Chrome title in the way.
           defaultText: node.getCustomTitle() ?? '',
         });
       } else if (
-        node.type === NodeTypesEnum.WINDOW ||
-        node.type === NodeTypesEnum.SAVEDWINDOW ||
-        node.type === NodeTypesEnum.WAITINGWINDOW ||
-        node.type === NodeTypesEnum.GROUP
+        actionId === 'editTitleAction' &&
+        (node.type === NodeTypesEnum.WINDOW ||
+          node.type === NodeTypesEnum.SAVEDWINDOW ||
+          node.type === NodeTypesEnum.WAITINGWINDOW ||
+          node.type === NodeTypesEnum.GROUP)
       ) {
         bridge.broadcast({
           command: 'msg2view_activateNodeWindowEditTextPrompt',
           targetNodeIdMVC: node.idMVC,
           defaultText: node.getCustomTitle() ?? node.getNodeText(),
         });
-      } else if (node.type === NodeTypesEnum.TEXTNOTE) {
+      } else if (
+        actionId === 'editTitleAction' &&
+        node.type === NodeTypesEnum.TEXTNOTE
+      ) {
         bridge.broadcast({
           command: 'msg2view_activateNodeNoteEditTextPrompt',
           targetNodeIdMVC: node.idMVC,
           defaultText: (node as unknown as TextNoteTreeNode).persistentData
             .note,
         });
-      } else if (node.type === NodeTypesEnum.SEPARATORLINE) {
+      } else if (
+        actionId === 'editTitleAction' &&
+        node.type === NodeTypesEnum.SEPARATORLINE
+      ) {
         // Separator edit cycles styles rather than showing a text prompt.
         (node as unknown as SeparatorTreeNode).cycleStyle();
         bridge.broadcast({

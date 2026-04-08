@@ -70,6 +70,15 @@ export function NodeRow({
   const hasChildren = data.isSubnodesPresent || data.subnodes.length > 0;
   const arrow = hasChildren ? (node.isOpen ? '\u25BC' : '\u25B6') : ' ';
 
+  const isTab = data.titleBackgroundCssClass === 'tabFrame';
+  const notePrefix =
+    isTab && data.customTitle ? (
+      <>
+        <span className="node-note">{data.customTitle}</span>
+        {' ~ '}
+      </>
+    ) : null;
+
   const textContent = data.href ? (
     <a
       href={data.href}
@@ -81,10 +90,14 @@ export function NodeRow({
         }
       }}
     >
+      {notePrefix}
       {data.nodeText}
     </a>
   ) : (
-    data.nodeText
+    <>
+      {notePrefix}
+      {data.nodeText}
+    </>
   );
 
   const icon = data.icon ? (

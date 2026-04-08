@@ -27,6 +27,7 @@ export type TitleBackgroundCssClass =
   | 'defaultFrame';
 
 export type HoveringMenuActionId =
+  | 'addNoteAction'
   | 'closeAction'
   | 'deleteAction'
   | 'editTitleAction'

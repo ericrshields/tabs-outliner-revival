@@ -109,6 +109,7 @@ export class AttachWaitTabTreeNode extends TreeNode {
   > {
     return {
       ...super.buildHoveringMenuActions(),
+      addNoteAction: { id: 'addNoteAction', performAction: () => {} },
       editTitleAction: { id: 'editTitleAction', performAction: () => {} },
       closeAction: { id: 'closeAction', performAction: () => {} },
     };

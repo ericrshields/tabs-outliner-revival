@@ -296,4 +296,44 @@ describe('NodeRow', () => {
     const { container } = renderNodeRow(nodeApi);
     expect(container.querySelector('.stats-block')).toBeNull();
   });
+
+  it('renders note ~ title for tab with customTitle', () => {
+    const data = makeNodeDTO({
+      titleBackgroundCssClass: 'tabFrame' as TitleBackgroundCssClass,
+      customTitle: 'Meeting notes',
+      nodeText: 'Google Docs',
+      href: 'https://docs.google.com',
+    });
+    const { container } = renderNodeRow(makeNodeApi(data));
+    const noteEl = container.querySelector('.node-note');
+    expect(noteEl).toBeTruthy();
+    expect(noteEl!.textContent).toBe('Meeting notes');
+    const link = container.querySelector('a') as HTMLAnchorElement;
+    expect(link.textContent).toContain('Meeting notes');
+    expect(link.textContent).toContain('Google Docs');
+    expect(link.textContent).toContain('~');
+  });
+
+  it('renders plain title for tab without customTitle', () => {
+    const data = makeNodeDTO({
+      titleBackgroundCssClass: 'tabFrame' as TitleBackgroundCssClass,
+      customTitle: null,
+      nodeText: 'Google Docs',
+    });
+    const { container } = renderNodeRow(makeNodeApi(data));
+    expect(container.querySelector('.node-note')).toBeNull();
+    expect(container.querySelector('.node-text')!.textContent).toBe(
+      'Google Docs',
+    );
+  });
+
+  it('does not render note ~ format for non-tab nodes with customTitle', () => {
+    const data = makeNodeDTO({
+      titleBackgroundCssClass: 'windowFrame' as TitleBackgroundCssClass,
+      customTitle: 'My Window',
+      nodeText: 'Window Title',
+    });
+    const { container } = renderNodeRow(makeNodeApi(data));
+    expect(container.querySelector('.node-note')).toBeNull();
+  });
 });

@@ -204,6 +204,18 @@ All messages are typed as discriminated unions. Adding a new message requires up
 - **Trigger**: First load detects legacy DB, auto-migrates to `chrome.storage.local`
 - **One-time**: Migration runs once, then legacy DB is ignored
 
+### Import Paths and Data Fidelity
+
+| Path | Format | Marks Preserved | Notes |
+|------|--------|-----------------|-------|
+| `.tree` file import | Operations log or HierarchyJSO | ✅ Full | Complete path — all marks (customTitle, customFavicon, relicons) survive |
+| HTML DnD (legacy → new) | `text/html` `<li>/<ul>` | ❌ Lost | Legacy extension does not serialize marks into HTML clipboard format |
+| IndexedDB migration | Operations log | ✅ Full | Same codec as `.tree` import, with mangled-marks normalization |
+
+**HTML DnD limitation**: The legacy Tabs Outliner serializes its tree view as flat HTML for clipboard DnD. This HTML contains only visible rendering — tab titles in `<a href>` tags and window names as plain `<li>` text. `customTitle`, `customFavicon`, and `relicons` are **not included** in the HTML. Window names are derived from runtime state (e.g., "Window (crashed Fri Mar 20 2026)") rather than `marks.customTitle`. This is a fundamental limitation of the cross-extension clipboard format — Chrome blocks custom MIME types between extensions, so only `text/html` is available.
+
+**Recommendation**: Users migrating from the legacy extension should use `.tree` file export/import for complete data transfer. DnD is suitable for quick partial imports where marks loss is acceptable.
+
 </storage_model>
 
 <tree_data_model>
@@ -284,5 +296,5 @@ Both mechanisms are independent — either one alone keeps the worker alive for 
 
 ---
 
-**Last Updated**: 2026-03-27
+**Last Updated**: 2026-04-08
 **Related**: [constitution.md](constitution.md), [../../.claude/project-summary.md](../../.claude/project-summary.md), [../../docs/modernization-plan.md](../../docs/modernization-plan.md)

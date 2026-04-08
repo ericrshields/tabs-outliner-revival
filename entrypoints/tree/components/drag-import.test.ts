@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { importContainsTabs } from './drag-import';
+import { importContainsTabs, extractTreeFromDrag } from './drag-import';
 
 describe('importContainsTabs', () => {
   it('returns true for HierarchyJSO with savedtab children (no type field)', () => {
@@ -89,5 +89,58 @@ describe('importContainsTabs', () => {
       ],
     });
     expect(importContainsTabs(json)).toBe(true);
+  });
+});
+
+describe('extractTreeFromDrag — HTML customTitle extraction', () => {
+  function makeDT(html: string): {
+    types: string[];
+    getData: (t: string) => string;
+    files: FileList;
+  } {
+    return {
+      types: ['text/html'],
+      getData: (t: string) => (t === 'text/html' ? html : ''),
+      files: [] as unknown as FileList,
+    };
+  }
+
+  it('extracts customTitle from text before <a> tag in legacy HTML', () => {
+    const html = [
+      '<li>Current Session</li>',
+      '<ul>',
+      '<li>Window</li>',
+      '<ul>',
+      '<li>test note <a href="https://example.com">Example Page</a></li>',
+      '</ul>',
+      '</ul>',
+    ].join('');
+
+    const json = extractTreeFromDrag(makeDT(html));
+    expect(json).not.toBeNull();
+    const tree = JSON.parse(json!);
+    // Session > savedwin > tab
+    const tab = tree.s[0].s[0].n;
+    expect(tab.data.url).toBe('https://example.com');
+    expect(tab.data.title).toBe('Example Page');
+    expect(tab.marks.customTitle).toBe('test note');
+  });
+
+  it('does not set customTitle when no text before <a> tag', () => {
+    const html = [
+      '<li>Current Session</li>',
+      '<ul>',
+      '<li>Window</li>',
+      '<ul>',
+      '<li><a href="https://example.com">Example Page</a></li>',
+      '</ul>',
+      '</ul>',
+    ].join('');
+
+    const json = extractTreeFromDrag(makeDT(html));
+    const tree = JSON.parse(json!);
+    const tab = tree.s[0].s[0].n;
+    expect(tab.data.url).toBe('https://example.com');
+    expect(tab.marks).toBeUndefined();
   });
 });

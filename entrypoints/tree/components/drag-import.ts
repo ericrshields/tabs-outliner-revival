@@ -246,6 +246,14 @@ function tokenizeFromHtml(html: string): FlatNode[] {
     } else if (tag === 'a' && !isClose && inLi) {
       const hrefMatch = /href="([^"]*)"/.exec(attrs);
       if (hrefMatch) currentUrl = hrefMatch[1];
+      // Legacy HTML renders notes as plain text before the <a> tag:
+      //   <li>note text <a href="...">tab title</a></li>
+      // The text between <li> and <a> was already captured in currentTitle.
+      // Save it as customTitle before overwriting with the <a> text.
+      if (currentTitle.trim()) {
+        currentCustomTitle = currentTitle.trim();
+      }
+      // Also check for explicit data-custom-title attribute
       const customTitleMatch = /data-custom-title="([^"]*)"/.exec(attrs);
       if (customTitleMatch) currentCustomTitle = customTitleMatch[1];
       // Text between <a...> and </a>

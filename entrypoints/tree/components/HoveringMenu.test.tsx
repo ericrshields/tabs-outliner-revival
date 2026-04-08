@@ -108,4 +108,35 @@ describe('HoveringMenu', () => {
     expect(getByTitle('Delete')).toBeTruthy();
     expect(container.querySelectorAll('.hovering-menu-btn').length).toBe(1);
   });
+
+  it('renders note button when addNoteAction present', () => {
+    const { getByTitle } = renderMenu({
+      actions: {
+        addNoteAction: { id: 'addNoteAction' },
+        deleteAction: { id: 'deleteAction' },
+      },
+    });
+    expect(getByTitle('Note')).toBeTruthy();
+  });
+
+  it('calls onAction with addNoteAction on note click', () => {
+    const onAction = vi.fn();
+    const { getByTitle } = renderMenu({
+      onAction,
+      actions: {
+        addNoteAction: { id: 'addNoteAction' },
+        deleteAction: { id: 'deleteAction' },
+      },
+    });
+    fireEvent.click(getByTitle('Note'));
+    expect(onAction).toHaveBeenCalledWith('node1', 'addNoteAction');
+  });
+
+  it('renders menu when only addNoteAction is present', () => {
+    const { getByTitle, container } = renderMenu({
+      actions: { addNoteAction: { id: 'addNoteAction' } },
+    });
+    expect(getByTitle('Note')).toBeTruthy();
+    expect(container.querySelectorAll('.hovering-menu-btn').length).toBe(1);
+  });
 });

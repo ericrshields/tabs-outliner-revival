@@ -80,6 +80,7 @@ export class WaitingTabTreeNode extends TreeNode {
   > {
     return {
       ...super.buildHoveringMenuActions(),
+      addNoteAction: { id: 'addNoteAction', performAction: () => {} },
       editTitleAction: { id: 'editTitleAction', performAction: () => {} },
     };
   }
