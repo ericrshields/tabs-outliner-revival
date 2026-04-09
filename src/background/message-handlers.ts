@@ -272,6 +272,161 @@ function handleGetTreeStructure(
   }
 }
 
+/** Check if a URL is safe to restore (http/https only). */
+function isRestorableUrl(url: string | undefined | null): url is string {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Walk the ancestor chain from a saved tab to find which Chrome window
+ * it should open in. Returns undefined if no live window is found
+ * (caller should create a new one).
+ */
+async function findTargetWindowForTab(
+  node: TreeNode,
+): Promise<number | undefined> {
+  let ancestor: TreeNode | null = node.parent;
+  while (ancestor != null) {
+    switch (ancestor.type) {
+      case NodeTypesEnum.WINDOW: {
+        const wid = (ancestor.data as WindowData).id;
+        if (wid != null) return wid;
+        return undefined;
+      }
+      case NodeTypesEnum.TAB: {
+        const wid = (ancestor.data as TabData).windowId;
+        if (wid != null) return wid;
+        return undefined;
+      }
+      case NodeTypesEnum.SAVEDWINDOW: {
+        // Check if the saved window's Chrome ID still exists
+        const wid = (ancestor.data as WindowData).id;
+        if (wid != null) {
+          const existingWin = await getWindow(wid);
+          if (existingWin) return wid;
+        }
+        // Check if a sibling was already restored into a new window
+        const activeSibling = ancestor.subnodes.find(
+          (sib) =>
+            sib.type === NodeTypesEnum.TAB &&
+            (sib.data as TabData).windowId != null,
+        );
+        if (activeSibling) {
+          return (activeSibling.data as TabData).windowId;
+        }
+        return undefined;
+      }
+      default:
+        ancestor = ancestor.parent;
+    }
+  }
+  return undefined;
+}
+
+/** Find a Chrome window ID from an active child tab within a container. */
+function findActiveWindowIdInChildren(container: TreeNode): number | undefined {
+  for (const child of container.subnodes) {
+    if (child.type === NodeTypesEnum.TAB) {
+      const wid = (child.data as TabData).windowId;
+      if (wid != null) return wid;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Restore a single saved tab: create Chrome tab, clean up duplicates,
+ * replace the saved node with an active one. Returns the resulting
+ * window ID and parent node, or null if the restore was skipped.
+ */
+async function restoreSavedTab(
+  savedNodeIdMVC: string,
+  url: string,
+  targetWindowId: number | undefined,
+  session: ActiveSession,
+  bridge: ViewBridge,
+): Promise<{
+  windowId: number | undefined;
+  tabParent: TreeNode | null;
+} | null> {
+  const chromeTabData =
+    targetWindowId != null
+      ? await createTab({ url, windowId: targetWindowId })
+      : await createWindowWithUrl(url);
+
+  // Chrome fires onTabCreated before this await resolves, so
+  // handleTabCreated may have already inserted a node for this tab ID.
+  // Remove the duplicate before we replace the saved node.
+  if (chromeTabData.id != null) {
+    const duplicate = session.treeModel.findActiveTab(chromeTabData.id);
+    if (duplicate?.parent) {
+      const dupParent = duplicate.parent;
+      session.treeModel.removeSubtree(duplicate);
+      bridge.broadcast({
+        command: 'msg2view_notifyObserver',
+        idMVC: duplicate.idMVC,
+        parameters: ['onNodeRemoved'],
+        parentsUpdateData: computeParentUpdatesToRoot(dupParent),
+      });
+      removeEmptyWindowParent(session, bridge, dupParent);
+    }
+  }
+
+  // Re-validate: the saved node may have been removed during the async gap.
+  const currentNode = session.treeModel.findByMvcId(savedNodeIdMVC as MvcId);
+  if (!currentNode || currentNode.type !== NodeTypesEnum.SAVEDTAB) return null;
+
+  const activeTabNode = new TabTreeNode(chromeTabData as TabData);
+  activeTabNode.restoredFromSaved = true;
+  activeTabNode.copyMarksAndCollapsedFrom(currentNode);
+  const tabParent = currentNode.parent;
+  if (!tabParent) return null;
+  session.treeModel.replaceNode(currentNode, activeTabNode);
+  bridge.broadcast({
+    command: 'msg2view_notifyObserver',
+    idMVC: activeTabNode.idMVC,
+    parameters: ['onNodeReplaced'],
+    parentsUpdateData: computeParentUpdatesToRoot(tabParent),
+  });
+
+  return { windowId: chromeTabData.windowId, tabParent: activeTabNode.parent };
+}
+
+/**
+ * If the given node is a SavedWindowTreeNode, promote it to an active
+ * WindowTreeNode using the Chrome window data. No-op for other types.
+ */
+async function promoteSavedWindowToActive(
+  node: TreeNode | null,
+  windowId: number | undefined,
+  session: ActiveSession,
+  bridge: ViewBridge,
+): Promise<void> {
+  if (!node || node.type !== NodeTypesEnum.SAVEDWINDOW || windowId == null)
+    return;
+
+  const winData = await getWindow(windowId);
+  if (!winData) return;
+
+  const activeWin = new WindowTreeNode(winData as WindowData);
+  activeWin.copyMarksAndCollapsedFrom(node);
+  session.treeModel.replaceNode(node, activeWin);
+  bridge.broadcast({
+    command: 'msg2view_notifyObserver',
+    idMVC: node.idMVC,
+    parameters: ['onNodeReplaced'],
+    parentsUpdateData: node.parent
+      ? computeParentUpdatesToRoot(node.parent)
+      : undefined,
+  });
+}
+
 async function handleActivateNode(
   targetNodeIdMVC: string,
   session: ActiveSession,
@@ -291,140 +446,26 @@ async function handleActivateNode(
 
     case NodeTypesEnum.SAVEDTAB: {
       const url = (node.data as TabData).url;
-      if (!url) break;
+      if (!url || !isRestorableUrl(url)) break;
 
-      // Only allow http/https — block javascript:, data:, etc.
-      try {
-        const parsed = new URL(url);
-        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') break;
-      } catch {
-        break; // Invalid URL
-      }
-
-      // Walk up the ancestor chain to find the Chrome window this saved tab
-      // belongs to. This handles any nesting depth: SAVEDTABs directly under
-      // a WINDOW or SAVEDWINDOW, but also nested under TABs (sub-tree
-      // hierarchies) or GROUP nodes. Rules per ancestor type:
-      //   WINDOW     → use its Chrome window ID directly
-      //   TAB        → use its windowId (live tab = live window)
-      //   SAVEDWINDOW → verify window still exists via getWindow; if not,
-      //                 check for a sibling TAB that was already restored
-      //                 (prior click opened a new window — reuse it)
-      //   Other      → keep walking up
-      let targetWindowId: number | undefined;
-      let ancestor: TreeNode | null = node.parent;
-      outer: while (ancestor != null && targetWindowId == null) {
-        switch (ancestor.type) {
-          case NodeTypesEnum.WINDOW: {
-            const wid = (ancestor.data as WindowData).id;
-            if (wid != null) targetWindowId = wid;
-            break outer;
-          }
-          case NodeTypesEnum.TAB: {
-            // Live tab acting as parent — its windowId is the target window.
-            const wid = (ancestor.data as TabData).windowId;
-            if (wid != null) targetWindowId = wid;
-            break outer;
-          }
-          case NodeTypesEnum.SAVEDWINDOW: {
-            const wid = (ancestor.data as WindowData).id;
-            if (wid != null) {
-              const existingWin = await getWindow(wid);
-              if (existingWin) targetWindowId = wid;
-            }
-            // If the saved window's Chrome ID no longer exists, check whether
-            // a sibling TAB was already restored into a new window (a prior
-            // SAVEDTAB click) so subsequent restores land in the same window.
-            if (targetWindowId == null) {
-              const activeSibling = ancestor.subnodes.find(
-                (sib) =>
-                  sib.type === NodeTypesEnum.TAB &&
-                  (sib.data as TabData).windowId != null,
-              );
-              if (activeSibling) {
-                targetWindowId = (activeSibling.data as TabData).windowId;
-              }
-            }
-            break outer; // SESSION is above; nothing useful further up
-          }
-          default:
-            ancestor = ancestor.parent;
-        }
-      }
+      const targetWindowId = await findTargetWindowForTab(node);
 
       try {
-        const chromeTabData =
-          targetWindowId != null
-            ? await createTab({ url, windowId: targetWindowId })
-            : await createWindowWithUrl(url);
-
-        // Chrome fires onTabCreated before this await resolves, so
-        // handleTabCreated may have already inserted a node for this
-        // tab ID. Remove the duplicate before we replace the saved node.
-        if (chromeTabData.id != null) {
-          const duplicate = session.treeModel.findActiveTab(chromeTabData.id);
-          if (duplicate?.parent) {
-            const dupParent = duplicate.parent;
-            session.treeModel.removeSubtree(duplicate);
-            bridge.broadcast({
-              command: 'msg2view_notifyObserver',
-              idMVC: duplicate.idMVC,
-              parameters: ['onNodeRemoved'],
-              parentsUpdateData: computeParentUpdatesToRoot(dupParent),
-            });
-            // If createWindowWithUrl opened a new window, handleWindowCreated
-            // added an empty WINDOW shell. Clean it up now that its only
-            // child (the duplicate) has been removed.
-            removeEmptyWindowParent(session, bridge, dupParent);
-          }
-        }
-
-        // Re-validate: the saved node may have been removed during the
-        // async gap (e.g., user deleted it while createTab was pending).
-        const currentNode = session.treeModel.findByMvcId(
-          targetNodeIdMVC as MvcId,
+        const result = await restoreSavedTab(
+          targetNodeIdMVC,
+          url,
+          targetWindowId,
+          session,
+          bridge,
         );
-        if (!currentNode || currentNode.type !== NodeTypesEnum.SAVEDTAB) break;
+        if (!result) break;
 
-        const activeTabNode = new TabTreeNode(chromeTabData as TabData);
-        activeTabNode.restoredFromSaved = true;
-        activeTabNode.copyMarksAndCollapsedFrom(currentNode);
-        const oldParent = currentNode.parent;
-        if (!oldParent) break;
-        session.treeModel.replaceNode(currentNode, activeTabNode);
-        bridge.broadcast({
-          command: 'msg2view_notifyObserver',
-          idMVC: activeTabNode.idMVC,
-          parameters: ['onNodeReplaced'],
-          parentsUpdateData: computeParentUpdatesToRoot(oldParent),
-        });
-
-        // If the parent is a saved window, convert it to an active window
-        // now that it has a live tab. Without this, the saved window stays
-        // gray, has no Chrome window ID in the index, and subsequent
-        // onTabCreated events log "Window X not found" warnings.
-        const tabParent = activeTabNode.parent;
-        if (
-          tabParent &&
-          tabParent.type === NodeTypesEnum.SAVEDWINDOW &&
-          chromeTabData.windowId != null
-        ) {
-          const winData = await getWindow(chromeTabData.windowId);
-          if (winData) {
-            const activeWin = new WindowTreeNode(winData as WindowData);
-            activeWin.copyMarksAndCollapsedFrom(tabParent);
-            session.treeModel.replaceNode(tabParent, activeWin);
-            bridge.broadcast({
-              command: 'msg2view_notifyObserver',
-              idMVC: tabParent.idMVC,
-              parameters: ['onNodeReplaced'],
-              parentsUpdateData: tabParent.parent
-                ? computeParentUpdatesToRoot(tabParent.parent)
-                : undefined,
-            });
-          }
-        }
-
+        await promoteSavedWindowToActive(
+          result.tabParent,
+          result.windowId,
+          session,
+          bridge,
+        );
         session.scheduleSave();
       } catch (err) {
         console.error('[message-handlers] Failed to open saved tab:', err);
@@ -444,8 +485,54 @@ async function handleActivateNode(
       break;
     }
 
+    case NodeTypesEnum.SAVEDWINDOW:
+    case NodeTypesEnum.GROUP: {
+      const savedChildren = node.subnodes.filter(
+        (child) =>
+          child.type === NodeTypesEnum.SAVEDTAB &&
+          isRestorableUrl((child.data as TabData).url),
+      );
+      if (savedChildren.length === 0) break;
+
+      // Reuse an existing live window if any sibling tab is already active.
+      let windowId = findActiveWindowIdInChildren(node);
+
+      try {
+        for (const savedChild of savedChildren) {
+          const url = (savedChild.data as TabData).url;
+          if (!url) continue;
+
+          const result = await restoreSavedTab(
+            savedChild.idMVC,
+            url,
+            windowId,
+            session,
+            bridge,
+          );
+          if (!result) continue;
+
+          // Capture window ID from the first tab for subsequent tabs
+          if (windowId == null) windowId = result.windowId;
+        }
+
+        await promoteSavedWindowToActive(
+          session.treeModel.findByMvcId(targetNodeIdMVC as MvcId),
+          windowId,
+          session,
+          bridge,
+        );
+        session.scheduleSave();
+      } catch (err) {
+        console.error(
+          '[message-handlers] Failed to restore container tabs:',
+          err,
+        );
+      }
+      break;
+    }
+
     default:
-      // SAVEDWINDOW, SESSION, GROUP, TEXTNOTE, SEPARATOR — no action on click
+      // SESSION, TEXTNOTE, SEPARATOR — no action on click
       break;
   }
 }
