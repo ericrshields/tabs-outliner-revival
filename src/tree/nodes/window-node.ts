@@ -67,7 +67,7 @@ export class WindowTreeNode extends TreeNode {
   }
 
   getCustomTitle(): string | null {
-    return null;
+    return this.marks.customTitle ?? null;
   }
 
   getNodeContentCssClass(): string | null {

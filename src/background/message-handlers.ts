@@ -611,7 +611,7 @@ function handleHoveringMenuAction(
         bridge.broadcast({
           command: 'msg2view_activateNodeWindowEditTextPrompt',
           targetNodeIdMVC: node.idMVC,
-          defaultText: node.getCustomTitle() ?? node.getNodeText(),
+          defaultText: node.getCustomTitle() ?? '',
         });
       } else if (
         actionId === 'editTitleAction' &&
