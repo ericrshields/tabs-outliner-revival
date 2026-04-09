@@ -38,13 +38,17 @@ import {
 import { TreeNode } from '@/tree/tree-node';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
 import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
+import { WindowTreeNode } from '@/tree/nodes/window-node';
 import { SavedWindowTreeNode } from '@/tree/nodes/saved-window-node';
 import { GroupTreeNode } from '@/tree/nodes/group-node';
 import { SeparatorTreeNode } from '@/tree/nodes/separator-node';
 import { TextNoteTreeNode } from '@/tree/nodes/text-note-node';
 import type { TabData, WindowData } from '@/types/node-data';
 import { NodeTypesEnum } from '@/types/enums';
-import { removeEmptyWindowParent } from './chrome-event-handlers';
+import {
+  removeEmptyWindowParent,
+  convertWindowToSaved,
+} from './chrome-event-handlers';
 
 const ALLOWED_ACTIONS = new Set([
   'addNoteAction',
@@ -394,6 +398,33 @@ async function handleActivateNode(
           parameters: ['onNodeReplaced'],
           parentsUpdateData: computeParentUpdatesToRoot(oldParent),
         });
+
+        // If the parent is a saved window, convert it to an active window
+        // now that it has a live tab. Without this, the saved window stays
+        // gray, has no Chrome window ID in the index, and subsequent
+        // onTabCreated events log "Window X not found" warnings.
+        const tabParent = activeTabNode.parent;
+        if (
+          tabParent &&
+          tabParent.type === NodeTypesEnum.SAVEDWINDOW &&
+          chromeTabData.windowId != null
+        ) {
+          const winData = await getWindow(chromeTabData.windowId);
+          if (winData) {
+            const activeWin = new WindowTreeNode(winData as WindowData);
+            activeWin.copyMarksAndCollapsedFrom(tabParent);
+            session.treeModel.replaceNode(tabParent, activeWin);
+            bridge.broadcast({
+              command: 'msg2view_notifyObserver',
+              idMVC: tabParent.idMVC,
+              parameters: ['onNodeReplaced'],
+              parentsUpdateData: tabParent.parent
+                ? computeParentUpdatesToRoot(tabParent.parent)
+                : undefined,
+            });
+          }
+        }
+
         session.scheduleSave();
       } catch (err) {
         console.error('[message-handlers] Failed to open saved tab:', err);
@@ -477,6 +508,28 @@ function handleHoveringMenuAction(
         }
       } else if (node.type === NodeTypesEnum.WINDOW) {
         const winData = node.data as WindowData;
+
+        // Track all active child tabs for undo-close (F3) BEFORE
+        // conversion — track() reads node.parent which is cleared
+        // by replaceNode.
+        for (const child of node.subnodes) {
+          if (child.type === NodeTypesEnum.TAB) {
+            session.closeTracker.track(child);
+          }
+        }
+
+        // Convert to saved BEFORE closing — matches tab close pattern.
+        // When handleWindowRemoved fires, findActiveWindow won't find the
+        // saved node, so it no-ops.
+        const savedWin = convertWindowToSaved(session.treeModel, node);
+        bridge.broadcast({
+          command: 'msg2view_notifyObserver',
+          idMVC: node.idMVC,
+          parameters: ['onWindowClosed'],
+          parentsUpdateData: computeParentUpdatesToRoot(savedWin),
+        });
+        session.scheduleSave();
+
         if (winData.id != null) {
           void removeWindow(winData.id);
         }
@@ -550,11 +603,10 @@ function handleHoveringMenuAction(
           defaultText: node.getCustomTitle() ?? '',
         });
       } else if (
-        actionId === 'editTitleAction' &&
-        (node.type === NodeTypesEnum.WINDOW ||
-          node.type === NodeTypesEnum.SAVEDWINDOW ||
-          node.type === NodeTypesEnum.WAITINGWINDOW ||
-          node.type === NodeTypesEnum.GROUP)
+        node.type === NodeTypesEnum.WINDOW ||
+        node.type === NodeTypesEnum.SAVEDWINDOW ||
+        node.type === NodeTypesEnum.WAITINGWINDOW ||
+        node.type === NodeTypesEnum.GROUP
       ) {
         bridge.broadcast({
           command: 'msg2view_activateNodeWindowEditTextPrompt',

@@ -10,7 +10,8 @@ import { SavedTabTreeNode } from '@/tree/nodes/saved-tab-node';
 import { SavedWindowTreeNode } from '@/tree/nodes/saved-window-node';
 import { resetMvcIdCounter } from '@/tree/mvc-id';
 import { NodeTypesEnum } from '@/types/enums';
-import type { TabData } from '@/types/node-data';
+import type { MvcId } from '@/types/brands';
+import type { TabData, WindowData } from '@/types/node-data';
 import type { ActiveSession } from '../active-session';
 import type {
   ViewToBackgroundMessage,
@@ -903,7 +904,150 @@ describe('handleViewMessage()', () => {
       );
     });
 
-    it('handles closeAction on a window by calling removeWindow', () => {
+    it('handles closeAction on a window by converting to saved then calling removeWindow', () => {
+      const { model, win } = buildModel();
+      const session = createMockSession(model);
+      const port = createMockPort();
+      const viewPort = createMockPort();
+      session.viewBridge.addPort(viewPort);
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateHoveringMenuActionOnNode',
+          targetNodeIdMVC: win.idMVC,
+          actionId: 'closeAction',
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      // Original active window no longer in index (replaced)
+      expect(model.findByMvcId(win.idMVC as MvcId)).toBeNull();
+      expect(model.findActiveWindow(1)).toBeNull();
+
+      // Root's first child is now a saved window with closeDate
+      const replacedNode = model.root.subnodes[0];
+      expect(replacedNode.type).toBe(NodeTypesEnum.SAVEDWINDOW);
+      expect((replacedNode.data as WindowData).closeDate).toBeDefined();
+
+      // Child active tab converted to saved tab
+      const childNode = replacedNode.subnodes[0];
+      expect(childNode.type).toBe(NodeTypesEnum.SAVEDTAB);
+
+      // Chrome window removal called
+      expect(removeWindow).toHaveBeenCalledWith(1);
+
+      // View notified of the closure
+      expect(viewPort.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: 'msg2view_notifyObserver',
+          parameters: ['onWindowClosed'],
+        }),
+      );
+
+      // Save scheduled
+      expect(session.scheduleSave).toHaveBeenCalled();
+    });
+
+    it('closeAction on window with no Chrome ID skips removeWindow', () => {
+      const root = new SessionTreeNode();
+      const win = new WindowTreeNode({} as WindowData);
+      const tab = new TabTreeNode({
+        id: 10,
+        windowId: undefined,
+        url: 'https://example.com',
+        title: 'Example',
+        active: true,
+      } as unknown as TabData);
+      root.insertSubnode(0, win);
+      win.insertSubnode(0, tab);
+      const model = new TreeModel(root);
+      const session = createMockSession(model);
+      const port = createMockPort();
+      const viewPort = createMockPort();
+      session.viewBridge.addPort(viewPort);
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateHoveringMenuActionOnNode',
+          targetNodeIdMVC: win.idMVC,
+          actionId: 'closeAction',
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      // Converted to saved despite no Chrome ID
+      const savedWin = model.root.subnodes[0];
+      expect(savedWin.type).toBe(NodeTypesEnum.SAVEDWINDOW);
+      expect(savedWin.subnodes[0].type).toBe(NodeTypesEnum.SAVEDTAB);
+
+      // removeWindow not called (no Chrome ID)
+      expect(removeWindow).not.toHaveBeenCalled();
+
+      // Still broadcasts and saves
+      expect(viewPort.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: 'msg2view_notifyObserver',
+          parameters: ['onWindowClosed'],
+        }),
+      );
+      expect(session.scheduleSave).toHaveBeenCalled();
+    });
+
+    it('closeAction on window converts all active tabs and preserves marks', () => {
+      const root = new SessionTreeNode();
+      const win = new WindowTreeNode({ id: 1, type: 'normal', focused: true });
+      win.marks = { relicons: [], customTitle: 'My Window' };
+      const tab1 = new TabTreeNode({
+        id: 10,
+        windowId: 1,
+        url: 'https://a.com',
+        title: 'A',
+        active: true,
+      });
+      const tab2 = new TabTreeNode({
+        id: 11,
+        windowId: 1,
+        url: 'https://b.com',
+        title: 'B',
+        active: true,
+      });
+      const savedTab = new SavedTabTreeNode({
+        url: 'https://c.com',
+        title: 'C',
+      });
+      root.insertSubnode(0, win);
+      win.insertSubnode(0, tab1);
+      win.insertSubnode(1, tab2);
+      win.insertSubnode(2, savedTab);
+      const model = new TreeModel(root);
+      const session = createMockSession(model);
+      const port = createMockPort();
+
+      handleViewMessage(
+        {
+          request: 'request2bkg_activateHoveringMenuActionOnNode',
+          targetNodeIdMVC: win.idMVC,
+          actionId: 'closeAction',
+        },
+        port,
+        session,
+        session.viewBridge,
+      );
+
+      const savedWin = model.root.subnodes[0];
+      expect(savedWin.type).toBe(NodeTypesEnum.SAVEDWINDOW);
+      expect(savedWin.marks.customTitle).toBe('My Window');
+      expect(savedWin.subnodes).toHaveLength(3);
+      expect(savedWin.subnodes[0].type).toBe(NodeTypesEnum.SAVEDTAB);
+      expect(savedWin.subnodes[1].type).toBe(NodeTypesEnum.SAVEDTAB);
+      expect(savedWin.subnodes[2].type).toBe(NodeTypesEnum.SAVEDTAB);
+    });
+
+    it('closeAction on window tracks active tabs for undo-close', () => {
       const { model, win } = buildModel();
       const session = createMockSession(model);
       const port = createMockPort();
@@ -919,7 +1063,11 @@ describe('handleViewMessage()', () => {
         session.viewBridge,
       );
 
-      expect(removeWindow).toHaveBeenCalledWith(1);
+      // Tab was tracked in close tracker for undo-close (F3)
+      expect(session.closeTracker.size).toBe(1);
+      const record = session.closeTracker.findByTabId(10);
+      expect(record).not.toBeNull();
+      expect(record!.tabData.url).toBe('https://example.com');
     });
 
     it('handles setCursorAction by broadcasting cursor message', () => {

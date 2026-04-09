@@ -14,6 +14,7 @@ import type { ViewBridge } from './view-bridge';
 import { NodeTypesEnum } from '@/types/enums';
 import type { TabData, WindowData } from '@/types/node-data';
 import type { ChromeTabData } from '@/types/chrome';
+import { TreeModel } from '@/tree/tree-model';
 import { TreeNode } from '@/tree/tree-node';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
 import { WindowTreeNode } from '@/tree/nodes/window-node';
@@ -420,14 +421,21 @@ function handleWindowCreated(
   session.scheduleSave();
 }
 
-function handleWindowRemoved(
-  session: ActiveSession,
-  bridge: ViewBridge,
-  windowId: number,
-): void {
-  const node = session.treeModel.findActiveWindow(windowId);
-  if (!node) return;
-
+/**
+ * Convert an active window node (and its active tab children) to saved.
+ *
+ * Shared by the hover-menu closeAction handler and the Chrome onWindowRemoved
+ * event handler. Only performs tree mutations — callers handle broadcasting,
+ * save scheduling, close-tracker recording, and Chrome API calls.
+ *
+ * NOTE: Individual child replacements emit onMutation events but are not
+ * broadcast to the view. The caller is expected to issue a single
+ * onWindowClosed broadcast that triggers a full tree refresh.
+ */
+export function convertWindowToSaved(
+  model: TreeModel,
+  node: TreeNode,
+): SavedWindowTreeNode {
   const windowData = node.data as WindowData;
   const saved = new SavedWindowTreeNode({
     ...windowData,
@@ -443,11 +451,23 @@ function handleWindowRemoved(
       const tabData = child.data as TabData;
       const savedTab = new SavedTabTreeNode({ ...tabData, active: false });
       savedTab.copyMarksAndCollapsedFrom(child);
-      session.treeModel.replaceNode(child, savedTab);
+      model.replaceNode(child, savedTab);
     }
   }
 
-  session.treeModel.replaceNode(node, saved);
+  model.replaceNode(node, saved);
+  return saved;
+}
+
+function handleWindowRemoved(
+  session: ActiveSession,
+  bridge: ViewBridge,
+  windowId: number,
+): void {
+  const node = session.treeModel.findActiveWindow(windowId);
+  if (!node) return;
+
+  const saved = convertWindowToSaved(session.treeModel, node);
 
   bridge.broadcast({
     command: 'msg2view_notifyObserver',
