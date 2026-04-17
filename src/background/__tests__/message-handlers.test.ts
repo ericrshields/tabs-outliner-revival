@@ -28,6 +28,13 @@ vi.mock('@/chrome/tabs', () => ({
     active: true,
   }),
   removeTab: vi.fn().mockResolvedValue(undefined),
+  moveTab: vi.fn().mockResolvedValue({
+    id: 10,
+    windowId: 2,
+    url: 'https://example.com',
+    title: 'Example',
+    active: true,
+  }),
 }));
 
 vi.mock('@/chrome/windows', () => ({

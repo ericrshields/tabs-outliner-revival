@@ -67,6 +67,24 @@ export async function createTab(
   }
 }
 
+/**
+ * Move a tab to a different window (and optionally position).
+ * Returns updated tab data with the new windowId.
+ */
+export async function moveTab(
+  tabId: number,
+  windowId: number,
+  index: number = -1,
+): Promise<ChromeTabData> {
+  try {
+    const tabs = await browser.tabs.move(tabId, { windowId, index });
+    const tab = Array.isArray(tabs) ? tabs[0] : tabs;
+    return toChromeTabData(tab);
+  } catch (err) {
+    throw new ChromeApiError('Failed to move tab', 'tabs.move', err);
+  }
+}
+
 export async function removeTab(tabId: number): Promise<void> {
   try {
     await browser.tabs.remove(tabId);

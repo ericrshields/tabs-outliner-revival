@@ -28,12 +28,13 @@ import type { MvcId } from '@/types/brands';
 import type { ActiveSession } from './active-session';
 import type { ViewBridge } from './view-bridge';
 import { toNodeDTO, computeParentUpdatesToRoot } from '@/tree/dto';
-import { focusTab, createTab, removeTab } from '@/chrome/tabs';
+import { focusTab, createTab, removeTab, moveTab } from '@/chrome/tabs';
 import {
   focusWindow,
   getWindow,
   removeWindow,
   createWindowWithUrl,
+  createWindowFromTab,
 } from '@/chrome/windows';
 import { TreeNode } from '@/tree/tree-node';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
@@ -49,6 +50,8 @@ import {
   removeEmptyWindowParent,
   convertWindowToSaved,
 } from './chrome-event-handlers';
+
+import { dndPendingTabIds } from './dnd-state';
 
 const ALLOWED_ACTIONS = new Set([
   'addNoteAction',
@@ -731,6 +734,41 @@ function handleHoveringMenuAction(
   }
 }
 
+/**
+ * Find the Chrome window ID for a node by walking up to its nearest
+ * window-like ancestor. Checks active WINDOW nodes first, then falls
+ * back to SAVEDWINDOW/GROUP by looking for a child active tab with a
+ * windowId (handles the case where the window wasn't promoted yet).
+ */
+function findAncestorChromeWindowId(node: TreeNode | null): number | undefined {
+  let current = node;
+  while (current) {
+    if (current.type === NodeTypesEnum.WINDOW) {
+      return (current.data as WindowData).id;
+    }
+    if (
+      current.type === NodeTypesEnum.SAVEDWINDOW ||
+      current.type === NodeTypesEnum.GROUP
+    ) {
+      return findActiveWindowIdInChildren(current);
+    }
+    current = current.parent;
+  }
+  return undefined;
+}
+
+/** Collect all active TAB nodes in a subtree (the node itself + descendants). */
+function collectActiveTabsInSubtree(node: TreeNode): TabTreeNode[] {
+  const tabs: TabTreeNode[] = [];
+  if (node.type === NodeTypesEnum.TAB) {
+    tabs.push(node as TabTreeNode);
+  }
+  for (const child of node.subnodes) {
+    tabs.push(...collectActiveTabsInSubtree(child));
+  }
+  return tabs;
+}
+
 function handleMoveHierarchy(
   sourceIdMVC: string,
   containerIdMVC: string | null,
@@ -756,6 +794,20 @@ function handleMoveHierarchy(
     containerIdMVC = wrapper.idMVC;
     movePosition = 0;
   }
+
+  // Snapshot window IDs BEFORE the tree move so the moved tab's stale
+  // windowId doesn't contaminate the destination lookup.
+  const oldWindowId = findAncestorChromeWindowId(source.parent);
+  const destContainer = containerIdMVC
+    ? session.treeModel.findByMvcId(containerIdMVC as MvcId)
+    : session.treeModel.root;
+  const newWindowId = destContainer
+    ? findAncestorChromeWindowId(destContainer)
+    : undefined;
+  const activeTabs =
+    oldWindowId != null && oldWindowId !== newWindowId
+      ? collectActiveTabsInSubtree(source)
+      : [];
 
   const oldParent = source.parent;
   try {
@@ -786,6 +838,92 @@ function handleMoveHierarchy(
     parameters: ['onNodeMoved'],
     parentsUpdateData: computeParentUpdatesToRoot(oldParent),
   });
+  if (activeTabs.length > 0 && newWindowId != null) {
+    // Both source and destination have a Chrome window — move tabs directly.
+    for (const tab of activeTabs) {
+      const tabId = (tab.data as TabData).id;
+      if (tabId == null) continue;
+      void (async () => {
+        try {
+          const updated = await moveTab(tabId, newWindowId);
+          tab.updateChromeData(updated as TabData);
+        } catch (err) {
+          console.warn(
+            `[message-handlers] Failed to move tab ${tabId} to window ${newWindowId}:`,
+            err,
+          );
+        }
+      })();
+    }
+  } else if (activeTabs.length > 0 && newWindowId == null) {
+    // Destination has no Chrome window — create one from the first tab,
+    // then move the rest into it. Mark tabs as pending so
+    // handleTabAttached doesn't fight with the tree state.
+    const tabIds = activeTabs
+      .map((tab) => (tab.data as TabData).id)
+      .filter((id): id is number => id != null);
+    for (const id of tabIds) dndPendingTabIds.add(id);
+
+    void (async () => {
+      try {
+        const winData = await createWindowFromTab(tabIds[0]);
+        const createdWindowId = winData.id;
+        if (createdWindowId == null) return;
+
+        // Update first tab's data with new windowId
+        activeTabs[0].updateChromeData({
+          ...(activeTabs[0].data as TabData),
+          windowId: createdWindowId,
+        } as TabData);
+
+        // Move remaining tabs into the same window
+        for (let i = 1; i < tabIds.length; i++) {
+          try {
+            const updated = await moveTab(tabIds[i], createdWindowId);
+            activeTabs[i].updateChromeData(updated as TabData);
+          } catch (err) {
+            console.warn(
+              `[message-handlers] Failed to move tab ${tabIds[i]}:`,
+              err,
+            );
+          }
+        }
+
+        // Clean up the duplicate WindowTreeNode that handleWindowCreated
+        // inserted at root (the tab was suppressed from handleTabAttached,
+        // so the duplicate is an empty shell).
+        const duplicate = session.treeModel.findActiveWindow(createdWindowId);
+        if (duplicate) {
+          const dupParent = duplicate.parent;
+          session.treeModel.removeSubtree(duplicate);
+          if (dupParent) {
+            bridge.broadcast({
+              command: 'msg2view_notifyObserver',
+              idMVC: duplicate.idMVC,
+              parameters: ['onNodeRemoved'],
+              parentsUpdateData: computeParentUpdatesToRoot(dupParent),
+            });
+          }
+        }
+
+        // Promote the saved window / group to an active window
+        await promoteSavedWindowToActive(
+          source.parent,
+          createdWindowId,
+          session,
+          bridge,
+        );
+        session.scheduleSave();
+      } catch (err) {
+        console.warn(
+          '[message-handlers] Failed to create window for DnD:',
+          err,
+        );
+      } finally {
+        for (const id of tabIds) dndPendingTabIds.delete(id);
+      }
+    })();
+  }
 
   session.scheduleSave();
 }

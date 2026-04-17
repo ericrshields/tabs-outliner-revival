@@ -112,6 +112,31 @@ export async function createWindowWithUrl(url: string): Promise<ChromeTabData> {
   };
 }
 
+/**
+ * Create a new Chrome window by moving an existing tab into it.
+ * Returns the new window's data.
+ */
+export async function createWindowFromTab(
+  tabId: number,
+): Promise<ChromeWindowData> {
+  let win: Browser.windows.Window | undefined;
+  try {
+    win = await browser.windows.create({ tabId });
+  } catch (err) {
+    throw new ChromeApiError(
+      'Failed to create window from tab',
+      'windows.create',
+      err,
+    );
+  }
+  if (!win)
+    throw new ChromeApiError(
+      'Window not returned after create',
+      'windows.create',
+    );
+  return toChromeWindowData(win);
+}
+
 export async function removeWindow(windowId: number): Promise<void> {
   try {
     await browser.windows.remove(windowId);

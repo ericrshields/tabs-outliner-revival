@@ -11,6 +11,7 @@
 
 import type { ActiveSession } from './active-session';
 import type { ViewBridge } from './view-bridge';
+import { dndPendingTabIds } from './dnd-state';
 import { NodeTypesEnum } from '@/types/enums';
 import type { TabData, WindowData } from '@/types/node-data';
 import type { ChromeTabData } from '@/types/chrome';
@@ -295,6 +296,10 @@ function handleTabAttached(
   tabId: number,
   attachInfo: Browser.tabs.OnAttachedInfo,
 ): void {
+  // DnD handler is creating a new window for this tab — the tree already
+  // has the tab in the right place. Skip to avoid undoing the DnD move.
+  if (dndPendingTabIds.has(tabId)) return;
+
   const node = session.treeModel.findActiveTab(tabId);
   if (!node) return;
 
@@ -305,6 +310,11 @@ function handleTabAttached(
     );
     return;
   }
+
+  // If the tab is already under the target window (e.g., DnD handler
+  // already moved it in the tree before chrome.tabs.move fired), skip
+  // the tree move to preserve the user's chosen drop position.
+  if (node.parent === newWinNode) return;
 
   // Move tab to new window
   if (node.parent) {
