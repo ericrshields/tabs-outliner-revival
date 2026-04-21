@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/preact';
 import type { MutableRef } from 'preact/hooks';
 import type { HoveringMenuActionId } from '@/types/node';
@@ -124,6 +124,105 @@ describe('useTreeInteractions', () => {
         result.current.handleAction('win1', 'close' as HoveringMenuActionId),
       );
       expect(result.current.hoverState).toBeNull();
+    });
+  });
+
+  describe('hover cooldown after action', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('suppresses onRowEnter fired immediately after handleAction', () => {
+      const { result } = renderHook(() => useTreeInteractions(makeOptions()));
+      const actions = makeMockActions();
+      const rect = new DOMRect(0, 0, 100, 24);
+
+      act(() =>
+        result.current.handleAction('win1', 'close' as HoveringMenuActionId),
+      );
+      act(() => result.current.ctxValue.onRowEnter('win2', actions, rect));
+
+      expect(result.current.hoverState).toBeNull();
+    });
+
+    it('suppresses onRowEnter for the same node after its own action (phantom-row scenario)', () => {
+      const { result } = renderHook(() => useTreeInteractions(makeOptions()));
+      const actions = makeMockActions();
+      const rect = new DOMRect(0, 0, 100, 24);
+
+      act(() =>
+        result.current.handleAction('win1', 'close' as HoveringMenuActionId),
+      );
+      act(() => result.current.ctxValue.onRowEnter('win1', actions, rect));
+
+      expect(result.current.hoverState).toBeNull();
+    });
+
+    it('accepts onRowEnter once the cooldown elapses', () => {
+      const { result } = renderHook(() => useTreeInteractions(makeOptions()));
+      const actions = makeMockActions();
+      const rect = new DOMRect(0, 0, 100, 24);
+
+      act(() =>
+        result.current.handleAction('win1', 'close' as HoveringMenuActionId),
+      );
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      act(() => result.current.ctxValue.onRowEnter('win2', actions, rect));
+
+      expect(result.current.hoverState).toEqual({
+        idMVC: 'win2',
+        actions,
+        rect,
+      });
+    });
+
+    it('restarts the cooldown on consecutive actions', () => {
+      const { result } = renderHook(() => useTreeInteractions(makeOptions()));
+      const actions = makeMockActions();
+      const rect = new DOMRect(0, 0, 100, 24);
+
+      act(() =>
+        result.current.handleAction('win1', 'close' as HoveringMenuActionId),
+      );
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+
+      act(() =>
+        result.current.handleAction('win2', 'close' as HoveringMenuActionId),
+      );
+
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      act(() => result.current.ctxValue.onRowEnter('win3', actions, rect));
+      expect(result.current.hoverState).toBeNull();
+
+      act(() => {
+        vi.advanceTimersByTime(60);
+      });
+      act(() => result.current.ctxValue.onRowEnter('win3', actions, rect));
+      expect(result.current.hoverState).not.toBeNull();
+    });
+
+    it('clears the pending timer on unmount', () => {
+      const { result, unmount } = renderHook(() =>
+        useTreeInteractions(makeOptions()),
+      );
+
+      act(() =>
+        result.current.handleAction('win1', 'close' as HoveringMenuActionId),
+      );
+      expect(vi.getTimerCount()).toBe(1);
+
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
     });
   });
 

@@ -23,6 +23,12 @@ import {
 
 const SINGLE_CLICK_KEY = 'singleClickActivation';
 
+// After an action collapses/removes a row, the next sibling slides into the same
+// pixel position under the user's stationary cursor and fires onMouseEnter on the
+// re-render. Suppress row-enter callbacks briefly so the menu doesn't reappear
+// on the wrong node.
+const HOVER_COOLDOWN_MS = 150;
+
 export interface HoverState {
   idMVC: string;
   actions: HoveringMenuActions;
@@ -95,8 +101,14 @@ export function useTreeInteractions({
     }
   }, [selectedId]);
 
+  const actionCooldownRef = useRef(false);
+  const actionCooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
   const handleRowEnter = useCallback(
     (id: string, actions: HoveringMenuActions, rect: DOMRect) => {
+      if (actionCooldownRef.current) return;
       setHoverState({ idMVC: id, actions, rect });
       // Note: lastKeyboardTargetId is NOT updated here — keyboard shortcuts
       // require an explicit click/action/context-menu to set the target.
@@ -118,6 +130,14 @@ export function useTreeInteractions({
       lastKeyboardTargetId.current = idMVC;
       postMessage(executeAction(idMVC, actionId));
       setHoverState(null);
+      actionCooldownRef.current = true;
+      if (actionCooldownTimerRef.current !== null) {
+        clearTimeout(actionCooldownTimerRef.current);
+      }
+      actionCooldownTimerRef.current = setTimeout(() => {
+        actionCooldownRef.current = false;
+        actionCooldownTimerRef.current = null;
+      }, HOVER_COOLDOWN_MS);
     },
     [postMessage],
   );
@@ -159,6 +179,16 @@ export function useTreeInteractions({
     container.addEventListener('scroll', clearHover, true);
     return () => container.removeEventListener('scroll', clearHover, true);
   }, [clearHover, treeContainerRef]);
+
+  useEffect(() => {
+    return () => {
+      if (actionCooldownTimerRef.current !== null) {
+        clearTimeout(actionCooldownTimerRef.current);
+        actionCooldownTimerRef.current = null;
+      }
+      actionCooldownRef.current = false;
+    };
+  }, []);
 
   // Activation mode: double-click (default) or single-click (legacy)
   const singleClickActivation = useMemo(
