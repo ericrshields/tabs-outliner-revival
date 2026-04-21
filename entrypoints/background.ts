@@ -6,7 +6,7 @@
  */
 
 import { ActiveSession } from '@/background/active-session';
-import { handleViewMessage } from '@/background/message-handlers';
+import { wireViewPort } from '@/background/view-port-setup';
 import { onPortConnect } from '@/chrome/runtime';
 import { onActionClicked } from '@/chrome/action';
 import { onCommand } from '@/chrome/commands';
@@ -30,10 +30,10 @@ export default defineBackground(() => {
   });
 
   let session: ActiveSession | null = null;
-  let initPromise: Promise<void> | null = null;
+  let initPromise: Promise<ActiveSession | null> | null = null;
 
-  async function initSession(): Promise<void> {
-    if (session) return;
+  async function initSession(): Promise<ActiveSession | null> {
+    if (session) return session;
     if (!initPromise) {
       initPromise = (async () => {
         try {
@@ -52,14 +52,16 @@ export default defineBackground(() => {
               });
             }
           });
+          return session;
         } catch (err) {
           console.error('[background] Failed to create ActiveSession:', err);
           // Clear initPromise only on failure so callers can retry.
           initPromise = null;
+          return null;
         }
       })();
     }
-    await initPromise;
+    return initPromise;
   }
 
   // Initialize session on startup and install
@@ -92,21 +94,11 @@ export default defineBackground(() => {
     }
   });
 
-  // Wire view port connections
+  // Wire view port connections. Always attach the message listener
+  // synchronously so requests arriving before session init resolves (e.g.,
+  // on SW wake after system sleep) are buffered instead of dropped.
   onPortConnect('tree-view', (port) => {
-    if (!session) return;
-
-    session.viewBridge.addPort(port);
-
-    port.onMessage.addListener((msg: unknown) => {
-      if (!session) return;
-      handleViewMessage(
-        msg as import('@/types/messages').ViewToBackgroundMessage,
-        port,
-        session,
-        session.viewBridge,
-      );
-    });
+    wireViewPort(port, initSession());
   });
 
   // Browser action click — create or focus the tree tab

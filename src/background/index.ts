@@ -10,3 +10,4 @@ export type { RecoveryResult } from './crash-recovery';
 export { updateBadge } from './badge-manager';
 export { registerChromeEventHandlers } from './chrome-event-handlers';
 export { handleViewMessage } from './message-handlers';
+export { wireViewPort } from './view-port-setup';
