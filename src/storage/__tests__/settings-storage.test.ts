@@ -57,12 +57,13 @@ describe('saveSettings', () => {
     expect(settings.openOnStartup).toBe(true);
   });
 
-  it('round-trips all four settings', async () => {
+  it('round-trips all settings', async () => {
     const updates = {
       autoScrollToTab: true,
       openOnStartup: true,
       oneClickToOpen: true,
       lightBackground: true,
+      wrapImportsInContainer: false,
     };
     await saveSettings(updates);
     const loaded = await loadSettings();

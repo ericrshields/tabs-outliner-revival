@@ -32,6 +32,7 @@ export interface UseTreeDropOptions {
 export interface UseTreeDropReturn {
   showFirstRun: boolean;
   dismissFirstRun: () => void;
+  openImport: () => void;
   isExternalDragOver: boolean;
   handleTreeDragOver: (e: ReactDragEvent<HTMLDivElement>) => void;
   handleTreeDragLeave: () => void;
@@ -55,6 +56,10 @@ export function useTreeDrop({
   const dismissFirstRun = useCallback(() => {
     localStorage.setItem(FIRST_RUN_KEY, 'true');
     setShowFirstRun(false);
+  }, []);
+
+  const openImport = useCallback(() => {
+    setShowFirstRun(true);
   }, []);
 
   // Auto-dismiss after successful import
@@ -190,6 +195,7 @@ export function useTreeDrop({
   return {
     showFirstRun,
     dismissFirstRun,
+    openImport,
     isExternalDragOver,
     handleTreeDragOver,
     handleTreeDragLeave,

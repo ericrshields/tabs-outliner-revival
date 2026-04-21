@@ -96,6 +96,28 @@ export function App() {
               </span>
             </span>
           </label>
+          <label style={styles.row}>
+            <input
+              type="checkbox"
+              checked={settings.wrapImportsInContainer}
+              onChange={(e) =>
+                handleChange(
+                  'wrapImportsInContainer',
+                  (e.target as HTMLInputElement).checked,
+                )
+              }
+            />
+            <span style={styles.labelText}>
+              Wrap imports in a dated group
+              <span style={styles.labelDesc}>
+                Nest imported trees under a timestamped group so repeated
+                imports stay separated. Disable to insert imported items
+                directly into the tree. Warning: if using the import wrapper,
+                deleting the wrapper will delete all items remaining inside of
+                it.
+              </span>
+            </span>
+          </label>
         </section>
 
         {/* Appearance */}

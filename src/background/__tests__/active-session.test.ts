@@ -52,8 +52,19 @@ vi.mock('@/chrome/action', () => ({
   setTooltip: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/storage/settings-storage', () => ({
+  loadSettings: vi.fn().mockResolvedValue({
+    autoScrollToTab: false,
+    openOnStartup: false,
+    oneClickToOpen: false,
+    lightBackground: false,
+    wrapImportsInContainer: true,
+  }),
+}));
+
 import { treeExists, loadTree, saveTree } from '@/storage/tree-storage';
 import { isMigrationNeeded, migrateFromLegacy } from '@/storage/migration';
+import { loadSettings } from '@/storage/settings-storage';
 import { createAlarm, clearAlarm } from '@/chrome/alarms';
 import { queryWindows } from '@/chrome/windows';
 import { queryTabs } from '@/chrome/tabs';
@@ -63,6 +74,15 @@ const mockLoadTree = loadTree as ReturnType<typeof vi.fn>;
 const mockSaveTree = saveTree as ReturnType<typeof vi.fn>;
 const mockIsMigrationNeeded = isMigrationNeeded as ReturnType<typeof vi.fn>;
 const mockMigrateFromLegacy = migrateFromLegacy as ReturnType<typeof vi.fn>;
+const mockLoadSettings = loadSettings as ReturnType<typeof vi.fn>;
+
+const DEFAULT_SETTINGS = {
+  autoScrollToTab: false,
+  openOnStartup: false,
+  oneClickToOpen: false,
+  lightBackground: false,
+  wrapImportsInContainer: true,
+};
 
 beforeEach(() => {
   resetMvcIdCounter();
@@ -72,6 +92,7 @@ beforeEach(() => {
   mockSaveTree.mockResolvedValue(undefined);
   mockIsMigrationNeeded.mockResolvedValue(false);
   mockMigrateFromLegacy.mockResolvedValue(null);
+  mockLoadSettings.mockResolvedValue(DEFAULT_SETTINGS);
 });
 
 describe('ActiveSession', () => {
@@ -307,6 +328,94 @@ describe('ActiveSession', () => {
       expect(result.nodeCount).toBe(2); // window + tab
       // Both the existing and imported windows should be present
       expect(session.treeModel.root.subnodes.length).toBe(2);
+
+      await session.dispose();
+    });
+
+    it('wraps imports in a dated group container', async () => {
+      const session = await ActiveSession.create();
+      const beforeCount = session.treeModel.root.subnodes.length;
+
+      const jso = {
+        n: {
+          type: 'session',
+          data: { treeId: 'x', nextDId: 1, nonDumpedDId: 1 },
+        },
+        s: [
+          {
+            n: { type: 'savedwin', data: {} },
+            s: [{ n: { data: { url: 'https://a.com', title: 'A' } } }],
+          },
+        ],
+      };
+
+      const result = await session.importTree(JSON.stringify(jso));
+      expect(result.success).toBe(true);
+
+      const lastChild =
+        session.treeModel.root.subnodes[
+          session.treeModel.root.subnodes.length - 1
+        ];
+      expect(lastChild.type).toBe('group');
+      expect(lastChild.marks.customTitle).toMatch(
+        /^Imported \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/,
+      );
+      expect(lastChild.subnodes.length).toBe(1);
+      expect(lastChild.subnodes[0].type).toBe('savedwin');
+      expect(session.treeModel.root.subnodes.length).toBe(beforeCount + 1);
+
+      await session.dispose();
+    });
+
+    it('appends imports as siblings when wrapImportsInContainer is false', async () => {
+      mockLoadSettings.mockResolvedValue({
+        ...DEFAULT_SETTINGS,
+        wrapImportsInContainer: false,
+      });
+      const session = await ActiveSession.create();
+      const beforeCount = session.treeModel.root.subnodes.length;
+
+      const jso = {
+        n: {
+          type: 'session',
+          data: { treeId: 'x', nextDId: 1, nonDumpedDId: 1 },
+        },
+        s: [
+          {
+            n: { type: 'savedwin', data: {} },
+            s: [{ n: { data: { url: 'https://a.com', title: 'A' } } }],
+          },
+          {
+            n: { type: 'savedwin', data: {} },
+            s: [{ n: { data: { url: 'https://b.com', title: 'B' } } }],
+          },
+        ],
+      };
+
+      const result = await session.importTree(JSON.stringify(jso));
+      expect(result.success).toBe(true);
+
+      // Two imported windows land as direct siblings, not wrapped.
+      expect(session.treeModel.root.subnodes.length).toBe(beforeCount + 2);
+      const last = session.treeModel.root.subnodes[beforeCount + 1];
+      expect(last.type).toBe('savedwin');
+
+      await session.dispose();
+    });
+
+    it('does not create a container for an empty import', async () => {
+      const session = await ActiveSession.create();
+      const beforeCount = session.treeModel.root.subnodes.length;
+
+      const emptyJso = {
+        n: {
+          type: 'session',
+          data: { treeId: 'x', nextDId: 1, nonDumpedDId: 1 },
+        },
+      };
+      const result = await session.importTree(JSON.stringify(emptyJso));
+      expect(result.success).toBe(true);
+      expect(session.treeModel.root.subnodes.length).toBe(beforeCount);
 
       await session.dispose();
     });

@@ -21,6 +21,8 @@ import {
   operationsToHierarchy,
 } from '@/serialization/operations-codec';
 import { restoreTree } from '@/tree/deserialize';
+import { GroupTreeNode } from '@/tree/nodes/group-node';
+import { loadSettings } from '@/storage/settings-storage';
 import type { HierarchyJSO } from '@/types/serialized';
 import type { Msg_InitTreeView } from '@/types/messages';
 import { SaveScheduler } from './save-scheduler';
@@ -182,15 +184,44 @@ export class ActiveSession {
       const deactivated = deactivateHierarchy(hierarchy);
       console.log(`[importTree] Deactivated ${deactivated} active nodes`);
 
-      // Append imported windows as children of the existing root
-      // (skip the imported root — we already have our own session node)
+      // Append imported children to root. When the wrap-in-container setting
+      // is on (default), nest them under a dated group so repeat imports stay
+      // visually grouped; when off, insert them as direct siblings of the
+      // user's existing tree so no container-level delete can take the whole
+      // import down in one click. Skip the imported root — our session node
+      // already stands in for it.
+      //
+      // insertAsLastChild on the detached container is safe today because
+      // ActiveSession does not wire onMutation; if that changes, switch to
+      // container.insertSubnode to avoid firing view events for a parent
+      // that isn't in the tree yet.
+      const { wrapImportsInContainer } = await loadSettings();
       const children = hierarchy.s ?? [];
       let importedNodeCount = 0;
-      for (const childJSO of children) {
-        importedNodeCount += countHierarchyNodes(childJSO);
-        const childNode = restoreTree(childJSO);
-        if (childNode) {
-          this.treeModel.insertAsLastChild(this.treeModel.root, childNode);
+
+      if (wrapImportsInContainer) {
+        const container = new GroupTreeNode();
+        container.setMarks({
+          relicons: [],
+          customTitle: `Imported ${formatImportTimestamp(new Date())}`,
+        });
+        for (const childJSO of children) {
+          importedNodeCount += countHierarchyNodes(childJSO);
+          const childNode = restoreTree(childJSO);
+          if (childNode) {
+            this.treeModel.insertAsLastChild(container, childNode);
+          }
+        }
+        if (container.subnodes.length > 0) {
+          this.treeModel.insertAsLastChild(this.treeModel.root, container);
+        }
+      } else {
+        for (const childJSO of children) {
+          importedNodeCount += countHierarchyNodes(childJSO);
+          const childNode = restoreTree(childJSO);
+          if (childNode) {
+            this.treeModel.insertAsLastChild(this.treeModel.root, childNode);
+          }
         }
       }
 
@@ -279,6 +310,16 @@ export class ActiveSession {
 }
 
 // -- Import helpers --
+
+/**
+ * Format a Date as the local-timezone "YYYY-MM-DD HH:MM" string used in the
+ * dated import container's title. Local time reflects what the user sees on
+ * their clock when the import happens.
+ */
+function formatImportTimestamp(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 /** Count all nodes in a HierarchyJSO subtree (inclusive). */
 function countHierarchyNodes(jso: HierarchyJSO): number {

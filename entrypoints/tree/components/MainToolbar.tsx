@@ -12,6 +12,7 @@ interface MainToolbarProps {
   /** Ref to the last deliberately-interacted node idMVC (same ref used by keyboard shortcuts). */
   cursorIdRef: { current: string | null };
   postMessage: (msg: ViewToBackgroundMessage) => void;
+  onOpenImport: () => void;
 }
 
 function openSettings() {
@@ -22,7 +23,11 @@ function openSettings() {
   );
 }
 
-export function MainToolbar({ cursorIdRef, postMessage }: MainToolbarProps) {
+export function MainToolbar({
+  cursorIdRef,
+  postMessage,
+  onOpenImport,
+}: MainToolbarProps) {
   return (
     <div className="main-toolbar" role="toolbar" aria-label="Tree actions">
       <div className="main-toolbar-left">
@@ -63,6 +68,16 @@ export function MainToolbar({ cursorIdRef, postMessage }: MainToolbarProps) {
           onClick={() => postMessage(exportTreeHtml())}
         >
           Export .html
+        </button>
+
+        <span className="main-toolbar-divider" />
+
+        <button
+          type="button"
+          title="Import a tree (file or drag-and-drop from the legacy extension)"
+          onClick={onOpenImport}
+        >
+          📁 Import
         </button>
       </div>
       <div className="main-toolbar-right">

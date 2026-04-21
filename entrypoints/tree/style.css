@@ -119,6 +119,28 @@ body {
   display: flex;
   align-items: center;
   gap: 2px;
+  min-width: 0;
+}
+
+/* When the viewport is too narrow for every button, let the left group scroll
+   horizontally rather than clipping or overflowing the fixed-height bar.
+   The right group (Settings) stays pinned. */
+.main-toolbar-left {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.main-toolbar-left::-webkit-scrollbar {
+  display: none;
+}
+
+.main-toolbar-right {
+  flex-shrink: 0;
+}
+
+.main-toolbar button,
+.main-toolbar-divider {
+  flex-shrink: 0;
 }
 
 .main-toolbar-divider {

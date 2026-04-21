@@ -74,6 +74,17 @@ describe('useTreeDrop', () => {
 
       expect(result.current.showFirstRun).toBe(false);
     });
+
+    it('openImport re-opens the modal after dismissal without clearing FIRST_RUN_KEY', () => {
+      localStorage.setItem('importDismissed', 'true');
+      const { result } = renderHook(() => useTreeDrop(makeOptions()));
+      expect(result.current.showFirstRun).toBe(false);
+
+      act(() => result.current.openImport());
+
+      expect(result.current.showFirstRun).toBe(true);
+      expect(localStorage.getItem('importDismissed')).toBe('true');
+    });
   });
 
   describe('handleImport', () => {

@@ -124,6 +124,7 @@ export function App() {
   const {
     showFirstRun,
     dismissFirstRun,
+    openImport,
     isExternalDragOver,
     handleTreeDragOver,
     handleTreeDragLeave,
@@ -273,6 +274,7 @@ export function App() {
         <MainToolbar
           cursorIdRef={lastKeyboardTargetId}
           postMessage={postMessage}
+          onOpenImport={openImport}
         />
       )}
     </div>

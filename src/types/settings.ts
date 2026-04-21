@@ -11,6 +11,12 @@ export interface AppSettings {
   oneClickToOpen: boolean;
   /** Use a light background theme instead of dark. */
   lightBackground: boolean;
+  /**
+   * Wrap imported trees in a dated group container so repeated imports
+   * stay visually distinct. When false, imported root-level nodes are
+   * appended directly as siblings of the existing tree's top-level nodes.
+   */
+  wrapImportsInContainer: boolean;
 }
 
 export const SETTINGS_DEFAULTS: AppSettings = {
@@ -18,6 +24,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   openOnStartup: false,
   oneClickToOpen: false,
   lightBackground: false,
+  wrapImportsInContainer: true,
 };
 
 /** chrome.storage.local key for persisted AppSettings. */
