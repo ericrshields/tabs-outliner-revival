@@ -63,11 +63,21 @@ describe('SavedTabTreeNode', () => {
     expect(node.getCustomTitle()).toBe('Custom');
   });
 
-  it('isSelectedTab reads active field', () => {
+  it('isSelectedTab always returns false (saved-tab invariant)', () => {
     const node = new SavedTabTreeNode(sampleTabData);
-    expect(node.isSelectedTab()).toBe(true);
+    expect(node.isSelectedTab()).toBe(false);
     const inactive = new SavedTabTreeNode({ ...sampleTabData, active: false });
     expect(inactive.isSelectedTab()).toBe(false);
+  });
+
+  it('constructor clears active/focused flags on any input', () => {
+    const node = new SavedTabTreeNode({
+      ...sampleTabData,
+      active: true,
+      focused: true,
+    } as TabData);
+    expect((node.data as TabData & { focused?: boolean }).active).toBe(false);
+    expect((node.data as TabData & { focused?: boolean }).focused).toBe(false);
   });
 
   it('cloneAsSaved returns SavedTabTreeNode with marks', () => {

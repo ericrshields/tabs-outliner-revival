@@ -69,9 +69,19 @@ describe('SavedWindowTreeNode', () => {
   it('serializes window data correctly', () => {
     const node = new SavedWindowTreeNode(sampleWindowData);
     const data = node.serializeData();
-    // focused false should be stripped (it's truthy here, so kept)
-    expect(data.focused).toBe(true);
+    // Saved window invariant: focused is always cleared in the constructor,
+    // then stripped by serializeWindowData since false is the default.
+    expect(data.focused).toBeUndefined();
     expect(data.id).toBe(7);
+  });
+
+  it('constructor clears focused flag on any input', () => {
+    const node = new SavedWindowTreeNode({
+      ...sampleWindowData,
+      focused: true,
+    });
+    expect(node.data.focused).toBe(false);
+    expect(node.isFocusedWindow()).toBe(false);
   });
 
   it('has editTitle in hovering menu', () => {

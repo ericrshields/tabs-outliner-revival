@@ -360,7 +360,7 @@ describe('Round-trip: tab and window data field stripping', () => {
     expect(winData.type).toBe('normal');
   });
 
-  it('strips falsy focused/incognito/alwaysOnTop from window data', () => {
+  it('strips falsy focused/incognito/alwaysOnTop from window data and clears stale focused on saved windows', () => {
     const jso: HierarchyJSO = {
       n: {
         type: 'session',
@@ -400,8 +400,11 @@ describe('Round-trip: tab and window data field stripping', () => {
     expect(falsy.incognito).toBeUndefined();
     expect(falsy.alwaysOnTop).toBeUndefined();
 
+    // Saved window invariant: focused is cleared to false in the constructor
+    // regardless of input, then stripped by serialization. incognito and
+    // alwaysOnTop are unaffected by the invariant and survive round-trip.
     const truthy = rt.s![1].n.data as Record<string, unknown>;
-    expect(truthy.focused).toBe(true);
+    expect(truthy.focused).toBeUndefined();
     expect(truthy.incognito).toBe(true);
     expect(truthy.alwaysOnTop).toBe(true);
   });

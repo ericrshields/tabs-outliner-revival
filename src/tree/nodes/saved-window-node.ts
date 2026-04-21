@@ -22,7 +22,12 @@ export class SavedWindowTreeNode extends TreeNode {
 
   constructor(data?: WindowData) {
     super();
-    this._persistentData = data ? { ...data } : ({} as WindowData);
+    const d = data ? { ...data } : ({} as WindowData);
+    // Constitution invariant: saved nodes never carry Chrome's live-state
+    // flags. Clear only when truthy so absent fields stay absent.
+    const record = d as Record<string, unknown>;
+    if (record.focused) record.focused = false;
+    this._persistentData = d;
   }
 
   get data(): WindowData {

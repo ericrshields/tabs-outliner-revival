@@ -29,6 +29,13 @@ export class SavedTabTreeNode extends TreeNode {
     }
     // Don't persist windowId on saved tabs
     delete (d as Record<string, unknown>).windowId;
+    // Constitution invariant: saved nodes never carry Chrome's live-state
+    // flags. Clear only when truthy so absent fields stay absent — matches
+    // the import-path clearing in deactivateHierarchy and keeps serialized
+    // data shape stable.
+    const record = d as Record<string, unknown>;
+    if (record.active) record.active = false;
+    if (record.focused) record.focused = false;
     this._persistentData = d;
   }
 
@@ -72,7 +79,7 @@ export class SavedTabTreeNode extends TreeNode {
   }
 
   override isSelectedTab(): boolean {
-    return this._persistentData.active ?? false;
+    return false;
   }
 
   serializeData(): TabData {
