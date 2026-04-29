@@ -32,6 +32,7 @@ function makeCtx(overrides: Partial<TreeContextValue> = {}): TreeContextValue {
     onContextMenu: vi.fn(),
     onNodeClick: vi.fn(),
     hasClipboard: false,
+    isScrolling: false,
     ...overrides,
   };
 }
@@ -59,7 +60,9 @@ describe('ClickRow', () => {
       const node = makeNodeApi();
       const { container } = renderClickRow(node);
       fireEvent.click(container.querySelector('[role="treeitem"]')!);
-      expect(node.select).toHaveBeenCalled();
+      // fireEvent.click emits only the click event (no mousedown), so this
+      // exercises the click path alone and confirms it still selects.
+      expect(node.select).toHaveBeenCalledTimes(1);
       expect(node.activate).not.toHaveBeenCalled();
     });
 
@@ -133,6 +136,81 @@ describe('ClickRow', () => {
       });
       expect(node.selectContiguous).toHaveBeenCalled();
       expect(node.activate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('mousedown selection (survives scroll-during-click)', () => {
+    it('selects on left-button mousedown with no modifiers', () => {
+      const node = makeNodeApi();
+      const ctx = makeCtx();
+      const { container } = renderClickRow(node, ctx);
+      fireEvent.mouseDown(container.querySelector('[role="treeitem"]')!, {
+        button: 0,
+      });
+      expect(ctx.onNodeClick).toHaveBeenCalledWith('test-node-1');
+      expect(node.select).toHaveBeenCalled();
+    });
+
+    it('selects when mousedown fires without a following click', () => {
+      // Simulates the real scenario: the row scrolls out from under the
+      // pointer between press and release, so the browser never fires
+      // `click`. Selection must still be applied from the mousedown alone.
+      const node = makeNodeApi();
+      const ctx = makeCtx();
+      const { container } = renderClickRow(node, ctx);
+      fireEvent.mouseDown(container.querySelector('[role="treeitem"]')!, {
+        button: 0,
+      });
+      expect(ctx.onNodeClick).toHaveBeenCalledWith('test-node-1');
+      expect(node.select).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not activate on mousedown even in single-click mode', () => {
+      const node = makeNodeApi();
+      const ctx = makeCtx({ singleClickActivation: true });
+      const { container } = renderClickRow(node, ctx);
+      fireEvent.mouseDown(container.querySelector('[role="treeitem"]')!, {
+        button: 0,
+      });
+      expect(node.activate).not.toHaveBeenCalled();
+    });
+
+    it('ignores right-click and middle-click mousedown', () => {
+      const node = makeNodeApi();
+      const { container } = renderClickRow(node);
+      fireEvent.mouseDown(container.querySelector('[role="treeitem"]')!, {
+        button: 2,
+      });
+      fireEvent.mouseDown(container.querySelector('[role="treeitem"]')!, {
+        button: 1,
+      });
+      expect(node.select).not.toHaveBeenCalled();
+    });
+
+    it('ignores modifier mousedowns — click handles those', () => {
+      const node = makeNodeApi();
+      const { container } = renderClickRow(node);
+      fireEvent.mouseDown(container.querySelector('[role="treeitem"]')!, {
+        button: 0,
+        metaKey: true,
+      });
+      fireEvent.mouseDown(container.querySelector('[role="treeitem"]')!, {
+        button: 0,
+        shiftKey: true,
+      });
+      expect(node.select).not.toHaveBeenCalled();
+      expect(node.selectMulti).not.toHaveBeenCalled();
+      expect(node.selectContiguous).not.toHaveBeenCalled();
+    });
+
+    it('ignores mousedown while editing', () => {
+      const node = makeNodeApi();
+      const ctx = makeCtx({ editingId: 'some-id' });
+      const { container } = renderClickRow(node, ctx);
+      fireEvent.mouseDown(container.querySelector('[role="treeitem"]')!, {
+        button: 0,
+      });
+      expect(node.select).not.toHaveBeenCalled();
     });
   });
 

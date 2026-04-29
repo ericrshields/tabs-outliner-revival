@@ -187,6 +187,20 @@ body {
   font-size: 14px;
 }
 
+/* react-window's FixedSizeList sets `pointer-events: none` on its inner
+   element via inline style while a scroll is active, debounced 150ms after
+   the last scroll event (plus React commit lag → ~200-400ms total dead
+   window). At our tree size the optimization isn't worth the UX cost: the
+   row under the pointer becomes uninteractable for hover and clicks during
+   that tail. Target the inner element structurally (second child of the
+   FixedSizeList outer; the first child is react-arborist's DropContainer
+   holding the DnD cursor — which intentionally has `pointer-events: none`
+   and must NOT be overridden). `!important` is required because the source
+   style is inline. */
+[role="tree"] > div > div:nth-child(2) {
+  pointer-events: auto !important;
+}
+
 /* ---- Tree node row ---- */
 
 .tree-node {
@@ -352,6 +366,7 @@ body {
 .hovering-menu-btn:hover {
   background: var(--menu-hover);
 }
+
 
 /* ---- Context menu ---- */
 

@@ -19,4 +19,5 @@ export const TreeContext = createContext<TreeContextValue>({
   onContextMenu: () => {},
   onNodeClick: () => {},
   hasClipboard: false,
+  isScrolling: false,
 });

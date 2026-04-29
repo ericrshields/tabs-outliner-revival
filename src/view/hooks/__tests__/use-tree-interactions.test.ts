@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/preact';
-import type { MutableRef } from 'preact/hooks';
 import type { HoveringMenuActionId } from '@/types/node';
 
 vi.mock('../../tree-actions', () => ({
@@ -40,7 +39,7 @@ function makeOptions(
 ): UseTreeInteractionsOptions {
   return {
     postMessage: vi.fn(),
-    treeContainerRef: { current: null } as MutableRef<HTMLDivElement | null>,
+    treeContainer: null,
     selectedId: null,
     editingNode: null,
     clearEditing: vi.fn(),
@@ -227,14 +226,30 @@ describe('useTreeInteractions', () => {
   });
 
   describe('scroll-clear effect', () => {
-    it('attaches scroll listener to container ref', () => {
+    it('attaches scroll listener once treeContainer is provided', () => {
       const container = document.createElement('div');
       const addSpy = vi.spyOn(container, 'addEventListener');
-      const ref = { current: container } as MutableRef<HTMLDivElement | null>;
 
       renderHook(() =>
-        useTreeInteractions(makeOptions({ treeContainerRef: ref })),
+        useTreeInteractions(makeOptions({ treeContainer: container })),
       );
+
+      expect(addSpy).toHaveBeenCalledWith('scroll', expect.any(Function), true);
+    });
+
+    it('attaches the listener when treeContainer transitions from null to set', () => {
+      const container = document.createElement('div');
+      const addSpy = vi.spyOn(container, 'addEventListener');
+
+      const { rerender } = renderHook(
+        ({ treeContainer }) =>
+          useTreeInteractions(makeOptions({ treeContainer })),
+        { initialProps: { treeContainer: null as HTMLDivElement | null } },
+      );
+      // Before the container exists no listener should be attached.
+      expect(addSpy).not.toHaveBeenCalled();
+
+      rerender({ treeContainer: container });
 
       expect(addSpy).toHaveBeenCalledWith('scroll', expect.any(Function), true);
     });
@@ -242,10 +257,9 @@ describe('useTreeInteractions', () => {
     it('removes listener on unmount', () => {
       const container = document.createElement('div');
       const removeSpy = vi.spyOn(container, 'removeEventListener');
-      const ref = { current: container } as MutableRef<HTMLDivElement | null>;
 
       const { unmount } = renderHook(() =>
-        useTreeInteractions(makeOptions({ treeContainerRef: ref })),
+        useTreeInteractions(makeOptions({ treeContainer: container })),
       );
       unmount();
 
@@ -254,6 +268,155 @@ describe('useTreeInteractions', () => {
         expect.any(Function),
         true,
       );
+    });
+
+    it('scroll event clears hoverState', () => {
+      const container = document.createElement('div');
+      const { result } = renderHook(() =>
+        useTreeInteractions(makeOptions({ treeContainer: container })),
+      );
+      const actions = makeMockActions();
+      const rect = new DOMRect(0, 0, 100, 24);
+
+      act(() => result.current.ctxValue.onRowEnter('win1', actions, rect));
+      expect(result.current.hoverState).not.toBeNull();
+
+      act(() => {
+        container.dispatchEvent(new Event('scroll'));
+      });
+
+      expect(result.current.hoverState).toBeNull();
+    });
+
+    it('exposes ctx.isScrolling=true during scroll and resets after quiesce', () => {
+      vi.useFakeTimers();
+      try {
+        const container = document.createElement('div');
+        const { result } = renderHook(() =>
+          useTreeInteractions(makeOptions({ treeContainer: container })),
+        );
+
+        expect(result.current.ctxValue.isScrolling).toBe(false);
+
+        act(() => {
+          container.dispatchEvent(new Event('scroll'));
+        });
+        expect(result.current.ctxValue.isScrolling).toBe(true);
+
+        // After the quiesce timer expires, isScrolling resets so the hover
+        // menu's action buttons re-enable.
+        act(() => {
+          vi.advanceTimersByTime(50);
+        });
+        expect(result.current.ctxValue.isScrolling).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('restores hover for the last-entered row when scroll quiesces', () => {
+      vi.useFakeTimers();
+      try {
+        const container = document.createElement('div');
+        // Simulate a row with a data attribute the hook will look up at quiesce.
+        const row = document.createElement('div');
+        row.setAttribute('data-mvc-id', 'win1');
+        Object.defineProperty(row, 'getBoundingClientRect', {
+          value: () => new DOMRect(10, 50, 200, 24),
+        });
+        container.appendChild(row);
+
+        const { result } = renderHook(() =>
+          useTreeInteractions(makeOptions({ treeContainer: container })),
+        );
+        const actions = makeMockActions();
+        const initialRect = new DOMRect(0, 0, 100, 24);
+
+        // User hovers row, then scrolls.
+        act(() =>
+          result.current.ctxValue.onRowEnter('win1', actions, initialRect),
+        );
+        act(() => {
+          container.dispatchEvent(new Event('scroll'));
+        });
+        // Scroll cleared the menu.
+        expect(result.current.hoverState).toBeNull();
+
+        // Quiesce timer fires: hook should refind the row by data-mvc-id and
+        // restore hoverState with a fresh rect read from the live element.
+        act(() => {
+          vi.advanceTimersByTime(50);
+        });
+        expect(result.current.hoverState).not.toBeNull();
+        expect(result.current.hoverState?.idMVC).toBe('win1');
+        expect(result.current.hoverState?.rect.top).toBe(50);
+        expect(result.current.hoverState?.rect.left).toBe(10);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('does not restore hover on quiesce after clearHover (mouseleave)', () => {
+      vi.useFakeTimers();
+      try {
+        const container = document.createElement('div');
+        const row = document.createElement('div');
+        row.setAttribute('data-mvc-id', 'win1');
+        container.appendChild(row);
+
+        const { result } = renderHook(() =>
+          useTreeInteractions(makeOptions({ treeContainer: container })),
+        );
+        const actions = makeMockActions();
+        const rect = new DOMRect(0, 0, 100, 24);
+
+        act(() => result.current.ctxValue.onRowEnter('win1', actions, rect));
+        act(() => {
+          container.dispatchEvent(new Event('scroll'));
+        });
+        // Pointer left the tree mid-scroll.
+        act(() => result.current.clearHover());
+
+        act(() => {
+          vi.advanceTimersByTime(50);
+        });
+        expect(result.current.hoverState).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('handleAction is suppressed while a scroll is in flight', () => {
+      vi.useFakeTimers();
+      try {
+        const container = document.createElement('div');
+        const postMessage = vi.fn();
+        const { result } = renderHook(() =>
+          useTreeInteractions(
+            makeOptions({ treeContainer: container, postMessage }),
+          ),
+        );
+
+        act(() => {
+          container.dispatchEvent(new Event('scroll'));
+        });
+
+        act(() =>
+          result.current.handleAction('win1', 'close' as HoveringMenuActionId),
+        );
+        expect(postMessage).not.toHaveBeenCalled();
+
+        // After scroll quiesces, actions fire normally.
+        act(() => {
+          vi.advanceTimersByTime(50);
+        });
+        act(() =>
+          result.current.handleAction('win1', 'close' as HoveringMenuActionId),
+        );
+        expect(postMessage).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
@@ -290,10 +453,9 @@ describe('useTreeInteractions', () => {
 
     it('maintains stable reference when dependencies unchanged', () => {
       const postMessage = vi.fn();
-      const ref = { current: null } as MutableRef<HTMLDivElement | null>;
       const opts: UseTreeInteractionsOptions = {
         postMessage,
-        treeContainerRef: ref,
+        treeContainer: null,
         selectedId: 'tab1',
         editingNode: null,
         clearEditing: vi.fn(),

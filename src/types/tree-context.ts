@@ -34,4 +34,11 @@ export interface TreeContextValue {
   onNodeClick: (idMVC: string) => void;
   /** Whether the in-memory clipboard has a cut/copy entry. */
   hasClipboard: boolean;
+  /**
+   * True while a tree scroll is in flight. Used to disable hover-menu buttons
+   * so a click during a scroll can't fire an action against whichever row
+   * happened to be under the pointer at mouseenter time but has since slid
+   * away.
+   */
+  isScrolling: boolean;
 }

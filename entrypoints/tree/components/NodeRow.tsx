@@ -186,6 +186,7 @@ export function NodeRow({
       ref={dragHandle}
       style={style}
       className={classNames}
+      data-mvc-id={data.idMVC}
       onMouseEnter={handleMouseEnter}
       onContextMenu={(e) => {
         e.preventDefault();

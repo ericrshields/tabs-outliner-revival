@@ -1,5 +1,7 @@
+import { useContext } from 'react';
 import type { HoveringMenuActionId } from '@/types/node';
 import type { NodeDTO } from '@/types/node-dto';
+import { TreeContext } from './TreeContext';
 
 export interface HoveringMenuProps {
   idMVC: string;
@@ -14,6 +16,7 @@ export function HoveringMenu({
   anchorRect,
   onAction,
 }: HoveringMenuProps) {
+  const { isScrolling } = useContext(TreeContext);
   const hasNote = !!actions.addNoteAction;
   const hasClose = !!actions.closeAction;
   const hasDelete = !!actions.deleteAction;
@@ -28,12 +31,17 @@ export function HoveringMenu({
     right: `${window.innerWidth - anchorRect.right}px`,
   };
 
+  // Disable while the tree is scrolling: the menu's idMVC was captured at
+  // mouseenter time, but rows slide under a stationary pointer during a
+  // scroll. A click would target whichever row mouseenter fired for last,
+  // which may not be the row the user thinks they're aiming at.
   return (
     <div className="hovering-menu" style={style}>
       {hasNote && (
         <button
           className="hovering-menu-btn"
           title="Note"
+          disabled={isScrolling}
           onClick={(e) => {
             e.stopPropagation();
             onAction(idMVC, 'addNoteAction');
@@ -46,6 +54,7 @@ export function HoveringMenu({
         <button
           className="hovering-menu-btn"
           title="Close"
+          disabled={isScrolling}
           onClick={(e) => {
             e.stopPropagation();
             onAction(idMVC, 'closeAction');
@@ -58,6 +67,7 @@ export function HoveringMenu({
         <button
           className="hovering-menu-btn"
           title="Delete"
+          disabled={isScrolling}
           onClick={(e) => {
             e.stopPropagation();
             onAction(idMVC, 'deleteAction');

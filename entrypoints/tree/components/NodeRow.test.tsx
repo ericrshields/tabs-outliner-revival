@@ -46,6 +46,7 @@ function makeCtx(overrides: Partial<TreeContextValue> = {}): TreeContextValue {
     onContextMenu: vi.fn(),
     onNodeClick: vi.fn(),
     hasClipboard: false,
+    isScrolling: false,
     ...overrides,
   };
 }

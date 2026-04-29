@@ -34,7 +34,14 @@ const ROW_HEIGHT = 24;
 
 export function App() {
   const treeRef = useRef<TreeApi<NodeDTO>>(null);
-  const treeContainerRef = useRef<HTMLDivElement>(null);
+  // Callback-ref state instead of useRef: the ref'd div is gated by
+  // `isLoading` so it doesn't exist at App mount. A useState-driven
+  // callback re-renders consumers when the element actually mounts,
+  // letting downstream effects (scroll listener, ResizeObserver) re-run
+  // and attach against the real element.
+  const [treeContainer, setTreeContainer] = useState<HTMLDivElement | null>(
+    null,
+  );
   const {
     state,
     isLoading,
@@ -69,7 +76,7 @@ export function App() {
     localCursorId,
   } = useTreeInteractions({
     postMessage,
-    treeContainerRef,
+    treeContainer,
     selectedId: state.selectedId,
     editingNode: state.editingNode,
     clearEditing,
@@ -112,14 +119,13 @@ export function App() {
   // be scrolled all the way to the top of the viewport.
   const [scrollPadding, setScrollPadding] = useState(0);
   useEffect(() => {
-    const el = treeContainerRef.current;
-    if (!el) return;
+    if (!treeContainer) return;
     const obs = new ResizeObserver(([entry]) => {
       setScrollPadding(Math.max(0, entry.contentRect.height - ROW_HEIGHT));
     });
-    obs.observe(el);
+    obs.observe(treeContainer);
     return () => obs.disconnect();
-  }, []);
+  }, [treeContainer]);
 
   const {
     showFirstRun,
@@ -152,7 +158,7 @@ export function App() {
         <div className="loading">Loading tree...</div>
       ) : (
         <div
-          ref={treeContainerRef}
+          ref={setTreeContainer}
           onMouseLeave={clearHover}
           onDragOver={handleTreeDragOver}
           onDragLeave={handleTreeDragLeave}
