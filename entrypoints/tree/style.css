@@ -488,9 +488,24 @@ body {
   font-weight: 500;
 }
 
-/* ---- Inline node edit input ---- */
+/* ---- Inline node edit input ----
+   Uses flex: 1 so the input takes the remaining row width regardless of
+   node type. Tabs and notes drop the input directly into the row's flex
+   layout; windows and groups place it inside `.window-frame-box`, which
+   is normally `inline-flex` (sized to its title). The `:has(input)` rule
+   below makes the frame expand only while a child input exists, so the
+   colored window pill grows to span the row during edit and snaps back
+   afterwards — preserves the "I'm editing a window" visual cue without
+   stretching the frame at rest.
+
+   `:has()` requires Chrome 105+ (Aug 2022). On older browsers the rule
+   silently no-ops and window/group edits fall back to the pre-fix
+   behavior: the input is `flex: 1` but its parent is still inline-flex,
+   so it stays clamped to the title's width. Degraded but functional. */
 
 .node-edit-input {
+  flex: 1;
+  min-width: 80px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid #5a7a9a;
   border-radius: 3px;
@@ -499,13 +514,17 @@ body {
   font-family: inherit;
   padding: 1px 4px;
   outline: none;
-  width: calc(100% - 8px);
-  min-width: 80px;
 }
 
 .node-edit-input:focus {
   border-color: #7aaaca;
   background: rgba(255, 255, 255, 0.12);
+}
+
+.window-frame-box:has(.node-edit-input) {
+  display: flex;
+  flex: 1;
+  min-width: 0;
 }
 
 /* ---- Stats block ---- */
