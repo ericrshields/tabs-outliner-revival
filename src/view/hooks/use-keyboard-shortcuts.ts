@@ -223,5 +223,6 @@ export function useKeyboardShortcuts({
     postMessage,
     clipboard,
     closeContextMenu,
+    contextMenuOpen,
   ]);
 }

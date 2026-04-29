@@ -53,11 +53,14 @@
 
   /* Context menu */
   --ctx-menu-bg: #252525;
-  --ctx-menu-border: #444;
-  --ctx-menu-hover: rgba(255, 255, 255, 0.08);
-  --ctx-menu-disabled: #555;
-  --ctx-menu-shortcut: #666;
-  --ctx-menu-separator: #333;
+  --ctx-menu-border: #3d4452;
+  /* Blue-tinted hover unifies with clipboard / focused-window highlights. */
+  --ctx-menu-hover: rgba(75, 145, 226, 0.16);
+  /* Disabled needs to be clearly muted but still readable on the menu bg. */
+  --ctx-menu-disabled: #6a7785;
+  --ctx-menu-shortcut: #7a8694;
+  /* Alpha-based so it reads correctly over hover backgrounds too. */
+  --ctx-menu-separator: rgba(255, 255, 255, 0.08);
 
   /* Stats block */
   --stats-fg: #888;
@@ -423,23 +426,29 @@ body {
   z-index: 200;
   background: var(--ctx-menu-bg);
   border: 1px solid var(--ctx-menu-border);
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  padding: 4px 0;
-  min-width: 200px;
+  border-radius: 8px;
+  /* Layered shadow: deep ambient + a tighter contact shadow for crispness. */
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  padding: 6px 0;
   font-size: 12px;
   color: var(--fg-default);
   user-select: none;
 }
 
+/* Sections are logical groups; separators handle the visual spacing between
+   them, so no extra section padding. */
 .ctx-menu-section {
-  padding: 2px 0;
+  padding: 0;
 }
 
 .ctx-menu-separator {
   height: 1px;
   background: var(--ctx-menu-separator);
-  margin: 3px 0;
+  /* Inset horizontally so the separator visually floats inside the rounded
+     menu frame rather than touching the border. */
+  margin: 5px 8px;
 }
 
 .ctx-menu-item {
@@ -447,7 +456,7 @@ body {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 4px 12px;
+  padding: 6px 14px;
   background: none;
   border: none;
   color: var(--fg-default);
@@ -457,8 +466,10 @@ body {
   white-space: nowrap;
 }
 
-.ctx-menu-item:hover:not(.ctx-menu-item--disabled) {
+.ctx-menu-item:hover:not(.ctx-menu-item--disabled),
+.ctx-menu-item:focus-visible:not(.ctx-menu-item--disabled) {
   background: var(--ctx-menu-hover);
+  outline: none;
 }
 
 .ctx-menu-item--disabled {
@@ -474,6 +485,7 @@ body {
   color: var(--ctx-menu-shortcut);
   margin-left: 16px;
   font-size: 11px;
+  font-weight: 500;
 }
 
 /* ---- Inline node edit input ---- */
