@@ -39,6 +39,13 @@
   /* Cursor highlight */
   --cursor-shadow: #444;
 
+  /* Indent guides — vertical lines showing tree depth.
+     Same color/opacity as the active window title background, matching
+     legacy. Solid color makes the lines clearly visible against the dark
+     row background while still reading as ancillary structure rather than
+     content. */
+  --indent-line: var(--wf-win-focused);
+
   /* Hovering menu */
   --menu-bg: rgba(40, 40, 40, 0.95);
   --menu-fg: #ccc;
@@ -211,6 +218,30 @@ body {
   cursor: default;
   user-select: none;
   white-space: nowrap;
+  position: relative;
+}
+
+/* Indent guide lines: a vertical line every 20px (the tree's `indent` prop)
+   across only the indent zone for this row. `--node-level` is set inline
+   from `node.level`. Lines sit at column 18 within each 20px slot so they
+   align with the DnD drop cursor (positioned at `level * 20 + 18` in
+   App.tsx's `renderCursor`). Decorative + pointer-events:none so they
+   can't break click/hover. */
+.tree-node::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: calc(var(--node-level, 0) * 20px);
+  pointer-events: none;
+  background-image: linear-gradient(
+    to right,
+    transparent 18px,
+    var(--indent-line) 18px,
+    var(--indent-line) 19px,
+    transparent 19px
+  );
+  background-size: 20px 100%;
+  background-repeat: repeat-x;
 }
 
 .tree-node:hover,

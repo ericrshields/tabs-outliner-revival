@@ -1,4 +1,5 @@
 import { useContext, useRef, useEffect } from 'react';
+import type { CSSProperties } from 'react';
 import type { NodeRendererProps } from 'react-arborist';
 import type { NodeDTO } from '@/types/node-dto';
 import type { EditKind } from '@/types/tree-context';
@@ -184,7 +185,15 @@ export function NodeRow({
   return (
     <div
       ref={dragHandle}
-      style={style}
+      style={
+        {
+          ...style,
+          // Drives the indent-guide ::before pseudo-element. Set as a CSS
+          // var so the same stylesheet works at every depth without extra
+          // class names per level.
+          '--node-level': node.level,
+        } as CSSProperties
+      }
       className={classNames}
       data-mvc-id={data.idMVC}
       onMouseEnter={handleMouseEnter}
