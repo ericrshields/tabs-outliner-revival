@@ -41,4 +41,8 @@ export interface TreeContextValue {
    * away.
    */
   isScrolling: boolean;
+  /** idMVC of the node currently in the cut/copy clipboard, or null. */
+  clipboardSourceId: string | null;
+  /** Kind of clipboard entry — drives row-level visual indicator. */
+  clipboardKind: 'cut' | 'copy' | null;
 }

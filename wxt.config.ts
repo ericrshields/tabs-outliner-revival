@@ -43,8 +43,8 @@ export default defineConfig({
     name: 'Tabs Outliner Revival',
     description:
       'The Next Generation Session Manager; A Really Working Too Many Open Tabs Solution; And Your Browsing Notebook.',
-    version: '2.0.1.11',
-    version_name: '2.0.0-beta.1.10',
+    version: '2.0.1.12',
+    version_name: '2.0.0-beta.1.11',
     content_security_policy: {
       extension_pages:
         "script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'",

@@ -82,6 +82,7 @@ export function App() {
     clearEditing,
     onOpenContextMenu: openContextMenu,
     hasClipboard: clipboard.hasClipboard,
+    clipboardEntry: clipboard.entry,
   });
 
   useKeyboardShortcuts({

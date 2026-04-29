@@ -33,6 +33,8 @@ function makeCtx(overrides: Partial<TreeContextValue> = {}): TreeContextValue {
     onNodeClick: vi.fn(),
     hasClipboard: false,
     isScrolling: false,
+    clipboardSourceId: null,
+    clipboardKind: null,
     ...overrides,
   };
 }

@@ -45,6 +45,7 @@ function makeOptions(
     clearEditing: vi.fn(),
     onOpenContextMenu: vi.fn(),
     hasClipboard: false,
+    clipboardEntry: null,
     ...overrides,
   };
 }
@@ -461,6 +462,7 @@ describe('useTreeInteractions', () => {
         clearEditing: vi.fn(),
         onOpenContextMenu: vi.fn(),
         hasClipboard: false,
+        clipboardEntry: null,
       };
       const { result, rerender } = renderHook(
         (props: UseTreeInteractionsOptions) => useTreeInteractions(props),

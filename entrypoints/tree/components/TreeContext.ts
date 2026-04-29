@@ -20,4 +20,6 @@ export const TreeContext = createContext<TreeContextValue>({
   onNodeClick: () => {},
   hasClipboard: false,
   isScrolling: false,
+  clipboardSourceId: null,
+  clipboardKind: null,
 });

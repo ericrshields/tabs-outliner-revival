@@ -22,9 +22,46 @@ function makeOptions() {
 }
 
 describe('useClipboard', () => {
-  it('starts with hasClipboard = false', () => {
+  it('starts with hasClipboard = false and entry = null', () => {
     const { result } = renderHook(() => useClipboard(makeOptions()));
     expect(result.current.hasClipboard).toBe(false);
+    expect(result.current.entry).toBeNull();
+  });
+
+  describe('entry exposure for visual indicators', () => {
+    it('cut sets entry with kind="cut" and the source id', () => {
+      const { result } = renderHook(() => useClipboard(makeOptions()));
+      act(() => result.current.cut('node1', 'Tab Title'));
+      expect(result.current.entry).toEqual({
+        sourceIdMVC: 'node1',
+        kind: 'cut',
+      });
+    });
+
+    it('copy sets entry with kind="copy" and the source id', () => {
+      const { result } = renderHook(() => useClipboard(makeOptions()));
+      act(() => result.current.copy('node2', 'Window'));
+      expect(result.current.entry).toEqual({
+        sourceIdMVC: 'node2',
+        kind: 'copy',
+      });
+    });
+
+    it('clearClipboard nulls the entry', () => {
+      const { result } = renderHook(() => useClipboard(makeOptions()));
+      act(() => result.current.cut('node1', 'x'));
+      expect(result.current.entry).not.toBeNull();
+      act(() => result.current.clearClipboard());
+      expect(result.current.entry).toBeNull();
+    });
+
+    it('paste does NOT change entry — visual indicator persists for retry/multi-paste', () => {
+      const { result } = renderHook(() => useClipboard(makeOptions()));
+      act(() => result.current.copy('node3', 'x'));
+      const before = result.current.entry;
+      act(() => result.current.paste('p', 0));
+      expect(result.current.entry).toBe(before);
+    });
   });
 
   describe('cut()', () => {
@@ -58,7 +95,7 @@ describe('useClipboard', () => {
   });
 
   describe('paste() after cut', () => {
-    it('posts moveHierarchy and keeps clipboard for retry', () => {
+    it('posts moveHierarchy on the first paste', () => {
       const opts = makeOptions();
       const { result } = renderHook(() => useClipboard(opts));
 
@@ -71,11 +108,28 @@ describe('useClipboard', () => {
         containerIdMVC: 'parent1',
         position: 2,
       });
-      // Clipboard stays active so the user can retry if the move fails.
+    });
+
+    it('transitions the entry from cut to copy after the move fires', () => {
+      const opts = makeOptions();
+      const { result } = renderHook(() => useClipboard(opts));
+
+      act(() => result.current.cut('node1', 'Tab Title'));
+      expect(result.current.entry?.kind).toBe('cut');
+
+      act(() => result.current.paste('parent1', 2));
+
+      // The clipboard now reads as "copy" so the visual indicator
+      // (dashed outline → solid blue tint) matches the new behavior:
+      // future pastes clone from the moved location.
+      expect(result.current.entry).toEqual({
+        sourceIdMVC: 'node1',
+        kind: 'copy',
+      });
       expect(result.current.hasClipboard).toBe(true);
     });
 
-    it('allows paste again after cut (node moves from new location)', () => {
+    it('a second paste after cut posts copyHierarchy (not moveHierarchy)', () => {
       const opts = makeOptions();
       const { result } = renderHook(() => useClipboard(opts));
 
@@ -84,6 +138,18 @@ describe('useClipboard', () => {
       act(() => result.current.paste('q', 1));
 
       expect(opts.postMessage).toHaveBeenCalledTimes(2);
+      expect(opts.postMessage).toHaveBeenNthCalledWith(1, {
+        request: 'request2bkg_moveHierarchy',
+        targetNodeIdMVC: 'node1',
+        containerIdMVC: 'p',
+        position: 0,
+      });
+      expect(opts.postMessage).toHaveBeenNthCalledWith(2, {
+        request: 'request2bkg_copyHierarchy',
+        sourceIdMVC: 'node1',
+        targetParentIdMVC: 'q',
+        targetPosition: 1,
+      });
     });
   });
 

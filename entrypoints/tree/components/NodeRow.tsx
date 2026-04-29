@@ -43,6 +43,7 @@ export function NodeRow({
     editCommittedRef.current = false;
   }, [ctx.editingId]);
 
+  const isClipboardSource = ctx.clipboardSourceId === data.idMVC;
   const classNames = [
     'tree-node',
     node.isSelected ? 'selected' : '',
@@ -52,6 +53,8 @@ export function NodeRow({
     isCursor ? 'cursor-node' : '',
     isHovered ? 'hovered' : '',
     data.nodeContentCssClass ? `ncc-${data.nodeContentCssClass}` : '',
+    isClipboardSource && ctx.clipboardKind === 'cut' ? 'clipboard-cut' : '',
+    isClipboardSource && ctx.clipboardKind === 'copy' ? 'clipboard-copy' : '',
   ]
     .filter(Boolean)
     .join(' ');

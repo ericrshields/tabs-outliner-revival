@@ -259,6 +259,23 @@ body {
   border-radius: 4px;
 }
 
+/* Clipboard source indicators. Both kinds share a subtle blue tint so the
+   user can read "this is the row a paste will act on" at a glance,
+   regardless of cut vs copy. The dashed outline on top of cut adds the
+   "...and it will move" qualifier — Excel/Sheets-style marching ants,
+   minus the animation. `outline` (not `border`) so the indicator doesn't
+   shift layout; negative offset pulls it inside the row bounds so
+   neighbouring rows don't clip it. */
+.tree-node.clipboard-cut,
+.tree-node.clipboard-copy {
+  background: rgba(75, 145, 226, 0.08);
+}
+
+.tree-node.clipboard-cut {
+  outline: 1px dashed rgba(255, 255, 255, 0.6);
+  outline-offset: -2px;
+}
+
 /* ---- Arrow ---- */
 
 .node-arrow {

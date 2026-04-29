@@ -42,6 +42,7 @@ export function useKeyboardShortcuts({
   editingId,
   clipboard,
   closeContextMenu,
+  contextMenuOpen,
 }: UseKeyboardShortcutsOptions): void {
   useEffect(() => {
     // Throttle move operations: react-arborist's node tree (prev/parent/children)
@@ -55,9 +56,16 @@ export function useKeyboardShortcuts({
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (editingId) return;
 
-      // Escape always closes context menu regardless of selection.
+      // Escape cancels the most recent transient state, in priority order:
+      // open context menu first, then a pending cut/copy. Without the
+      // clipboard branch the cut outline / copy tint had no way to clear
+      // short of triggering a paste.
       if (e.key === 'Escape') {
-        closeContextMenu();
+        if (contextMenuOpen) {
+          closeContextMenu();
+        } else if (clipboard.hasClipboard) {
+          clipboard.clearClipboard();
+        }
         return;
       }
 

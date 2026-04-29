@@ -12,6 +12,7 @@ import type {
   TreeContextValue,
   EditKind,
 } from '@/types/tree-context';
+import type { ClipboardEntry } from './use-clipboard';
 import type { EditingNodeState } from './use-tree-data';
 import {
   executeAction,
@@ -61,6 +62,12 @@ export interface UseTreeInteractionsOptions {
     y: number,
   ) => void;
   hasClipboard: boolean;
+  /**
+   * Currently-cut/copied node, or null. Plumbed through TreeContext so
+   * NodeRow can render a row-level visual indicator (faded for cut, tinted
+   * for copy) on the source node until the clipboard is consumed/cleared.
+   */
+  clipboardEntry: ClipboardEntry | null;
 }
 
 export interface UseTreeInteractionsReturn {
@@ -82,6 +89,7 @@ export function useTreeInteractions({
   clearEditing,
   onOpenContextMenu,
   hasClipboard,
+  clipboardEntry,
 }: UseTreeInteractionsOptions): UseTreeInteractionsReturn {
   const [hoverState, setHoverState] = useState<HoverState | null>(null);
 
@@ -286,6 +294,8 @@ export function useTreeInteractions({
       onNodeClick: handleNodeClick,
       hasClipboard,
       isScrolling,
+      clipboardSourceId: clipboardEntry?.sourceIdMVC ?? null,
+      clipboardKind: clipboardEntry?.kind ?? null,
     }),
     [
       localCursorId,
@@ -301,6 +311,8 @@ export function useTreeInteractions({
       handleNodeClick,
       hasClipboard,
       isScrolling,
+      clipboardEntry?.sourceIdMVC,
+      clipboardEntry?.kind,
     ],
   );
 
