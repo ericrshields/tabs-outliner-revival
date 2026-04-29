@@ -25,6 +25,7 @@ import { GroupTreeNode } from '@/tree/nodes/group-node';
 import { loadSettings } from '@/storage/settings-storage';
 import type { HierarchyJSO } from '@/types/serialized';
 import type { Msg_InitTreeView } from '@/types/messages';
+import { NodeTypesEnum } from '@/types/enums';
 import { SaveScheduler } from './save-scheduler';
 import { ViewBridge } from './view-bridge';
 import { registerChromeEventHandlers } from './chrome-event-handlers';
@@ -196,7 +197,16 @@ export class ActiveSession {
       // container.insertSubnode to avoid firing view events for a parent
       // that isn't in the tree yet.
       const { wrapImportsInContainer } = await loadSettings();
-      const children = hierarchy.s ?? [];
+      // Tabs at the top level violate the data model — they should always
+      // sit inside a window/group. Most commonly triggered by legacy DnD of
+      // a single tab arriving as a session whose only child is a tab. The
+      // dated-group wrapper below is itself a valid container for orphan
+      // tabs (groups can hold tabs directly), so only synthesize an extra
+      // savedwin when that wrapper is off — otherwise we'd create a
+      // redundant `Group → savedwin → tabs` chain.
+      const children = wrapImportsInContainer
+        ? (hierarchy.s ?? [])
+        : wrapOrphanTabs(hierarchy.s ?? []);
       let importedNodeCount = 0;
 
       if (wrapImportsInContainer) {
@@ -319,6 +329,62 @@ export class ActiveSession {
 function formatImportTimestamp(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Tab-variant types that must always live inside a window/group container. */
+const TAB_TYPES: ReadonlySet<string> = new Set([
+  NodeTypesEnum.SAVEDTAB,
+  NodeTypesEnum.TAB,
+  NodeTypesEnum.WAITINGTAB,
+  NodeTypesEnum.ATTACHWAITINGTAB,
+]);
+
+function isHierarchyTab(jso: HierarchyJSO): boolean {
+  const type = jso.n.type;
+  if (type !== undefined) return TAB_TYPES.has(type);
+  // Wire format omits `type` only for savedtab. Belt-and-suspenders: also
+  // require a string `data.url` so a malformed node with a missing type
+  // field can't get misclassified as a tab and wrapped erroneously.
+  const data = jso.n.data as Record<string, unknown> | undefined;
+  return typeof data?.url === 'string';
+}
+
+/**
+ * Group consecutive top-level tab nodes into a single savedwin container.
+ * Non-tab siblings pass through unchanged. Adjacent tab runs separated by a
+ * non-tab become separate savedwins so the original ordering is preserved —
+ * a mixed selection like `[tab, savedwin, tab]` becomes
+ * `[savedwin(tab), savedwin, savedwin(tab)]`. Collapsing the runs into one
+ * window would either reorder the user's selection or place the explicit
+ * window inside the synthetic one, both worse than the current shape.
+ */
+function wrapOrphanTabs(children: readonly HierarchyJSO[]): HierarchyJSO[] {
+  const result: HierarchyJSO[] = [];
+  let pending: HierarchyJSO[] = [];
+
+  const flush = (): void => {
+    if (pending.length === 0) return;
+    result.push({
+      n: {
+        type: NodeTypesEnum.SAVEDWINDOW,
+        data: {},
+        marks: { relicons: [], customTitle: 'Imported tabs' },
+      },
+      s: pending,
+    });
+    pending = [];
+  };
+
+  for (const child of children) {
+    if (isHierarchyTab(child)) {
+      pending.push(child);
+    } else {
+      flush();
+      result.push(child);
+    }
+  }
+  flush();
+  return result;
 }
 
 /** Count all nodes in a HierarchyJSO subtree (inclusive). */

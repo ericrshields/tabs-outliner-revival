@@ -367,6 +367,129 @@ describe('ActiveSession', () => {
       await session.dispose();
     });
 
+    it('does not double-wrap: dated group holds orphan tabs directly when wrapImportsInContainer is on', async () => {
+      // wrapImportsInContainer=true is the default, so the dated group is
+      // already a valid container for orphan tabs. Synthesizing an extra
+      // savedwin inside the group would produce a redundant
+      // `Group → savedwin → tabs` chain.
+      const session = await ActiveSession.create();
+      const beforeCount = session.treeModel.root.subnodes.length;
+
+      const jso = {
+        n: {
+          type: 'session',
+          data: { treeId: 'x', nextDId: 1, nonDumpedDId: 1 },
+        },
+        s: [{ n: { data: { url: 'https://a.com', title: 'A' } } }],
+      };
+
+      const result = await session.importTree(JSON.stringify(jso));
+      expect(result.success).toBe(true);
+
+      const last = session.treeModel.root.subnodes[beforeCount];
+      expect(last.type).toBe('group');
+      // Orphan tab is a direct child of the dated group — no extra savedwin.
+      expect(last.subnodes.length).toBe(1);
+      expect(last.subnodes[0].type).toBe('savedtab');
+
+      await session.dispose();
+    });
+
+    it('wraps an orphan top-level tab in a savedwin container', async () => {
+      // Repro for the legacy DnD bug: a single tab dropped from the legacy
+      // extension arrives as a session whose only child is a savedtab. Tabs
+      // must always live inside a window/group, so importTree wraps it.
+      mockLoadSettings.mockResolvedValue({
+        ...DEFAULT_SETTINGS,
+        wrapImportsInContainer: false,
+      });
+      const session = await ActiveSession.create();
+      const beforeCount = session.treeModel.root.subnodes.length;
+
+      const jso = {
+        n: {
+          type: 'session',
+          data: { treeId: 'x', nextDId: 1, nonDumpedDId: 1 },
+        },
+        // Orphan tab — no enclosing window. `type` omitted defaults to savedtab.
+        s: [{ n: { data: { url: 'https://a.com', title: 'A' } } }],
+      };
+
+      const result = await session.importTree(JSON.stringify(jso));
+      expect(result.success).toBe(true);
+
+      // Top-level node should be a savedwin wrapper, not a bare tab.
+      const last = session.treeModel.root.subnodes[beforeCount];
+      expect(last.type).toBe('savedwin');
+      expect(last.subnodes.length).toBe(1);
+      expect(last.subnodes[0].type).toBe('savedtab');
+
+      await session.dispose();
+    });
+
+    it('groups multiple consecutive orphan tabs into one savedwin', async () => {
+      mockLoadSettings.mockResolvedValue({
+        ...DEFAULT_SETTINGS,
+        wrapImportsInContainer: false,
+      });
+      const session = await ActiveSession.create();
+      const beforeCount = session.treeModel.root.subnodes.length;
+
+      const jso = {
+        n: {
+          type: 'session',
+          data: { treeId: 'x', nextDId: 1, nonDumpedDId: 1 },
+        },
+        s: [
+          { n: { data: { url: 'https://a.com', title: 'A' } } },
+          { n: { data: { url: 'https://b.com', title: 'B' } } },
+          { n: { data: { url: 'https://c.com', title: 'C' } } },
+        ],
+      };
+
+      const result = await session.importTree(JSON.stringify(jso));
+      expect(result.success).toBe(true);
+
+      // All three tabs collapse into one window — not three separate windows
+      // and not three orphan tabs.
+      expect(session.treeModel.root.subnodes.length).toBe(beforeCount + 1);
+      const last = session.treeModel.root.subnodes[beforeCount];
+      expect(last.type).toBe('savedwin');
+      expect(last.subnodes.length).toBe(3);
+    });
+
+    it('does not wrap when the top-level child is already a window', async () => {
+      // Regression guard: the orphan-tab fix must NOT add an extra wrapper
+      // around an already-properly-structured import.
+      mockLoadSettings.mockResolvedValue({
+        ...DEFAULT_SETTINGS,
+        wrapImportsInContainer: false,
+      });
+      const session = await ActiveSession.create();
+      const beforeCount = session.treeModel.root.subnodes.length;
+
+      const jso = {
+        n: {
+          type: 'session',
+          data: { treeId: 'x', nextDId: 1, nonDumpedDId: 1 },
+        },
+        s: [
+          {
+            n: { type: 'savedwin', data: {} },
+            s: [{ n: { data: { url: 'https://a.com', title: 'A' } } }],
+          },
+        ],
+      };
+      const result = await session.importTree(JSON.stringify(jso));
+      expect(result.success).toBe(true);
+
+      const last = session.treeModel.root.subnodes[beforeCount];
+      expect(last.type).toBe('savedwin');
+      // The single tab inside should not have been re-wrapped.
+      expect(last.subnodes.length).toBe(1);
+      expect(last.subnodes[0].type).toBe('savedtab');
+    });
+
     it('appends imports as siblings when wrapImportsInContainer is false', async () => {
       mockLoadSettings.mockResolvedValue({
         ...DEFAULT_SETTINGS,
