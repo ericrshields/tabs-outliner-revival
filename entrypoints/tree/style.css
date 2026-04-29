@@ -488,6 +488,89 @@ body {
   font-weight: 500;
 }
 
+/* ---- DnD drag preview ----
+   Custom layer rendered via react-arborist's `renderDragPreview` slot.
+   The wrapper is a viewport-spanning, click-through overlay; the inner
+   row is an absolute element transformed to track the dragged node. The
+   row gets 50% opacity plus a horizontal mask gradient that fades the
+   last ~80px to transparent, mimicking the legacy extension's "trailing
+   off" cut-off effect for dragged content. */
+
+.drag-preview-overlay {
+  position: fixed;
+  pointer-events: none;
+  z-index: 100;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Stack is the whole "floating preview" — title row + descendants +
+   optional overflow indicator. Opacity and mask apply once to the whole
+   stack so the rows fade as a unit, not independently. 0.65 keeps the
+   preview readable as content while still reading as a ghost against
+   the live tree behind it. */
+.drag-preview-stack {
+  position: absolute;
+  opacity: 0.65;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    black 0,
+    black calc(100% - 80px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    black 0,
+    black calc(100% - 80px),
+    transparent 100%
+  );
+}
+
+.drag-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  color: var(--fg-default);
+  background: var(--bg-body);
+}
+
+/* Descendants appear slightly dimmer to read as "subordinate" contents
+   of the dragged container; depth-aware indent comes from inline style
+   (set by the React component) rather than CSS class so each level can
+   nest naturally. */
+.drag-preview-row--child {
+  color: var(--fg-muted);
+}
+
+.drag-preview-row--more {
+  font-style: italic;
+  color: var(--fg-muted);
+}
+
+.drag-preview-text {
+  /* Cap so very long titles don't stretch the preview off-screen. The
+     mask gradient fades the right edge regardless. */
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drag-preview-count {
+  position: absolute;
+  background: var(--wf-win-focused);
+  color: var(--fg-bright);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  pointer-events: none;
+}
+
 /* ---- Inline node edit input ----
    Uses flex: 1 so the input takes the remaining row width regardless of
    node type. Tabs and notes drop the input directly into the row's flex

@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect } from 'react';
+import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import { Tree, type TreeApi } from 'react-arborist';
 import type { NodeDTO } from '@/types/node-dto';
 import type { HoveringMenuActionId } from '@/types/node';
@@ -26,6 +26,7 @@ import { HoveringMenu } from './components/HoveringMenu';
 import { ContextMenu } from './components/ContextMenu';
 import { FirstRunImport } from './components/FirstRunImport';
 import { MainToolbar } from './components/MainToolbar';
+import { makeDragPreview } from './components/DragPreview';
 
 /** Height of the fixed combined toolbar at the bottom. */
 const TOOLBAR_HEIGHT = 32;
@@ -146,6 +147,10 @@ export function App() {
     clearExportHtml,
   });
 
+  // Stable identity so react-arborist doesn't re-render the drag layer on
+  // every App render. treeRef itself is stable across renders.
+  const dragPreview = useMemo(() => makeDragPreview({ treeRef }), []);
+
   return (
     <div className="tree-view-container">
       {connectionState !== 'connected' && (
@@ -179,6 +184,7 @@ export function App() {
               onActivate={onActivate}
               onMove={handleTreeMove}
               renderRow={ClickRow}
+              renderDragPreview={dragPreview}
               renderCursor={({ top, left, indent }) => (
                 // Offset left by arrow width (14px) + flex gap (4px) so the
                 // drop indicator aligns with node text start.
