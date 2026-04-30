@@ -187,7 +187,13 @@ export function NodeRow({
 
   return (
     <div
-      ref={dragHandle}
+      // While editing, suppress row-level drag so the user can drag-select
+      // text inside the inline-edit input. Skipping the drag handle ref
+      // disconnects react-dnd's drag source; the dragstart preventDefault
+      // is a belt-and-suspenders catch in case react-dnd left
+      // `draggable=true` on the element.
+      ref={isEditing ? undefined : dragHandle}
+      onDragStart={isEditing ? (e) => e.preventDefault() : undefined}
       style={
         {
           ...style,
