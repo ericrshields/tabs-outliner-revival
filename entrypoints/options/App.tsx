@@ -44,24 +44,6 @@ export function App() {
           <label style={styles.row}>
             <input
               type="checkbox"
-              checked={settings.autoScrollToTab}
-              onChange={(e) =>
-                handleChange(
-                  'autoScrollToTab',
-                  (e.target as HTMLInputElement).checked,
-                )
-              }
-            />
-            <span style={styles.labelText}>
-              Auto-scroll tree to active tab
-              <span style={styles.labelDesc}>
-                Automatically scroll the tree to keep the current tab in view.
-              </span>
-            </span>
-          </label>
-          <label style={styles.row}>
-            <input
-              type="checkbox"
               checked={settings.openOnStartup}
               onChange={(e) =>
                 handleChange(
@@ -73,26 +55,8 @@ export function App() {
             <span style={styles.labelText}>
               Open on browser startup
               <span style={styles.labelDesc}>
-                Automatically open the Tabs Outliner window when the browser
+                Automatically open the Tabs Outliner tree when the browser
                 starts.
-              </span>
-            </span>
-          </label>
-          <label style={styles.row}>
-            <input
-              type="checkbox"
-              checked={settings.oneClickToOpen}
-              onChange={(e) =>
-                handleChange(
-                  'oneClickToOpen',
-                  (e.target as HTMLInputElement).checked,
-                )
-              }
-            />
-            <span style={styles.labelText}>
-              One-click to open tabs
-              <span style={styles.labelDesc}>
-                Open saved tabs with a single click instead of double-click.
               </span>
             </span>
           </label>
@@ -120,36 +84,12 @@ export function App() {
           </label>
         </section>
 
-        {/* Appearance */}
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>Appearance</h2>
-          <label style={styles.row}>
-            <input
-              type="checkbox"
-              checked={settings.lightBackground}
-              onChange={(e) =>
-                handleChange(
-                  'lightBackground',
-                  (e.target as HTMLInputElement).checked,
-                )
-              }
-            />
-            <span style={styles.labelText}>
-              Light background
-              <span style={styles.labelDesc}>
-                Use a light theme instead of the default dark background.
-              </span>
-            </span>
-          </label>
-        </section>
-
-        {/* Backup */}
-        <section style={{ ...styles.section, ...styles.disabled }}>
-          <h2 style={{ ...styles.sectionTitle, color: '#aaa' }}>
-            Google Drive Backup
-          </h2>
+        {/* Coming Soon */}
+        <section style={{ ...styles.section, ...styles.comingSoonSection }}>
+          <h2 style={styles.comingSoonTitle}>Coming Soon</h2>
           <p style={styles.comingSoon}>
-            Cloud backup via Google Drive is coming in a future update.
+            Light theme, auto-scroll tree to active tab, one-click to open saved
+            tabs, Google Drive backup, and many more options to come.
           </p>
         </section>
 
@@ -201,9 +141,6 @@ const styles: Record<string, CSSProperties> = {
     marginBottom: '16px',
     boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
   },
-  disabled: {
-    opacity: 0.45,
-  },
   sectionTitle: {
     fontSize: '14px',
     fontWeight: 600,
@@ -232,10 +169,22 @@ const styles: Record<string, CSSProperties> = {
     marginTop: '2px',
     fontWeight: 400,
   },
+  comingSoonSection: {
+    background: '#26303a',
+  },
+  comingSoonTitle: {
+    fontSize: '14px',
+    fontWeight: 600,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.06em',
+    color: '#7a9ab8',
+    margin: '0 0 14px',
+  },
   comingSoon: {
     fontSize: '13px',
-    color: '#6a8a9a',
+    color: '#bcc8d6',
     margin: 0,
+    lineHeight: '1.5',
   },
   aboutText: {
     fontSize: '13px',

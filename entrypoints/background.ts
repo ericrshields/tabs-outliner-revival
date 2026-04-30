@@ -20,6 +20,7 @@ import { createTab, queryTabs, removeTab, focusTab } from '@/chrome/tabs';
 import { queryWindows, removeWindow } from '@/chrome/windows';
 import {
   getDedicationSeenFlag,
+  loadSettings,
   setDedicationSeenFlag,
 } from '@/storage/settings-storage';
 import { SETTINGS_KEY } from '@/types/settings';
@@ -64,9 +65,23 @@ export default defineBackground(() => {
     return initPromise;
   }
 
+  async function openOrFocusTreeTab(): Promise<void> {
+    const treeUrl = browser.runtime.getURL('/tree.html');
+    const existing = await queryTabs({ url: treeUrl });
+    if (existing.length > 0 && existing[0].id != null) {
+      await focusTab(existing[0].id, existing[0].windowId ?? 0);
+    } else {
+      await createTab({ url: treeUrl });
+    }
+  }
+
   // Initialize session on startup and install
-  onExtensionStartup(() => {
-    void initSession();
+  onExtensionStartup(async () => {
+    await initSession();
+    const { openOnStartup } = await loadSettings();
+    if (openOnStartup) {
+      await openOrFocusTreeTab();
+    }
   });
 
   onExtensionInstalled(async (details) => {
@@ -103,15 +118,7 @@ export default defineBackground(() => {
 
   // Browser action click — create or focus the tree tab
   onActionClicked(async () => {
-    const treeUrl = browser.runtime.getURL('/tree.html');
-
-    // Check if tree tab already exists
-    const existing = await queryTabs({ url: treeUrl });
-    if (existing.length > 0 && existing[0].id != null) {
-      await focusTab(existing[0].id, existing[0].windowId ?? 0);
-    } else {
-      await createTab({ url: treeUrl });
-    }
+    await openOrFocusTreeTab();
   });
 
   // Keyboard command handlers
