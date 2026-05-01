@@ -63,7 +63,7 @@ export function App() {
 
         <div style={styles.footer}>
           <span style={styles.version}>
-            Tabs Outliner Revival v{manifest.version_name ?? manifest.version}
+            {manifest.name} v{manifest.version_name ?? manifest.version}
           </span>
           <button
             style={styles.openBtn}

@@ -40,11 +40,11 @@ export default defineConfig({
     plugins: [pathAliasPlugin(), preact()],
   }),
   manifest: {
-    name: 'Tabs Outliner Revival',
+    name: 'Tabs Outliner - Fan Modernization',
     description:
       'The Next Generation Session Manager; A Really Working Too Many Open Tabs Solution; And Your Browsing Notebook.',
-    version: '2.0.2.0',
-    version_name: '2.0.0-rc.1',
+    version: '2.0.2.1',
+    version_name: '2.0.0-rc.1.1',
     content_security_policy: {
       extension_pages:
         "script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'",
@@ -81,7 +81,7 @@ export default defineConfig({
       },
     ],
     action: {
-      default_title: 'Tabs Outliner Revival',
+      default_title: 'Tabs Outliner - Fan Modernization',
     },
     default_locale: 'en',
     offline_enabled: true,

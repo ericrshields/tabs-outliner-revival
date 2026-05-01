@@ -6,6 +6,7 @@
  * detailed breakdown in the tooltip.
  */
 
+import { browser } from 'wxt/browser';
 import { setBadgeText, setBadgeColor, setTooltip } from '@/chrome/action';
 import type { TreeModel } from '@/tree/tree-model';
 
@@ -18,7 +19,7 @@ export async function updateBadge(model: TreeModel): Promise<void> {
   const badgeText =
     stats.activeTabsCount > 0 ? String(stats.activeTabsCount) : '';
 
-  const tooltipParts = ['Tabs Outliner Revival'];
+  const tooltipParts = [browser.runtime.getManifest().name];
   if (stats.nodesCount > 0) {
     tooltipParts.push(
       `${stats.nodesCount} nodes, ${stats.activeWinsCount} windows, ${stats.activeTabsCount} tabs`,

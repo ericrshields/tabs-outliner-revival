@@ -4,6 +4,7 @@ import type {
   ChangeEvent,
   MouseEvent,
 } from 'react';
+import { browser } from 'wxt/browser';
 import type { ImportResultState } from '@/view/hooks/use-tree-data';
 import { extractTreeFromDrag, readFileAsText } from './drag-import';
 
@@ -98,7 +99,7 @@ export function FirstRunImport({
       }}
     >
       <div className="first-run-import" onClick={(e) => e.stopPropagation()}>
-        <h2>Welcome to Tabs Outliner Revival</h2>
+        <h2>Welcome to {browser.runtime.getManifest().name}</h2>
         <p>
           Import your tree from the original Tabs Outliner by dragging it here,
           or choose a <code>.tree</code> backup file.

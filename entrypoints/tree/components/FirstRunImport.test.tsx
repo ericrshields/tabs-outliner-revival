@@ -16,7 +16,9 @@ describe('FirstRunImport', () => {
       />,
     );
 
-    expect(container.textContent).toContain('Welcome to Tabs Outliner Revival');
+    expect(container.textContent).toContain(
+      'Welcome to Tabs Outliner - Fan Modernization',
+    );
     expect(container.querySelector('.import-btn')).toBeTruthy();
     expect(container.querySelector('.import-drop-zone')).toBeTruthy();
     expect(container.querySelector('.dismiss-btn')).toBeTruthy();

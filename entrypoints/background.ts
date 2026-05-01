@@ -1,5 +1,5 @@
 /**
- * WXT background entrypoint — service worker for Tabs Outliner Revival.
+ * WXT background entrypoint — service worker for the extension.
  *
  * Creates the ActiveSession on startup and wires lifecycle hooks,
  * port connections, action clicks, and keyboard commands.
@@ -26,9 +26,10 @@ import {
 import { SETTINGS_KEY } from '@/types/settings';
 
 export default defineBackground(() => {
-  console.log('Tabs Outliner Revival: background service worker started', {
-    id: browser.runtime.id,
-  });
+  console.log(
+    `${browser.runtime.getManifest().name}: background service worker started`,
+    { id: browser.runtime.id },
+  );
 
   let session: ActiveSession | null = null;
   let initPromise: Promise<ActiveSession | null> | null = null;

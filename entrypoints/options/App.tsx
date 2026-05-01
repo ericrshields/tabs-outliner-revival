@@ -97,10 +97,10 @@ export function App() {
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>About</h2>
           <p style={styles.aboutText}>
-            Tabs Outliner Revival &mdash; version {version}
+            {browser.runtime.getManifest().name} &mdash; version {version}
           </p>
           <p style={styles.aboutText}>
-            A community revival of the original Tabs Outliner by Vladyslav
+            A fan modernization of the original Tabs Outliner by Vladyslav
             Volovyk.{' '}
             <a
               href="https://github.com/ericrshields/tabs-outliner-revival"

@@ -1,8 +1,8 @@
 {
   "name": "tabs-outliner-revival",
-  "description": "Tab management Chrome extension — revival of Tabs Outliner",
+  "description": "Tab management Chrome extension — fan modernization of Tabs Outliner",
   "private": true,
-  "version": "2.0.0-rc.1",
+  "version": "2.0.0-rc.1.1",
   "type": "module",
   "scripts": {
     "dev": "wxt",

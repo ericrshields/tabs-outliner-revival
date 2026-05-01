@@ -101,7 +101,9 @@ describe('Tree App', () => {
 
     act(() => capturedOnMessage!(initMsg));
 
-    expect(screen.getByText('Welcome to Tabs Outliner Revival')).toBeTruthy();
+    expect(
+      screen.getByText('Welcome to Tabs Outliner - Fan Modernization'),
+    ).toBeTruthy();
     // Tree should still render behind the overlay
     expect(screen.queryByText('Loading tree...')).toBeNull();
   });
@@ -117,7 +119,9 @@ describe('Tree App', () => {
       instanceId: 'test',
     };
     act(() => capturedOnMessage!(initMsg));
-    expect(screen.getByText('Welcome to Tabs Outliner Revival')).toBeTruthy();
+    expect(
+      screen.getByText('Welcome to Tabs Outliner - Fan Modernization'),
+    ).toBeTruthy();
 
     // Background reports a successful import
     act(() =>
@@ -129,7 +133,9 @@ describe('Tree App', () => {
     );
 
     // Overlay should have auto-dismissed
-    expect(screen.queryByText('Welcome to Tabs Outliner Revival')).toBeNull();
+    expect(
+      screen.queryByText('Welcome to Tabs Outliner - Fan Modernization'),
+    ).toBeNull();
   });
 
   it('does not show first-run overlay after dismissal', () => {
@@ -145,6 +151,8 @@ describe('Tree App', () => {
 
     act(() => capturedOnMessage!(initMsg));
 
-    expect(screen.queryByText('Welcome to Tabs Outliner Revival')).toBeNull();
+    expect(
+      screen.queryByText('Welcome to Tabs Outliner - Fan Modernization'),
+    ).toBeNull();
   });
 });

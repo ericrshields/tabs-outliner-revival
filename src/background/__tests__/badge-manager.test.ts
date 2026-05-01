@@ -27,7 +27,9 @@ describe('updateBadge()', () => {
 
     expect(setBadgeText).toHaveBeenCalledWith('');
     expect(setBadgeColor).toHaveBeenCalledWith('#4688F1');
-    expect(setTooltip).toHaveBeenCalledWith('Tabs Outliner Revival');
+    expect(setTooltip).toHaveBeenCalledWith(
+      'Tabs Outliner - Fan Modernization',
+    );
   });
 
   it('shows node count and stats for populated tree', async () => {
@@ -46,7 +48,7 @@ describe('updateBadge()', () => {
 
     expect(setBadgeText).toHaveBeenCalledWith('2');
     expect(setTooltip).toHaveBeenCalledWith(
-      'Tabs Outliner Revival\n3 nodes, 1 windows, 2 tabs',
+      'Tabs Outliner - Fan Modernization\n3 nodes, 1 windows, 2 tabs',
     );
   });
 
@@ -70,7 +72,7 @@ describe('updateBadge()', () => {
 
     expect(setBadgeText).toHaveBeenCalledWith('3');
     expect(setTooltip).toHaveBeenCalledWith(
-      'Tabs Outliner Revival\n5 nodes, 2 windows, 3 tabs',
+      'Tabs Outliner - Fan Modernization\n5 nodes, 2 windows, 3 tabs',
     );
   });
 });
