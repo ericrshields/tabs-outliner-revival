@@ -40,6 +40,7 @@ vi.mock('@/chrome/tabs', () => ({
   onTabActivated: mockEventSubscription(),
   onTabReplaced: mockEventSubscription(),
   getTab: vi.fn().mockResolvedValue(null),
+  queryTabs: vi.fn().mockResolvedValue([]),
   createTab: vi.fn().mockResolvedValue(undefined),
   focusTab: vi.fn().mockResolvedValue(undefined),
   removeTab: vi.fn().mockResolvedValue(undefined),
@@ -54,6 +55,7 @@ vi.mock('@/chrome/windows', () => ({
   onWindowCreated: mockEventSubscription(),
   onWindowRemoved: mockEventSubscription(),
   onWindowFocusChanged: mockEventSubscription(),
+  getWindow: vi.fn().mockResolvedValue(null),
   focusWindow: vi.fn().mockResolvedValue(undefined),
   removeWindow: vi.fn().mockResolvedValue(undefined),
 }));
@@ -67,11 +69,13 @@ import {
   onTabActivated,
   onTabReplaced,
   getTab,
+  queryTabs,
 } from '@/chrome/tabs';
 import {
   onWindowCreated,
   onWindowRemoved,
   onWindowFocusChanged,
+  getWindow,
 } from '@/chrome/windows';
 
 function getListeners(
@@ -253,6 +257,53 @@ describe('onTabCreated handler', () => {
 
     expect(model.findActiveTab(50)).not.toBeNull();
     expect(session.scheduleSave).toHaveBeenCalled();
+  });
+
+  it('lazy-creates the window node when a user tab arrives in an untracked window', async () => {
+    // Models the scenario after handleWindowCreated skipped a window
+    // because it contained only extension tabs at creation time.
+    const { model } = buildTreeWithWindow();
+    const session = createMockSession(model);
+    (getWindow as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: 7,
+      type: 'normal',
+      focused: false,
+      incognito: false,
+    });
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    expect(model.findActiveWindow(7)).toBeNull();
+
+    await getLastListener(onTabCreated as ReturnType<typeof vi.fn>)({
+      id: 70,
+      windowId: 7,
+      url: 'https://lazy.com',
+      title: 'Lazy',
+    });
+
+    expect(model.findActiveWindow(7)).not.toBeNull();
+    expect(model.findActiveTab(70)).not.toBeNull();
+  });
+
+  it('does not lazy-create a window for tabs in devtools/panel windows', async () => {
+    const { model } = buildTreeWithWindow();
+    const session = createMockSession(model);
+    (getWindow as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: 8,
+      type: 'devtools',
+      focused: false,
+    });
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    await getLastListener(onTabCreated as ReturnType<typeof vi.fn>)({
+      id: 80,
+      windowId: 8,
+      url: 'https://devtools-tab.com',
+      title: 'DT',
+    });
+
+    expect(model.findActiveWindow(8)).toBeNull();
+    expect(model.findActiveTab(80)).toBeNull();
   });
 });
 
@@ -697,12 +748,15 @@ describe('onTabReplaced handler', () => {
 });
 
 describe('onWindowCreated handler', () => {
-  it('creates a new window node', () => {
+  it('creates a new window node when it has user tabs', async () => {
     const { model } = buildTreeWithWindow();
     const session = createMockSession(model);
+    (queryTabs as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { id: 50, windowId: 5, url: 'https://example.com', title: 'Ex' },
+    ]);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
+    await getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
       id: 5,
       type: 'normal',
       focused: false,
@@ -714,12 +768,39 @@ describe('onWindowCreated handler', () => {
     expect(session.scheduleSave).toHaveBeenCalled();
   });
 
-  it('ignores devtools windows', () => {
+  it('skips windows containing only extension-owned tabs', async () => {
+    const { model } = buildTreeWithWindow();
+    const session = createMockSession(model);
+    // Simulate Chrome restoring TOR's tree.html as the only tab in
+    // a window after a browser restart — the previous behavior planted
+    // a permanently-empty window shell here.
+    const extUrl = fakeBrowser.runtime.getURL('/tree.html');
+    (queryTabs as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      {
+        id: 60,
+        windowId: 6,
+        url: extUrl,
+        title: 'Tabs Outliner',
+      },
+    ]);
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    await getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
+      id: 6,
+      type: 'normal',
+      focused: false,
+    });
+
+    expect(model.findActiveWindow(6)).toBeNull();
+    expect(session.scheduleSave).not.toHaveBeenCalled();
+  });
+
+  it('ignores devtools windows', async () => {
     const { model } = buildTreeWithWindow();
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
+    await getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
       id: 99,
       type: 'devtools',
       focused: false,
@@ -729,12 +810,12 @@ describe('onWindowCreated handler', () => {
     expect(session.scheduleSave).not.toHaveBeenCalled();
   });
 
-  it('ignores panel windows', () => {
+  it('ignores panel windows', async () => {
     const { model } = buildTreeWithWindow();
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
+    await getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
       id: 99,
       type: 'panel',
       focused: false,
@@ -743,12 +824,12 @@ describe('onWindowCreated handler', () => {
     expect(model.findActiveWindow(99)).toBeNull();
   });
 
-  it('does not duplicate existing windows', () => {
+  it('does not duplicate existing windows', async () => {
     const { model } = buildTreeWithWindow();
     const session = createMockSession(model);
     registerChromeEventHandlers(session, session.viewBridge);
 
-    getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
+    await getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
       id: 1,
       type: 'normal',
       focused: true,
@@ -759,6 +840,26 @@ describe('onWindowCreated handler', () => {
       if (n.type === NodeTypesEnum.WINDOW) winCount++;
     });
     expect(winCount).toBe(1);
+  });
+
+  it('forwards incognito flag from the Chrome onCreated event', async () => {
+    const { model } = buildTreeWithWindow();
+    const session = createMockSession(model);
+    (queryTabs as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { id: 70, windowId: 7, url: 'https://example.com', title: 'Ex' },
+    ]);
+    registerChromeEventHandlers(session, session.viewBridge);
+
+    await getLastListener(onWindowCreated as ReturnType<typeof vi.fn>)({
+      id: 7,
+      type: 'normal',
+      focused: false,
+      incognito: true,
+    });
+
+    const newWin = model.findActiveWindow(7);
+    expect(newWin).not.toBeNull();
+    expect((newWin!.data as WindowData).incognito).toBe(true);
   });
 });
 

@@ -14,7 +14,7 @@ import type { ViewBridge } from './view-bridge';
 import { dndPendingTabIds } from './dnd-state';
 import { NodeTypesEnum } from '@/types/enums';
 import type { TabData, WindowData } from '@/types/node-data';
-import type { ChromeTabData } from '@/types/chrome';
+import type { ChromeTabData, ChromeWindowData } from '@/types/chrome';
 import { TreeModel } from '@/tree/tree-model';
 import { TreeNode } from '@/tree/tree-node';
 import { TabTreeNode } from '@/tree/nodes/tab-node';
@@ -32,12 +32,14 @@ import {
   onTabActivated,
   onTabReplaced,
   getTab,
+  queryTabs,
   isExtensionUrl,
 } from '@/chrome/tabs';
 import {
   onWindowCreated,
   onWindowRemoved,
   onWindowFocusChanged,
+  getWindow,
 } from '@/chrome/windows';
 
 const WINDOW_FOCUS_DEBOUNCE_MS = 100;
@@ -124,23 +126,42 @@ export function registerChromeEventHandlers(
 
 // -- Individual handlers --
 
-function handleTabCreated(
+async function handleTabCreated(
   session: ActiveSession,
   bridge: ViewBridge,
   tab: ChromeTabData,
-): void {
+): Promise<void> {
   if (tab.id == null || tab.windowId == null) return;
   if (isExtensionUrl(tab.url)) return; // Don't track extension's own tabs
 
   // Check for Ctrl+Shift+T undo-close pattern
   const closeRecord = tab.url ? session.closeTracker.findByUrl(tab.url) : null;
 
-  const winNode = session.treeModel.findActiveWindow(tab.windowId);
+  // Lazy window creation: handleWindowCreated may have skipped this
+  // window because at the time of the onWindowCreated event it
+  // contained only extension tabs. Now that a real user tab has
+  // arrived, materialize the window node.
+  let winNode = session.treeModel.findActiveWindow(tab.windowId);
   if (!winNode) {
-    console.warn(
-      `[chrome-event-handlers] Window ${tab.windowId} not found for new tab ${tab.id}`,
-    );
-    return;
+    const win = await getWindow(tab.windowId);
+    // Re-check after the await — a concurrent handler may have created it.
+    winNode = session.treeModel.findActiveWindow(tab.windowId);
+    if (!winNode) {
+      if (!win || win.type === 'devtools' || win.type === 'panel') {
+        console.warn(
+          `[chrome-event-handlers] Skipping tab ${tab.id} in unsupported window ${tab.windowId}`,
+        );
+        return;
+      }
+      winNode = new WindowTreeNode({
+        id: tab.windowId,
+        type: win.type,
+        focused: win.focused,
+        incognito: win.incognito,
+      } as WindowData);
+      session.treeModel.insertAsLastChild(session.treeModel.root, winNode);
+      notifyNodeInserted(bridge, winNode);
+    }
   }
 
   const tabNode = new TabTreeNode(tab as TabData);
@@ -410,11 +431,11 @@ async function handleTabReplaced(
   session.scheduleSave();
 }
 
-function handleWindowCreated(
+async function handleWindowCreated(
   session: ActiveSession,
   bridge: ViewBridge,
-  win: { id?: number; type?: string; focused?: boolean },
-): void {
+  win: ChromeWindowData,
+): Promise<void> {
   if (win.id == null) return;
 
   // Skip DevTools and panel windows — they only contain extension-owned
@@ -423,6 +444,19 @@ function handleWindowCreated(
 
   const existing = session.treeModel.findActiveWindow(win.id);
   if (existing) return; // Already tracked
+
+  // Skip windows that only contain extension-owned tabs (e.g., Chrome
+  // restored TOR's tree.html into its own window after a browser
+  // restart). Without this guard we'd plant a permanently-empty
+  // window shell — handleTabCreated filters extension tabs, so the
+  // window would never gain children. Any later non-extension tab
+  // arriving in this window will lazy-create the window node via
+  // handleTabCreated.
+  const tabs = await queryTabs({ windowId: win.id });
+  // Re-check after the await: another handler may have created the node.
+  if (session.treeModel.findActiveWindow(win.id)) return;
+  const userTabs = tabs.filter((t) => !isExtensionUrl(t.url));
+  if (userTabs.length === 0) return;
 
   const winNode = new WindowTreeNode(win as WindowData);
   session.treeModel.insertAsLastChild(session.treeModel.root, winNode);
