@@ -630,14 +630,19 @@ body {
   content: ']';
 }
 
-.stats-block > span + span::before {
+.stats-block > .stats-counter + .stats-counter::before {
   content: '/';
   margin: 0 2px;
 }
 
-.stats-counter-icon {
-  width: 10px;
-  height: 10px;
+.stats-counter {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Per-counter icon — explicit span so the separator '/' can live on
+ * the counter's ::before without sharing the pseudo-element. */
+.stats-counter > .stats-icon {
   display: inline-block;
   background-size: contain;
   background-repeat: no-repeat;
@@ -646,12 +651,30 @@ body {
   vertical-align: middle;
 }
 
-.stats-tabs-icon {
-  background-image: url('/img/tabscounter.png');
+/* Chrome window icon renders tighter than the globe svg's viewBox; the
+ * globes need 1px less to look the same visual weight. */
+.stats-active-containers > .stats-icon {
+  width: 10px;
+  height: 10px;
 }
 
-.stats-wins-icon {
-  background-image: url('/img/winscounter.png');
+.stats-tabs-total > .stats-icon,
+.stats-active-tabs > .stats-icon {
+  width: 9px;
+  height: 9px;
+}
+
+.stats-tabs-total > .stats-icon {
+  background-image: url('/img/globe.svg');
+  filter: grayscale(1);
+}
+
+.stats-active-containers > .stats-icon {
+  background-image: url('/img/chrome-window-icon-gray.png');
+}
+
+.stats-active-tabs > .stats-icon {
+  background-image: url('/img/globe.svg');
 }
 
 /* ---- First-run import overlay ---- */

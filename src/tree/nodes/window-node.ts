@@ -8,6 +8,7 @@
 import { NodeTypesEnum } from '@/types/enums';
 import type { WindowData } from '@/types/node-data';
 import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
+import type { MutableStatsBlock } from '@/types/node-dto';
 import { TreeNode } from '../tree-node';
 import { SavedWindowTreeNode } from './saved-window-node';
 import { serializeWindowData } from './tab-utils';
@@ -89,13 +90,24 @@ export class WindowTreeNode extends TreeNode {
     return this.isProtectedFromGoneOnCloseCache;
   }
 
-  protected override countSelf(stats: {
-    nodesCount: number;
-    activeWinsCount: number;
-    activeTabsCount: number;
-  }): void {
+  protected override countSelf(stats: MutableStatsBlock): void {
     stats.nodesCount++;
-    stats.activeWinsCount++;
+    // activeWinsCount handled in adjustForContainerNesting so it
+    // respects the nested-container suppression — Chrome only
+    // materializes one window for the whole nested chain.
+  }
+
+  override isActiveContainer(): boolean {
+    return true;
+  }
+
+  protected override adjustForContainerNesting(
+    stats: MutableStatsBlock,
+    insideActiveAncestor: boolean,
+  ): void {
+    if (!insideActiveAncestor) {
+      stats.activeWinsCount++;
+    }
   }
 
   serializeData(): WindowData {

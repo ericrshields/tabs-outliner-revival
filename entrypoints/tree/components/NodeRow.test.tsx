@@ -274,9 +274,16 @@ describe('NodeRow', () => {
 
   it('shows stats block when collapsed with stats data', () => {
     const stats: StatsBlock = {
-      activeTabsCount: 3,
-      activeWinsCount: 0,
       nodesCount: 3,
+      activeTabsCount: 3,
+      savedTabsCount: 0,
+      activeWinsCount: 0,
+      savedWinsCount: 0,
+      activeGroupsCount: 0,
+      savedGroupsCount: 0,
+      notesCount: 0,
+      separatorsCount: 0,
+      sessionsCount: 0,
     };
     const data = makeNodeDTO({
       statsBlockData: stats,
@@ -288,9 +295,16 @@ describe('NodeRow', () => {
 
   it('hides stats block when node is open', () => {
     const stats: StatsBlock = {
-      activeTabsCount: 3,
-      activeWinsCount: 0,
       nodesCount: 3,
+      activeTabsCount: 3,
+      savedTabsCount: 0,
+      activeWinsCount: 0,
+      savedWinsCount: 0,
+      activeGroupsCount: 0,
+      savedGroupsCount: 0,
+      notesCount: 0,
+      separatorsCount: 0,
+      sessionsCount: 0,
     };
     const data = makeNodeDTO({
       statsBlockData: stats,

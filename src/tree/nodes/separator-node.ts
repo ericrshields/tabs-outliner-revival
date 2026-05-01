@@ -8,6 +8,7 @@
 import { NodeTypesEnum } from '@/types/enums';
 import type { SeparatorData } from '@/types/node-data';
 import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
+import type { MutableStatsBlock } from '@/types/node-dto';
 import { TreeNode } from '../tree-node';
 
 const SEPARATORS = [
@@ -85,6 +86,11 @@ export class SeparatorTreeNode extends TreeNode {
 
   getNodeContentCssClass(): string {
     return SEPARATORS[this._persistentData.separatorIndx].css;
+  }
+
+  protected override countSelf(stats: MutableStatsBlock): void {
+    stats.nodesCount++;
+    stats.separatorsCount++;
   }
 
   serializeData(): SeparatorData {

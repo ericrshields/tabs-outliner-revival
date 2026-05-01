@@ -8,6 +8,7 @@
 import { NodeTypesEnum } from '@/types/enums';
 import type { SessionData } from '@/types/node-data';
 import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
+import type { MutableStatsBlock } from '@/types/node-dto';
 import { TreeNode } from '../tree-node';
 import { GroupTreeNode } from './group-node';
 
@@ -95,6 +96,11 @@ export class SessionTreeNode extends TreeNode {
 
   getNodeContentCssClass(): string | null {
     return null;
+  }
+
+  protected override countSelf(stats: MutableStatsBlock): void {
+    stats.nodesCount++;
+    stats.sessionsCount++;
   }
 
   serializeData(): SessionData {

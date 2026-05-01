@@ -12,7 +12,7 @@ import type { NodeType } from '@/types/enums';
 import { NodeTypesEnum } from '@/types/enums';
 import type { NodeMarks } from '@/types/marks';
 import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
-import type { StatsBlock } from '@/types/node-dto';
+import type { MutableStatsBlock, StatsBlock } from '@/types/node-dto';
 import type { SerializedNode, HierarchyJSO } from '@/types/serialized';
 import { generateMvcId } from './mvc-id';
 import type { DiffAccumulator } from './types';
@@ -228,30 +228,76 @@ export abstract class TreeNode {
   // -- Stats --
 
   countSubnodesStats(): StatsBlock {
-    const stats = { nodesCount: 0, activeWinsCount: 0, activeTabsCount: 0 };
+    const stats: MutableStatsBlock = {
+      nodesCount: 0,
+      activeTabsCount: 0,
+      savedTabsCount: 0,
+      activeWinsCount: 0,
+      savedWinsCount: 0,
+      activeGroupsCount: 0,
+      savedGroupsCount: 0,
+      notesCount: 0,
+      separatorsCount: 0,
+      sessionsCount: 0,
+    };
     this.countSubnodesRecursive(stats);
     return stats;
   }
 
-  private countSubnodesRecursive(stats: {
-    nodesCount: number;
-    activeWinsCount: number;
-    activeTabsCount: number;
-  }): void {
+  /**
+   * True if any descendant in this subtree is a live Chrome tab or
+   * window. Used to decide whether a group should count as an
+   * "active container" — Chrome maintains a window for the group
+   * iff at least one of its descendants is currently active.
+   */
+  hasActiveDescendant(): boolean {
+    for (const child of this.subnodes) {
+      if (child.isAnOpenTab() || child.isAnOpenWindow()) return true;
+      if (child.hasActiveDescendant()) return true;
+    }
+    return false;
+  }
+
+  private countSubnodesRecursive(
+    stats: MutableStatsBlock,
+    insideActiveContainer = false,
+  ): void {
     for (const child of this.subnodes) {
       child.countSelf(stats);
-      child.countSubnodesRecursive(stats);
+      child.adjustForContainerNesting(stats, insideActiveContainer);
+      const childIsActiveContainer = child.isActiveContainer();
+      child.countSubnodesRecursive(
+        stats,
+        insideActiveContainer || childIsActiveContainer,
+      );
     }
   }
 
-  /** Override in active tab/window nodes to count themselves. */
-  protected countSelf(stats: {
-    nodesCount: number;
-    activeWinsCount: number;
-    activeTabsCount: number;
-  }): void {
+  /** Override in concrete node types to also bump the per-kind counter. */
+  protected countSelf(stats: MutableStatsBlock): void {
     stats.nodesCount++;
   }
+
+  /**
+   * True if Chrome materializes a window for this node when it has
+   * live content. Active windows always; groups whenever they
+   * contain an active descendant. Drives the suppression of nested
+   * container counting in `countSubnodesRecursive`.
+   */
+  isActiveContainer(): boolean {
+    return false;
+  }
+
+  /**
+   * Hook for the recursion to update per-kind counters that depend on
+   * ancestor state — specifically, whether this node is nested inside
+   * another active container. Default no-op; only `GroupTreeNode`
+   * currently uses it (to choose between the active and saved buckets).
+   */
+  protected adjustForContainerNesting(
+    _stats: MutableStatsBlock,
+    _insideActiveAncestor: boolean,
+  ): void {}
 
   // -- Query --
 

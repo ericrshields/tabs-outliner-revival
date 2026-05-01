@@ -11,9 +11,23 @@ import type { HoveringMenuActionId, TitleBackgroundCssClass } from './node';
 
 export interface StatsBlock {
   readonly nodesCount: number;
-  readonly activeWinsCount: number;
   readonly activeTabsCount: number;
+  readonly savedTabsCount: number;
+  readonly activeWinsCount: number;
+  readonly savedWinsCount: number;
+  /** Group with at least one active tab/window descendant — Chrome maintains a window for it. */
+  readonly activeGroupsCount: number;
+  /** Group with no active descendants — purely organizational. */
+  readonly savedGroupsCount: number;
+  readonly notesCount: number;
+  readonly separatorsCount: number;
+  readonly sessionsCount: number;
 }
+
+/** Mutable counterpart of StatsBlock used during accumulation. */
+export type MutableStatsBlock = {
+  -readonly [K in keyof StatsBlock]: StatsBlock[K];
+};
 
 export interface NodeDTO {
   readonly id: MvcId;

@@ -3,8 +3,10 @@ import { WindowTreeNode } from '../../nodes/window-node';
 import { SavedWindowTreeNode } from '../../nodes/saved-window-node';
 import { WaitingWindowTreeNode } from '../../nodes/waiting-window-node';
 import { SavedTabTreeNode } from '../../nodes/saved-tab-node';
+import { TabTreeNode } from '../../nodes/tab-node';
+import { GroupTreeNode } from '../../nodes/group-node';
 import { NodeTypesEnum } from '@/types/enums';
-import type { WindowData } from '@/types/node-data';
+import type { TabData, WindowData } from '@/types/node-data';
 import { resetMvcIdCounter } from '../../mvc-id';
 
 const sampleWindowData: WindowData = {
@@ -12,6 +14,16 @@ const sampleWindowData: WindowData = {
   type: 'normal',
   focused: true,
   incognito: false,
+};
+
+const sampleActiveTabData: TabData = {
+  id: 99,
+  windowId: 7,
+  url: 'https://example.com',
+  title: 'Example',
+  status: 'complete',
+  pinned: false,
+  active: true,
 };
 
 describe('SavedWindowTreeNode', () => {
@@ -96,6 +108,15 @@ describe('SavedWindowTreeNode', () => {
     const clone = node.cloneAsSaved();
     expect(clone).toBeInstanceOf(SavedWindowTreeNode);
   });
+
+  it('counts as saved window in stats', () => {
+    const parent = new SavedWindowTreeNode();
+    const win = new SavedWindowTreeNode(sampleWindowData);
+    parent.insertSubnode(0, win);
+    const stats = parent.countSubnodesStats();
+    expect(stats.savedWinsCount).toBe(1);
+    expect(stats.activeWinsCount).toBe(0);
+  });
 });
 
 describe('WindowTreeNode', () => {
@@ -162,6 +183,34 @@ describe('WindowTreeNode', () => {
     parent.insertSubnode(0, win);
     const stats = parent.countSubnodesStats();
     expect(stats.activeWinsCount).toBe(1);
+  });
+
+  it('does not double-count when nested inside an active group', () => {
+    // Bug fix: a group with an active descendant materializes one
+    // Chrome window for the whole chain. The active window inside
+    // the group must not bump activeWinsCount on top of that.
+    const parent = new SavedWindowTreeNode();
+    const group = new GroupTreeNode();
+    const win = new WindowTreeNode(sampleWindowData);
+    win.insertSubnode(0, new TabTreeNode(sampleActiveTabData));
+    group.insertSubnode(0, win);
+    parent.insertSubnode(0, group);
+    const stats = parent.countSubnodesStats();
+    expect(stats.activeGroupsCount).toBe(1);
+    expect(stats.activeWinsCount).toBe(0);
+  });
+
+  it('does not double-count groups nested inside an active window', () => {
+    const parent = new SavedWindowTreeNode();
+    const win = new WindowTreeNode(sampleWindowData);
+    const group = new GroupTreeNode();
+    group.insertSubnode(0, new TabTreeNode(sampleActiveTabData));
+    win.insertSubnode(0, group);
+    parent.insertSubnode(0, win);
+    const stats = parent.countSubnodesStats();
+    expect(stats.activeWinsCount).toBe(1);
+    expect(stats.activeGroupsCount).toBe(0);
+    expect(stats.savedGroupsCount).toBe(1);
   });
 
   it('calculateIsProtectedFromGoneOnClose detects non-tab subnodes', () => {

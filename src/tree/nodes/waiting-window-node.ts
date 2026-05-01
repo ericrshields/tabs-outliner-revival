@@ -8,6 +8,7 @@
 import { NodeTypesEnum } from '@/types/enums';
 import type { WindowData } from '@/types/node-data';
 import type { HoveringMenuActionId, HoveringMenuAction } from '@/types/node';
+import type { MutableStatsBlock } from '@/types/node-dto';
 import { TreeNode } from '../tree-node';
 import { SavedWindowTreeNode } from './saved-window-node';
 import { serializeWindowData } from './tab-utils';
@@ -60,6 +61,11 @@ export class WaitingWindowTreeNode extends TreeNode {
 
   getNodeContentCssClass(): string | null {
     return null;
+  }
+
+  protected override countSelf(stats: MutableStatsBlock): void {
+    stats.nodesCount++;
+    stats.savedWinsCount++;
   }
 
   serializeData(): WindowData {

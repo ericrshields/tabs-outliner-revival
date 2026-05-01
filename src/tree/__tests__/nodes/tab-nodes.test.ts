@@ -109,6 +109,15 @@ describe('SavedTabTreeNode', () => {
     expect(actions.editTitleAction).toBeDefined();
     expect(actions.closeAction).toBeUndefined();
   });
+
+  it('counts as saved tab in stats', () => {
+    const parent = new SavedTabTreeNode();
+    const tab = new SavedTabTreeNode(sampleTabData);
+    parent.insertSubnode(0, tab);
+    const stats = parent.countSubnodesStats();
+    expect(stats.savedTabsCount).toBe(1);
+    expect(stats.activeTabsCount).toBe(0);
+  });
 });
 
 describe('TabTreeNode', () => {
@@ -180,6 +189,15 @@ describe('WaitingTabTreeNode', () => {
     expect(node.getNodeText()).toBe('Example');
     expect(node.getHref()).toBe('https://example.com');
   });
+
+  it('counts as saved tab in stats (not yet a live Chrome tab)', () => {
+    const parent = new SavedTabTreeNode();
+    const tab = new WaitingTabTreeNode(sampleTabData);
+    parent.insertSubnode(0, tab);
+    const stats = parent.countSubnodesStats();
+    expect(stats.savedTabsCount).toBe(1);
+    expect(stats.activeTabsCount).toBe(0);
+  });
 });
 
 describe('AttachWaitTabTreeNode', () => {
@@ -205,5 +223,14 @@ describe('AttachWaitTabTreeNode', () => {
     const node = new AttachWaitTabTreeNode(sampleTabData);
     const actions = node.getHoveringMenuActions();
     expect(actions.closeAction).toBeDefined();
+  });
+
+  it('counts as active tab in stats (live Chrome tab in transition)', () => {
+    const parent = new SavedTabTreeNode();
+    const tab = new AttachWaitTabTreeNode(sampleTabData);
+    parent.insertSubnode(0, tab);
+    const stats = parent.countSubnodesStats();
+    expect(stats.activeTabsCount).toBe(1);
+    expect(stats.savedTabsCount).toBe(0);
   });
 });

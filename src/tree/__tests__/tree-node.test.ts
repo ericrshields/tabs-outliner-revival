@@ -3,6 +3,7 @@ import { TreeNode } from '../tree-node';
 import { NodeTypesEnum } from '@/types/enums';
 import type { NodeType } from '@/types/enums';
 import type { NodeMarks } from '@/types/marks';
+import type { MutableStatsBlock } from '@/types/node-dto';
 import { resetMvcIdCounter } from '../mvc-id';
 
 /** Minimal concrete subclass for testing TreeNode base behavior. */
@@ -62,11 +63,7 @@ class TestActiveTabNode extends TestNode {
     return true;
   }
 
-  protected override countSelf(stats: {
-    nodesCount: number;
-    activeWinsCount: number;
-    activeTabsCount: number;
-  }): void {
+  protected override countSelf(stats: MutableStatsBlock): void {
     stats.nodesCount++;
     stats.activeTabsCount++;
   }
@@ -80,11 +77,7 @@ class TestActiveWindowNode extends TestNode {
     return true;
   }
 
-  protected override countSelf(stats: {
-    nodesCount: number;
-    activeWinsCount: number;
-    activeTabsCount: number;
-  }): void {
+  protected override countSelf(stats: MutableStatsBlock): void {
     stats.nodesCount++;
     stats.activeWinsCount++;
   }
@@ -346,8 +339,15 @@ describe('TreeNode', () => {
       const node = new TestNode();
       expect(node.countSubnodesStats()).toEqual({
         nodesCount: 0,
-        activeWinsCount: 0,
         activeTabsCount: 0,
+        savedTabsCount: 0,
+        activeWinsCount: 0,
+        savedWinsCount: 0,
+        activeGroupsCount: 0,
+        savedGroupsCount: 0,
+        notesCount: 0,
+        separatorsCount: 0,
+        sessionsCount: 0,
       });
     });
 
